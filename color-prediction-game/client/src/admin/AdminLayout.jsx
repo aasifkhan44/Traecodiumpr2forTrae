@@ -18,7 +18,10 @@ import {
   FaEnvelope,
   FaCode,
   FaImage,
-  FaMoneyBillWave
+  FaMoneyBillWave,
+  FaUserFriends,
+  FaGlobe,
+  FaMoneyBill
 } from 'react-icons/fa';
 
 const AdminLayout = ({ onLogout }) => {
@@ -185,6 +188,28 @@ const AdminLayout = ({ onLogout }) => {
                   onClick={toggleMobileMenu}
                 >
                   <FaCreditCard className="mr-2" /> Payment Settings
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/admin/withdrawal-settings" 
+                  className={({isActive}) => 
+                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
+                  }
+                  onClick={toggleMobileMenu}
+                >
+                  <FaMoneyBillWave className="mr-2" /> Withdrawal Settings
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/admin/withdrawal-requests" 
+                  className={({isActive}) => 
+                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
+                  }
+                  onClick={toggleMobileMenu}
+                >
+                  <FaExchangeAlt className="mr-2" /> Withdrawal Requests
                 </NavLink>
               </li>
               <li>

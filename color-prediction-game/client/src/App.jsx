@@ -28,6 +28,8 @@ import Settings from './admin/Settings';
 import AdminTransactions from './admin/Transactions';
 import ReferralCommissionSettings from './admin/ReferralCommissionSettings';
 import PaymentSettings from './admin/PaymentSettings';
+import WithdrawalSettings from './admin/WithdrawalSettings';
+import WithdrawalRequests from './admin/WithdrawalRequests';
 import SmtpSettings from './admin/SmtpSettings';
 import EmailTemplates from './admin/EmailTemplates';
 import SiteSettings from './admin/SiteSettings';
@@ -104,6 +106,8 @@ function App() {
               <Route path="/admin/transactions" element={<AdminTransactions />} />
               <Route path="/admin/referral-commission-settings" element={<ReferralCommissionSettings />} />
               <Route path="/admin/payment-settings" element={<PaymentSettings />} />
+              <Route path="/admin/withdrawal-settings" element={<WithdrawalSettings />} />
+              <Route path="/admin/withdrawal-requests" element={<WithdrawalRequests />} />
               <Route path="/admin/smtp-settings" element={<SmtpSettings />} />
               <Route path="/admin/email-templates" element={<EmailTemplates />} />
               <Route path="/admin/site-settings" element={<SiteSettings />} />
