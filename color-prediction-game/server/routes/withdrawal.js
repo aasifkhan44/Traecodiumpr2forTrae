@@ -6,6 +6,58 @@ const User = require('../models/User');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
 const WithdrawalSettings = require('../models/WithdrawalSettings');
 
+// @route   GET api/withdrawal/settings
+// @desc    Get withdrawal settings for user
+// @access  Private
+router.get('/settings', auth, async (req, res) => {
+  try {
+    console.log('Withdrawal settings request received');
+    
+    // Get withdrawal settings
+    const settings = await WithdrawalSettings.getSettings();
+    
+    // Format the response for the client
+    const upiOptions = settings.upiWithdrawalActive ? 
+      settings.upiOptions.filter(option => option.isActive).map(option => ({
+        name: option.name,
+        upiId: option.upiId,
+        withdrawalFee: option.withdrawalFee,
+        feeType: option.feeType,
+        conversionRate: option.conversionRate,
+        svgCode: option.svgCode || ''
+      })) : [];
+    
+    const cryptoOptions = settings.cryptoWithdrawalActive ? 
+      settings.cryptoOptions.filter(option => option.isActive).map(option => ({
+        currency: option.currency,
+        address: option.address,
+        conversionRate: option.conversionRate,
+        withdrawalFee: option.withdrawalFee,
+        feeType: option.feeType,
+        svgCode: option.svgCode || ''
+      })) : [];
+    
+    return res.json({
+      success: true,
+      data: {
+        upiOptions,
+        cryptoOptions,
+        minimumWithdrawalAmount: settings.minimumWithdrawalAmount,
+        maximumWithdrawalAmount: settings.maximumWithdrawalAmount,
+        withdrawalInstructions: settings.withdrawalInstructions,
+        upiWithdrawalActive: settings.upiWithdrawalActive,
+        cryptoWithdrawalActive: settings.cryptoWithdrawalActive,
+        upiWithdrawalFeePercentage: 2, // Default percentage for UPI withdrawals
+        cryptoWithdrawalFeePercentage: 5, // Default percentage for crypto withdrawals
+        minimumWithdrawalFee: 1 // Default minimum fee
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching withdrawal settings:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @route   GET api/withdrawal/options
 // @desc    Get available withdrawal options
 // @access  Private
@@ -22,6 +74,8 @@ router.get('/options', auth, async (req, res) => {
         name: option.name,
         upiId: option.upiId,
         withdrawalFee: option.withdrawalFee,
+        feeType: option.feeType,
+        conversionRate: option.conversionRate,
         svgCode: option.svgCode || ''
       })) : [];
     
@@ -31,6 +85,7 @@ router.get('/options', auth, async (req, res) => {
         address: option.address,
         conversionRate: option.conversionRate,
         withdrawalFee: option.withdrawalFee,
+        feeType: option.feeType,
         svgCode: option.svgCode || ''
       })) : [];
     

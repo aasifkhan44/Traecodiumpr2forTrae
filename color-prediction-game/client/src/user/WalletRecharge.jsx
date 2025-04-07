@@ -273,7 +273,12 @@ const WalletRecharge = () => {
   if (loadingSettings) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-6">Wallet Recharge</h1>
+        <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Wallet Recharge</h1>
+        <Link to="/wallet/withdraw" className="btn btn-outline btn-primary">
+          Withdraw Funds
+        </Link>
+      </div>
         <div className="flex justify-center items-center p-8">
           <FaSpinner className="animate-spin text-3xl text-primary" />
           <p className="ml-2">Loading payment options...</p>
@@ -286,7 +291,12 @@ const WalletRecharge = () => {
   if (errorSettings) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-6">Wallet Recharge</h1>
+        <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Wallet Recharge</h1>
+        <Link to="/wallet/withdraw" className="btn btn-outline btn-primary">
+          Withdraw Funds
+        </Link>
+      </div>
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
           <p className="font-bold">Error</p>
           <p>{errorSettings}</p>
@@ -302,7 +312,12 @@ const WalletRecharge = () => {
   if (success) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold mb-6">Wallet Recharge</h1>
+        <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Wallet Recharge</h1>
+        <Link to="/wallet/withdraw" className="btn btn-outline btn-primary">
+          Withdraw Funds
+        </Link>
+      </div>
         <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
           <p className="font-bold flex items-center">
             <FaCheck className="mr-2" /> Success!
@@ -373,7 +388,12 @@ const WalletRecharge = () => {
   
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Wallet Recharge</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Wallet Recharge</h1>
+        <Link to="/wallet/withdraw" className="btn btn-outline btn-primary">
+          Withdraw Funds
+        </Link>
+      </div>
       
       {error && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">

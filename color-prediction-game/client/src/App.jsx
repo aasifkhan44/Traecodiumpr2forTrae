@@ -15,6 +15,7 @@ import Dashboard from './user/Dashboard';
 import GamePage from './user/GamePage';
 import Profile from './user/Profile';
 import WalletRecharge from './user/WalletRecharge';
+import Withdrawal from './user/Withdrawal';
 import Transactions from './user/Transactions';
 import Referrals from './user/Referrals';
 import ReferralCommissions from './user/ReferralCommissions';
@@ -120,6 +121,7 @@ function App() {
               <Route path="/game" element={<GamePage />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/wallet/recharge" element={<WalletRecharge />} />
+              <Route path="/wallet/withdraw" element={<Withdrawal />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/referrals" element={<Referrals />} />
               <Route path="/referral-commissions" element={<ReferralCommissions />} />
