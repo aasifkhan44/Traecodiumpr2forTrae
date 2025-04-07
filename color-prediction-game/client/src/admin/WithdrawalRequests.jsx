@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaCheck, FaTimes, FaSpinner, FaEye } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaSpinner, FaEye, FaTrash } from 'react-icons/fa';
 import { format } from 'date-fns';
 
 const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
@@ -185,6 +185,31 @@ const WithdrawalRequests = () => {
       setActionLoading(false);
     }
   };
+  
+  // Handle delete request
+  const handleDeleteRequest = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this withdrawal request? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/admin/withdrawal-requests/${id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      if (res.data.success) {
+        toast.success('Withdrawal request deleted successfully');
+        fetchWithdrawalRequests();
+      }
+    } catch (err) {
+      console.error('Error deleting withdrawal request:', err);
+      toast.error(err.response?.data?.message || 'Failed to delete withdrawal request');
+    }
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -304,9 +329,19 @@ const WithdrawalRequests = () => {
                       <button
                         onClick={() => handleViewRequest(request._id)}
                         className="text-blue-600 hover:text-blue-900 mr-3"
+                        title="View Details"
                       >
                         <FaEye />
                       </button>
+                      {request.status === 'rejected' && (
+                        <button
+                          onClick={() => handleDeleteRequest(request._id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete Request"
+                        >
+                          <FaTrash />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

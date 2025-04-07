@@ -192,17 +192,6 @@ const AdminLayout = ({ onLogout }) => {
               </li>
               <li>
                 <NavLink 
-                  to="/admin/withdrawal-settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
-                  onClick={toggleMobileMenu}
-                >
-                  <FaMoneyBillWave className="mr-2" /> Withdrawal Settings
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
                   to="/admin/withdrawal-requests" 
                   className={({isActive}) => 
                     `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
@@ -210,6 +199,17 @@ const AdminLayout = ({ onLogout }) => {
                   onClick={toggleMobileMenu}
                 >
                   <FaExchangeAlt className="mr-2" /> Withdrawal Requests
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/admin/withdrawal-settings" 
+                  className={({isActive}) => 
+                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
+                  }
+                  onClick={toggleMobileMenu}
+                >
+                  <FaMoneyBill className="mr-2" /> Withdrawal Settings
                 </NavLink>
               </li>
               <li>

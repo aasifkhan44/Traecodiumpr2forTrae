@@ -9,34 +9,34 @@ const WithdrawalSettingsSchema = new mongoose.Schema(
           required: true,
           trim: true
         },
-        upiId: {
-          type: String,
+        conversionRate: {
+          type: Number,
           required: true,
-          trim: true
-        },
-        isActive: {
-          type: Boolean,
-          default: true
+          default: 1
         },
         withdrawalFee: {
           type: Number,
           default: 0,
           min: 0
         },
+        feeType: {
+          type: String,
+          enum: ['fixed', 'percent'],
+          default: 'fixed'
+        },
         svgCode: {
           type: String,
           default: ''
+        },
+        isActive: {
+          type: Boolean,
+          default: true
         }
       }
     ],
     cryptoOptions: [
       {
         currency: {
-          type: String,
-          required: true,
-          trim: true
-        },
-        address: {
           type: String,
           required: true,
           trim: true
@@ -51,13 +51,18 @@ const WithdrawalSettingsSchema = new mongoose.Schema(
           default: 0,
           min: 0
         },
-        isActive: {
-          type: Boolean,
-          default: true
+        feeType: {
+          type: String,
+          enum: ['fixed', 'percent'],
+          default: 'fixed'
         },
         svgCode: {
           type: String,
           default: ''
+        },
+        isActive: {
+          type: Boolean,
+          default: true
         }
       }
     ],
@@ -88,37 +93,32 @@ const WithdrawalSettingsSchema = new mongoose.Schema(
 // Static method to get withdrawal settings
 WithdrawalSettingsSchema.statics.getSettings = async function() {
   try {
-    // Check if we're in development mode
-    const isDev = process.env.NODE_ENV === 'development';
-    
-    // For production, try to fetch from database
-    if (!isDev) {
-      const settings = await this.findOne();
-      if (settings) {
-        return settings;
-      }
+    // Always try to fetch from database first, regardless of environment
+    const settings = await this.findOne();
+    if (settings) {
+      return settings;
     }
-
-    // For development or if no settings found in production, use default settings
-    return {
-      _id: new mongoose.Types.ObjectId(),
+    
+    // If no settings found in database, create and save default settings
+    const defaultSettings = new this({
       upiOptions: [
         {
           name: 'Main UPI',
-          upiId: 'withdrawal@upi',
-          isActive: true,
+          conversionRate: 1,
           withdrawalFee: 2,
-          svgCode: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-3.5-8v-4l7 3-7 3z"/></svg>'
+          feeType: 'fixed',
+          svgCode: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-3.5-8v-4l7 3-7 3z"/></svg>',
+          isActive: true
         }
       ],
       cryptoOptions: [
         {
           currency: 'USDT',
-          address: '0x1234567890abcdef1234567890abcdef12345678',
-          conversionRate: 1000, // 1 USDT = 1000 game currency
+          conversionRate: 1000,
           withdrawalFee: 5,
-          isActive: true,
-          svgCode: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-3.5-8v-4l7 3-7 3z"/></svg>'
+          feeType: 'fixed',
+          svgCode: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>',
+          isActive: true
         }
       ],
       minimumWithdrawalAmount: 100,
@@ -126,7 +126,10 @@ WithdrawalSettingsSchema.statics.getSettings = async function() {
       withdrawalInstructions: 'Please ensure you provide the correct UPI ID or crypto address for withdrawal. Withdrawals are processed within 24 hours.',
       upiWithdrawalActive: true,
       cryptoWithdrawalActive: true
-    };
+    });
+    
+    await defaultSettings.save();
+    return defaultSettings;
   } catch (error) {
     console.error('Error fetching withdrawal settings:', error);
     throw error;

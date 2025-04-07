@@ -1144,8 +1144,11 @@ router.put('/withdrawal-settings', adminMiddleware, async (req, res) => {
       cryptoWithdrawalActive 
     } = req.body;
     
-    // Get current settings
-    let settings = await WithdrawalSettings.getSettings();
+    // Find existing settings or create new one
+    let settings = await WithdrawalSettings.findOne();
+    if (!settings) {
+      settings = new WithdrawalSettings();
+    }
     
     // Update settings
     if (upiOptions) settings.upiOptions = upiOptions;
@@ -1220,6 +1223,45 @@ router.get('/withdrawal-requests/:id', adminMiddleware, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch withdrawal request' 
+    });
+  }
+});
+
+// @route   DELETE api/admin/withdrawal-requests/:id
+// @desc    Delete a withdrawal request
+// @access  Private/Admin
+router.delete('/withdrawal-requests/:id', adminMiddleware, async (req, res) => {
+  try {
+    console.log('Deleting withdrawal request:', req.params.id);
+    
+    const request = await WithdrawalRequest.findById(req.params.id);
+    
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Withdrawal request not found'
+      });
+    }
+    
+    // Only allow deletion of rejected requests to prevent accidental deletion of pending/approved requests
+    if (request.status !== 'rejected') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only rejected withdrawal requests can be deleted'
+      });
+    }
+    
+    await WithdrawalRequest.findByIdAndDelete(req.params.id);
+    
+    res.json({
+      success: true,
+      message: 'Withdrawal request deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting withdrawal request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete withdrawal request'
     });
   }
 });

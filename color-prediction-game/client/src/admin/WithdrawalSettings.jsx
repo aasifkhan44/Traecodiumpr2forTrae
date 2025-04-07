@@ -94,10 +94,11 @@ const WithdrawalSettings = () => {
         ...formData.upiOptions,
         {
           name: '',
-          upiId: '',
-          isActive: true,
+          conversionRate: 1,
           withdrawalFee: 0,
-          svgCode: ''
+          feeType: 'fixed',
+          svgCode: '',
+          isActive: true
         }
       ]
     });
@@ -111,11 +112,11 @@ const WithdrawalSettings = () => {
         ...formData.cryptoOptions,
         {
           currency: '',
-          address: '',
           conversionRate: 1,
           withdrawalFee: 0,
-          isActive: true,
-          svgCode: ''
+          feeType: 'fixed',
+          svgCode: '',
+          isActive: true
         }
       ]
     });
@@ -335,13 +336,19 @@ const WithdrawalSettings = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Name
+                        UPI/APP Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        UPI ID
+                        Conversion Rate
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Withdrawal Fee
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fee Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        App Icon
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
@@ -372,12 +379,20 @@ const WithdrawalSettings = () => {
                           {editMode ? (
                             <input
                               type="text"
-                              value={option.upiId}
-                              onChange={(e) => handleUpiOptionChange(index, 'upiId', e.target.value)}
+                              value={option.conversionRate}
+                              onChange={(e) => {
+                                if (e.target.value === '' || /^\d*\.?\d*$/.test(e.target.value)) {
+                                  handleUpiOptionChange(
+                                    index,
+                                    'conversionRate',
+                                    e.target.value === '' ? '' : parseFloat(e.target.value) || 0
+                                  );
+                                }
+                              }}
                               className="w-full p-1 border rounded"
                             />
                           ) : (
-                            option.upiId
+                            option.conversionRate
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -398,6 +413,32 @@ const WithdrawalSettings = () => {
                             />
                           ) : (
                             option.withdrawalFee
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {editMode ? (
+                            <select
+                              value={option.feeType}
+                              onChange={(e) => handleUpiOptionChange(index, 'feeType', e.target.value)}
+                              className="w-full p-1 border rounded"
+                            >
+                              <option value="fixed">Fixed</option>
+                              <option value="percent">Percent</option>
+                            </select>
+                          ) : (
+                            option.feeType === 'fixed' ? 'Fixed' : 'Percent'
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {editMode ? (
+                            <textarea
+                              value={option.svgCode || ''}
+                              onChange={(e) => handleUpiOptionChange(index, 'svgCode', e.target.value)}
+                              className="w-full p-1 border rounded h-10"
+                              placeholder="SVG code for icon"
+                            />
+                          ) : (
+                            <div className="h-6 w-6" dangerouslySetInnerHTML={{ __html: option.svgCode || '' }} />
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -463,13 +504,16 @@ const WithdrawalSettings = () => {
                         Currency
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Address
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Conversion Rate
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Withdrawal Fee
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fee Type
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        App Icon
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
@@ -494,18 +538,6 @@ const WithdrawalSettings = () => {
                             />
                           ) : (
                             option.currency
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {editMode ? (
-                            <input
-                              type="text"
-                              value={option.address}
-                              onChange={(e) => handleCryptoOptionChange(index, 'address', e.target.value)}
-                              className="w-full p-1 border rounded"
-                            />
-                          ) : (
-                            <span className="truncate max-w-xs inline-block">{option.address}</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -546,6 +578,32 @@ const WithdrawalSettings = () => {
                             />
                           ) : (
                             option.withdrawalFee
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {editMode ? (
+                            <select
+                              value={option.feeType}
+                              onChange={(e) => handleCryptoOptionChange(index, 'feeType', e.target.value)}
+                              className="w-full p-1 border rounded"
+                            >
+                              <option value="fixed">Fixed</option>
+                              <option value="percent">Percent</option>
+                            </select>
+                          ) : (
+                            option.feeType === 'fixed' ? 'Fixed' : 'Percent'
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {editMode ? (
+                            <textarea
+                              value={option.svgCode || ''}
+                              onChange={(e) => handleCryptoOptionChange(index, 'svgCode', e.target.value)}
+                              className="w-full p-1 border rounded h-10"
+                              placeholder="SVG code for icon"
+                            />
+                          ) : (
+                            <div className="h-6 w-6" dangerouslySetInnerHTML={{ __html: option.svgCode || '' }} />
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
