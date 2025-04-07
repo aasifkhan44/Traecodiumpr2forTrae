@@ -193,9 +193,67 @@ router.post('/create-request', auth, async (req, res) => {
       });
     }
     
-    // Calculate final amount after fee
-    const fee = withdrawalFee || 0;
-    const finalAmount = amount - fee;
+    // Get the appropriate conversion rate and fee based on withdrawal mode
+    let conversionRate = 1;
+    let fee = 0;
+    let calculatedConvertedAmount = amount;
+
+    // Validate conversion rate
+    if (conversionRate <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid conversion rate configuration'
+      });
+    }
+    
+    if (withdrawalMode === 'upi') {
+      const upiOption = settings.upiOptions.find(option => option.isActive);
+      if (upiOption) {
+        conversionRate = upiOption.conversionRate;
+        // First convert the amount to the target currency
+        calculatedConvertedAmount = amount / conversionRate;
+        // Calculate fee based on converted amount
+        fee = upiOption.feeType === 'fixed' ? 
+          upiOption.withdrawalFee : 
+          (calculatedConvertedAmount * (upiOption.withdrawalFee / 100));
+        console.log(`UPI withdrawal: Original amount: ${amount}, Converted amount: ${calculatedConvertedAmount}, Fee: ${fee}`);
+      }
+    } else if (withdrawalMode === 'crypto') {
+      const cryptoOption = settings.cryptoOptions.find(option => option.currency === cryptoCurrency && option.isActive);
+      if (cryptoOption) {
+        conversionRate = cryptoOption.conversionRate;
+        // First convert the amount to the target currency
+        calculatedConvertedAmount = amount / conversionRate;
+        // Calculate fee based on converted amount
+        fee = cryptoOption.feeType === 'fixed' ? 
+          cryptoOption.withdrawalFee : 
+          (calculatedConvertedAmount * (cryptoOption.withdrawalFee / 100));
+        console.log(`Crypto withdrawal: Original amount: ${amount}, Converted amount: ${calculatedConvertedAmount}, Fee: ${fee}`);
+      }
+    }
+    
+    // Final amount is converted amount minus fees
+    // Ensure precise decimal handling
+    const finalAmount = Number((calculatedConvertedAmount - fee).toFixed(8));
+    calculatedConvertedAmount = Number(calculatedConvertedAmount.toFixed(8));
+    fee = Number(fee.toFixed(8));
+
+    // Validate final amount
+    if (isNaN(finalAmount) || !isFinite(finalAmount)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid amount calculation'
+      });
+    }
+    console.log(`Final amount after fee deduction: ${finalAmount}`);
+    
+    // Ensure final amount is positive
+    if (finalAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Withdrawal amount too small after fees'
+      });
+    }
     
     // Create withdrawal request
     const withdrawalRequest = new WithdrawalRequest({
@@ -205,7 +263,7 @@ router.post('/create-request', auth, async (req, res) => {
       upiId: withdrawalMode === 'upi' ? upiId : undefined,
       cryptoCurrency: withdrawalMode === 'crypto' ? cryptoCurrency : undefined,
       cryptoAddress: withdrawalMode === 'crypto' ? cryptoAddress : undefined,
-      convertedAmount: withdrawalMode === 'crypto' ? convertedAmount : undefined,
+      convertedAmount: withdrawalMode === 'crypto' ? calculatedConvertedAmount : undefined,
       withdrawalFee: fee,
       finalAmount
     });
@@ -242,6 +300,23 @@ router.get('/requests', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching withdrawal requests:', err);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET api/withdrawal/my-requests
+// @desc    Get user's withdrawal history
+// @access  Private
+router.get('/my-requests', auth, async (req, res) => {
+  try {
+    console.log('Fetching withdrawal history for user:', req.user.id);
+    const requests = await WithdrawalRequest.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('user', 'name mobile countryCode');
+    
+    return res.json({ success: true, data: requests });
+  } catch (err) {
+    console.error('Error fetching withdrawal history:', err);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });

@@ -306,9 +306,9 @@ const WithdrawalRequests = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium">{request.amount}</div>
+                      <div className="font-medium">{request.amount.toFixed(2)}</div>
                       <div className="text-xs text-gray-500">
-                        Fee: {request.withdrawalFee || 0} | Final: {request.finalAmount}
+                        Fee: {(request.withdrawalFee || 0).toFixed(2)} | Final: {parseFloat(request.finalAmount || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -379,15 +379,15 @@ const WithdrawalRequests = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Amount</p>
-                  <p className="font-medium">{selectedRequest.amount}</p>
+                  <p className="font-medium">{parseFloat(selectedRequest.amount).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Withdrawal Fee</p>
-                  <p className="font-medium">{selectedRequest.withdrawalFee || 0}</p>
+                  <p className="font-medium">{parseFloat(selectedRequest.withdrawalFee || 0).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Final Amount</p>
-                  <p className="font-medium">{selectedRequest.finalAmount}</p>
+                  <p className="font-medium">{parseFloat(selectedRequest.finalAmount || 0).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
@@ -414,7 +414,7 @@ const WithdrawalRequests = () => {
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Converted Amount</p>
-                      <p className="font-medium">{selectedRequest.convertedAmount}</p>
+                      <p className="font-medium">{parseFloat(selectedRequest.convertedAmount || 0).toFixed(6)}</p>
                     </div>
                   </>
                 )}

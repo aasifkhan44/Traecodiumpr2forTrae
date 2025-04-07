@@ -176,8 +176,8 @@ const Withdrawal = () => {
   
   // Calculate withdrawal fee and final amount with currency conversion
   useEffect(() => {
-    if (paymentSettings && amount) {
-      const amountValue = parseFloat(amount) || 0;
+    if (paymentSettings && convertedAmount) {
+      const amountValue = parseFloat(convertedAmount) || 0;
       let fee = 0;
       let conversionRate = 1;
       let feeType = 'fixed';
@@ -216,7 +216,7 @@ const Withdrawal = () => {
       setWithdrawalFee(fee);
       setFinalAmount(Math.max(0, amountValue - fee));
     }
-  }, [paymentSettings, amount, withdrawalMode, selectedCrypto]);
+  }, [paymentSettings, convertedAmount, withdrawalMode, selectedCrypto]);
   
   // Handle payment mode change
   const handleWithdrawalModeChange = (mode) => {
@@ -285,7 +285,7 @@ const Withdrawal = () => {
         amount: parseFloat(amount),
         withdrawalMode,
         fee: withdrawalFee,
-        finalAmount
+        finalAmount: parseFloat(finalAmount.toFixed(2)) // Ensure finalAmount matches what's shown to user
       };
       
       // Add payment specific fields
@@ -653,18 +653,18 @@ const Withdrawal = () => {
               <div className="flex justify-between mb-2">
                 <span>Fee {withdrawalMode === 'upi' && paymentSettings.upiOptions && paymentSettings.upiOptions.length > 0
                   ? (paymentSettings.upiOptions[0].feeType === 'percent' 
-                    ? `(${parseFloat(paymentSettings.upiOptions[0].withdrawalFee).toFixed(2)}%)` 
+                    ? `(${Number(paymentSettings.upiOptions[0].withdrawalFee).toFixed(2)}%)` 
                     : '(Fixed)')
                   : withdrawalMode === 'crypto' && selectedCrypto
                     ? (selectedCrypto.feeType === 'percent' 
-                      ? `(${parseFloat(selectedCrypto.withdrawalFee).toFixed(2)}%)` 
+                      ? `(${Number(selectedCrypto.withdrawalFee).toFixed(2)}%)` 
                       : '(Fixed)')
                     : ''}:</span>
-                <span className="text-red-600">-{isNaN(withdrawalFee) ? '0.00' : withdrawalFee.toFixed(2)}</span>
+                <span className="text-red-600">-{isNaN(withdrawalFee) ? '0.00' : Number(withdrawalFee).toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold">
                 <span>You will receive:</span>
-                <span className="text-green-600">{isNaN(finalAmount) ? '0.00' : finalAmount.toFixed(2)}</span>
+                <span className="text-green-600">{isNaN(finalAmount) ? '0.00' : Number(finalAmount).toFixed(2)}</span>
               </div>
             </div>
           )}
@@ -735,9 +735,20 @@ const Withdrawal = () => {
                     required={withdrawalMode === 'crypto'}
                   />
                   {amount && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      You will receive approximately {convertedAmount} {selectedCrypto.currency}
-                    </p>
+                    <div className="space-y-2 mt-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Converted Amount:</span>
+                        <span>{convertedAmount} {selectedCrypto.currency}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Fee:</span>
+                        <span className="text-red-500">-{withdrawalFee} {selectedCrypto.currency}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-semibold border-t pt-2">
+                        <span className="text-gray-700">Final Amount:</span>
+                        <span className="text-green-600">{(convertedAmount - withdrawalFee).toFixed(6)} {selectedCrypto.currency}</span>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -813,14 +824,19 @@ const Withdrawal = () => {
               <span className="font-medium">{amount}</span>
             </div>
             
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">Withdrawal Fee:</span>
-              <span className="font-medium text-red-600">{withdrawalFee}</span>
-            </div>
-            
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">Final Amount:</span>
-              <span className="font-medium text-green-600">{finalAmount}</span>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Converted Amount:</span>
+                <span className="font-medium">₹{convertedAmount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Transaction Fee:</span>
+                <span className="font-medium text-red-600">-₹{withdrawalFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-gray-600 font-semibold">Final Amount:</span>
+                <span className="font-medium text-green-600">₹{(convertedAmount - withdrawalFee).toFixed(2)}</span>
+              </div>
             </div>
           </div>
           
