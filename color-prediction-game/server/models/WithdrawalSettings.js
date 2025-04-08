@@ -24,7 +24,7 @@ const WithdrawalSettingsSchema = new mongoose.Schema(
           enum: ['fixed', 'percent'],
           default: 'fixed'
         },
-        svgCode: {
+        imageUrl: {
           type: String,
           default: ''
         },
@@ -56,7 +56,7 @@ const WithdrawalSettingsSchema = new mongoose.Schema(
           enum: ['fixed', 'percent'],
           default: 'fixed'
         },
-        svgCode: {
+        imageUrl: {
           type: String,
           default: ''
         },
@@ -107,7 +107,7 @@ WithdrawalSettingsSchema.statics.getSettings = async function() {
           conversionRate: 1,
           withdrawalFee: 2,
           feeType: 'fixed',
-          svgCode: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-3.5-8v-4l7 3-7 3z"/></svg>',
+          imageUrl: '',
           isActive: true
         }
       ],
@@ -117,7 +117,7 @@ WithdrawalSettingsSchema.statics.getSettings = async function() {
           conversionRate: 1000,
           withdrawalFee: 5,
           feeType: 'fixed',
-          svgCode: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>',
+          imageUrl: '',
           isActive: true
         }
       ],

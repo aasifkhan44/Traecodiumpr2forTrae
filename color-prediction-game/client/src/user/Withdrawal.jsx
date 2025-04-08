@@ -708,7 +708,11 @@ const Withdrawal = () => {
                     >
                       <div className="flex items-center">
                         <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                          <FaBitcoin className="text-gray-400" />
+                          {crypto.imageUrl ? (
+                            <img src={crypto.imageUrl} alt={crypto.currency} className="w-6 h-6 object-contain" />
+                          ) : (
+                            <FaBitcoin className="text-gray-400" />
+                          )}
                         </div>
                         <div>
                           <div className="font-medium">{crypto.currency}</div>

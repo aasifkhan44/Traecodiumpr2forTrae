@@ -17,7 +17,7 @@ const PaymentSettings = () => {
     name: '',
     identifier: '',
     description: '',
-    svgCode: '',
+    imageUrl: '',
     currency: '',
     conversionRate: 1.0,
     isActive: true
@@ -110,7 +110,7 @@ const PaymentSettings = () => {
           name: '',
           identifier: '',
           description: '',
-          svgCode: '',
+          imageUrl: '',
           currency: activeTab === 'upi' ? 'INR' : 'USDT',
           conversionRate: 1.0,
           isActive: true
@@ -131,7 +131,7 @@ const PaymentSettings = () => {
       name: method.name,
       identifier: method.identifier,
       description: method.description || '',
-      svgCode: method.svgCode || '',
+      imageUrl: method.imageUrl || '',
       currency: method.currency,
       conversionRate: method.conversionRate || 1.0,
       isActive: method.isActive
@@ -386,35 +386,39 @@ const PaymentSettings = () => {
                 </div>
                 <div className="mb-2 col-span-1 md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    SVG Image Code
+                    Image URL
                   </label>
                   <div className="relative">
-                    <textarea
-                      name="svgCode"
-                      value={formData.svgCode || ''}
+                    <input
+                      type="text"
+                      name="imageUrl"
+                      value={formData.imageUrl || ''}
                       onChange={handleChange}
-                      placeholder="Paste SVG code here (optional)"
-                      className="w-full p-2 border rounded h-32 font-mono text-sm"
-                      spellCheck="false"
+                      placeholder="Enter image URL here (optional)"
+                      className="w-full p-2 border rounded"
                     />
-                    {formData.svgCode && (
+                    {formData.imageUrl && (
                       <button
                         type="button"
-                        onClick={() => setFormData({...formData, svgCode: ''})}
+                        onClick={() => setFormData({...formData, imageUrl: ''})}
                         className="absolute top-2 right-2 bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"
-                        title="Clear SVG code"
+                        title="Clear image URL"
                       >
                         <FaTimes />
                       </button>
                     )}
                   </div>
-                  {formData.svgCode && (
+                  {formData.imageUrl && (
                     <div className="mt-2">
                       <p className="text-xs text-gray-500 mb-1">Preview:</p>
-                      <div 
-                        className="w-[250px] h-[250px] border rounded p-4 flex items-center justify-center bg-white"
-                        dangerouslySetInnerHTML={{ __html: formData.svgCode }}
-                      />
+                      <div className="w-[250px] h-[250px] border rounded p-4 flex items-center justify-center bg-white">
+                        <img 
+                          src={formData.imageUrl} 
+                          alt="Payment method" 
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => e.target.src = 'https://via.placeholder.com/150?text=Invalid+Image+URL'}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

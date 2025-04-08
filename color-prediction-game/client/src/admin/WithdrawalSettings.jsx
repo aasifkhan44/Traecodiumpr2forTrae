@@ -97,7 +97,7 @@ const WithdrawalSettings = () => {
           conversionRate: 1,
           withdrawalFee: 0,
           feeType: 'fixed',
-          svgCode: '',
+          imageUrl: '',
           isActive: true
         }
       ]
@@ -115,7 +115,7 @@ const WithdrawalSettings = () => {
           conversionRate: 1,
           withdrawalFee: 0,
           feeType: 'fixed',
-          svgCode: '',
+          imageUrl: '',
           isActive: true
         }
       ]
@@ -431,14 +431,26 @@ const WithdrawalSettings = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {editMode ? (
-                            <textarea
-                              value={option.svgCode || ''}
-                              onChange={(e) => handleUpiOptionChange(index, 'svgCode', e.target.value)}
-                              className="w-full p-1 border rounded h-10"
-                              placeholder="SVG code for icon"
+                            <input
+                              type="text"
+                              value={option.imageUrl || ''}
+                              onChange={(e) => handleUpiOptionChange(index, 'imageUrl', e.target.value)}
+                              className="w-full p-1 border rounded"
+                              placeholder="Image URL for icon"
                             />
                           ) : (
-                            <div className="h-6 w-6" dangerouslySetInnerHTML={{ __html: option.svgCode || '' }} />
+                            <div className="h-6 w-6">
+                              {option.imageUrl ? (
+                                <img 
+                                  src={option.imageUrl} 
+                                  alt="UPI icon" 
+                                  className="h-full w-full object-contain"
+                                  onError={(e) => e.target.src = 'https://via.placeholder.com/24?text=No+Image'}
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gray-200 rounded-full"></div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -596,14 +608,26 @@ const WithdrawalSettings = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {editMode ? (
-                            <textarea
-                              value={option.svgCode || ''}
-                              onChange={(e) => handleCryptoOptionChange(index, 'svgCode', e.target.value)}
-                              className="w-full p-1 border rounded h-10"
-                              placeholder="SVG code for icon"
+                            <input
+                              type="text"
+                              value={option.imageUrl || ''}
+                              onChange={(e) => handleCryptoOptionChange(index, 'imageUrl', e.target.value)}
+                              className="w-full p-1 border rounded"
+                              placeholder="Image URL for icon"
                             />
                           ) : (
-                            <div className="h-6 w-6" dangerouslySetInnerHTML={{ __html: option.svgCode || '' }} />
+                            <div className="h-6 w-6">
+                              {option.imageUrl ? (
+                                <img 
+                                  src={option.imageUrl} 
+                                  alt="Crypto icon" 
+                                  className="h-full w-full object-contain"
+                                  onError={(e) => e.target.src = 'https://via.placeholder.com/24?text=No+Image'}
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gray-200 rounded-full"></div>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

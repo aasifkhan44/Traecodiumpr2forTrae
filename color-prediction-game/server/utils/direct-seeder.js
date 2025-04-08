@@ -26,7 +26,7 @@ const seedDatabase = async () => {
       name: 'Admin User',
       countryCode: '+91',
       mobile: '9876543210',
-      password: hashedPassword,
+      password: 'admin123', // Use plain password and let the model hash it
       role: 'admin',
       balance: 1000,
       isVerified: true,
@@ -34,8 +34,8 @@ const seedDatabase = async () => {
       referralCode: 'ADMIN123'
     });
     
-    // Save without triggering pre-save hooks
-    await adminUser.save({ validateBeforeSave: false });
+    // Save with normal validation and pre-save hooks
+    await adminUser.save();
     
     // Test the password match function
     console.log('Testing password match...');

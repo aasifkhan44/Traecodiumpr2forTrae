@@ -466,7 +466,11 @@ const WalletRecharge = () => {
                   >
                     <div className="flex items-center">
                       <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                        <FaWallet className="text-gray-400" />
+                        {upi.imageUrl ? (
+                          <img src={upi.imageUrl} alt={upi.name} className="w-6 h-6 object-contain" />
+                        ) : (
+                          <FaWallet className="text-gray-400" />
+                        )}
                       </div>
                       <div>
                         <div className="font-medium">{upi.name}</div>
@@ -485,6 +489,14 @@ const WalletRecharge = () => {
                         className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3" 
                         dangerouslySetInnerHTML={{ __html: selectedUpi.svgCode }} 
                       />
+                    ) : selectedUpi.imageUrl ? (
+                      <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3">
+                        <img 
+                          src={selectedUpi.imageUrl} 
+                          alt={selectedUpi.name} 
+                          className="max-w-full max-h-full object-contain" 
+                        />
+                      </div>
                     ) : (
                       <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
                         <FaWallet className="text-gray-400 text-5xl" />
@@ -555,6 +567,14 @@ const WalletRecharge = () => {
                         className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3" 
                         dangerouslySetInnerHTML={{ __html: selectedCrypto.svgCode }} 
                       />
+                    ) : selectedCrypto.imageUrl ? (
+                      <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3">
+                        <img 
+                          src={selectedCrypto.imageUrl} 
+                          alt={selectedCrypto.currency} 
+                          className="max-w-full max-h-full object-contain" 
+                        />
+                      </div>
                     ) : (
                       <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
                         <FaCoins className="text-gray-400 text-5xl" />

@@ -7,6 +7,8 @@
     "dev": "nodemon server.js",
     "seed": "node seeder.js",
     "seed:clean": "node seeder.js --clean",
+    "seed:sample": "node scripts/sample-data-seeder.js",
+    "seed:sample:force": "node scripts/sample-data-seeder.js --force",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,7 +16,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",

@@ -14,6 +14,10 @@ const PaymentSettingsSchema = new mongoose.Schema(
           required: true,
           trim: true
         },
+        imageUrl: {
+          type: String,
+          default: ''
+        },
         isActive: {
           type: Boolean,
           default: true
@@ -36,6 +40,10 @@ const PaymentSettingsSchema = new mongoose.Schema(
           type: Number,
           required: true,
           default: 1
+        },
+        imageUrl: {
+          type: String,
+          default: ''
         },
         isActive: {
           type: Boolean,
