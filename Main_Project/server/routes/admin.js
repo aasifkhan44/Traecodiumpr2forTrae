@@ -333,6 +333,100 @@ router.put('/games/:identifier', adminMiddleware, async (req, res) => {
   }
 });
 
+// Import the upload middleware
+const upload = require('../middleware/upload');
+const fs = require('fs');
+const path = require('path');
+
+// @route   POST api/admin/games/:identifier/upload-logo
+// @desc    Upload game logo image
+// @access  Private/Admin
+router.post('/games/:identifier/upload-logo', adminMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file uploaded' });
+    }
+
+    const game = await Game.findOne({ identifier: req.params.identifier });
+    if (!game) {
+      // Delete the uploaded file if game not found
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ success: false, message: 'Game not found' });
+    }
+
+    // If there's an existing logo, delete it
+    if (game.thumbnailUrl && game.thumbnailUrl !== '') {
+      const oldFilePath = path.join(__dirname, '..', game.thumbnailUrl);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
+
+    // Update the game with the new logo URL
+    const relativeFilePath = `/uploads/games/${path.basename(req.file.path)}`;
+    game.thumbnailUrl = relativeFilePath;
+    await game.save();
+
+    res.json({
+      success: true,
+      message: 'Game logo uploaded successfully',
+      data: {
+        thumbnailUrl: game.thumbnailUrl
+      }
+    });
+  } catch (err) {
+    console.error('Error uploading game logo:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   POST api/admin/games/:identifier/upload-card
+// @desc    Upload game card image
+// @access  Private/Admin
+router.post('/games/:identifier/upload-card', adminMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file uploaded' });
+    }
+
+    const game = await Game.findOne({ identifier: req.params.identifier });
+    if (!game) {
+      // Delete the uploaded file if game not found
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ success: false, message: 'Game not found' });
+    }
+
+    // If there's an existing card image, delete it
+    if (game.cardImageUrl && game.cardImageUrl !== '') {
+      const oldFilePath = path.join(__dirname, '..', game.cardImageUrl);
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
+
+    // Update the game with the new card image URL
+    const relativeFilePath = `/uploads/games/${path.basename(req.file.path)}`;
+    game.cardImageUrl = relativeFilePath;
+    await game.save();
+
+    res.json({
+      success: true,
+      message: 'Game card image uploaded successfully',
+      data: {
+        cardImageUrl: game.cardImageUrl
+      }
+    });
+  } catch (err) {
+    console.error('Error uploading game card image:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});,"toolcalls
+  } catch (err) {
+    console.error('Error updating game:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @route   POST api/admin/settings
 // @desc    Update game settings
 // @access  Private/Admin
