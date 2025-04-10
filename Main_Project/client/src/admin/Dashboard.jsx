@@ -4,22 +4,45 @@ import { FaUsers, FaGamepad, FaMoneyBill, FaChartLine, FaCog, FaShareAlt } from 
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
-    totalUsers: 250,
-    activeUsers: 78,
-    totalGames: 1250,
-    totalVolume: 45000,
-    profit: 5200,
-    referrals: 125
+    totalUsers: 0,
+    activeUsers: 0,
+    totalGames: 0,
+    totalVolume: 0,
+    profit: 0,
+    referrals: 0
   });
   
-  const [recentGames, setRecentGames] = useState([
-    { id: 'G20250403001', date: '2025-04-03 14:30:25', color: 'red', number: 5, totalBets: 35, volume: 1250, payout: 980 },
-    { id: 'G20250403002', date: '2025-04-03 14:35:15', color: 'green', number: 2, totalBets: 42, volume: 1580, payout: 1100 },
-    { id: 'G20250403003', date: '2025-04-03 14:40:05', color: 'blue', number: 8, totalBets: 38, volume: 1350, payout: 1050 }
-  ]);
+  const [recentGames, setRecentGames] = useState([]);
   
   useEffect(() => {
-    // In a real app, we would fetch admin stats and recent games from the API
+    const fetchDashboardData = async () => {
+      try {
+        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+        const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setStats(prevStats => ({
+            ...prevStats,
+            totalUsers: data.data.totalUsers || 0,
+            activeUsers: data.data.activeUsers || 0,
+            totalGames: data.data.totalGames || 0,
+            totalVolume: data.data.totalVolume || 0,
+            profit: data.data.profit || 0,
+            referrals: data.data.referrals || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
   
   return (

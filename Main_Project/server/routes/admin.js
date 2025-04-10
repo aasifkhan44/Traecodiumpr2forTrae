@@ -21,15 +21,26 @@ const { sendEmail, testSmtpConnection } = require('../utils/emailService');
 // @access  Private/Admin
 router.get('/dashboard', adminMiddleware, async (req, res) => {
   try {
-    // Get counts for dashboard summary
-    const totalUsers = await User.countDocuments();
-    const pendingDepositRequests = await DepositRequest.countDocuments({ status: 'pending' });
+    // Get detailed user statistics with real-time counts
+    const [totalUsers, activeUsers, pendingDepositRequests, pendingWithdrawalRequests, recentTransactions] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ isActive: true }),
+      DepositRequest.countDocuments({ status: 'pending' }),
+      WithdrawalRequest.countDocuments({ status: 'pending' }),
+      Transaction.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('user', 'name mobile')
+    ]);
 
     res.json({
       success: true,
       data: {
         totalUsers,
-        pendingDepositRequests
+        activeUsers,
+        pendingDepositRequests,
+        pendingWithdrawalRequests,
+        recentTransactions
       }
     });
   } catch (err) {
