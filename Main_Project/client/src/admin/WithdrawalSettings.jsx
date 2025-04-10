@@ -144,6 +144,7 @@ const WithdrawalSettings = () => {
 
   // Handle save settings
   const handleSaveSettings = async () => {
+    console.log("formData before sending:", formData);
     try {
       const token = localStorage.getItem('token');
       const res = await axios.put(

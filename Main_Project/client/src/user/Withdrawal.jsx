@@ -72,6 +72,38 @@ const Withdrawal = () => {
         });
         
         if (response.data.success) {
+          // Log the received data to debug icon issues
+          console.log("Received withdrawal options:", response.data.data);
+          if (response.data.data.upiOptions) {
+            console.log("UPI Options with imageUrls:", response.data.data.upiOptions.map(opt => ({
+              name: opt.name,
+              imageUrl: opt.imageUrl
+            })));
+          }
+          if (response.data.data.cryptoOptions) {
+            console.log("Crypto Options with imageUrls:", response.data.data.cryptoOptions.map(opt => ({
+              currency: opt.currency,
+              imageUrl: opt.imageUrl
+            })));
+          }
+          
+          // Ensure imageUrl is properly set for all options
+          if (response.data.data.upiOptions) {
+            response.data.data.upiOptions = response.data.data.upiOptions.map(option => ({
+              ...option,
+              // Make sure imageUrl is a valid URL or empty string
+              imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
+            }));
+          }
+          
+          if (response.data.data.cryptoOptions) {
+            response.data.data.cryptoOptions = response.data.data.cryptoOptions.map(option => ({
+              ...option,
+              // Make sure imageUrl is a valid URL or empty string
+              imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
+            }));
+          }
+          
           setPaymentSettings(response.data.data);
         } else {
           setErrorSettings('Failed to load withdrawal options. Please try again.');
@@ -114,6 +146,23 @@ const Withdrawal = () => {
         });
         
         if (response.data.success) {
+          // Ensure imageUrl is properly set for all options
+          if (response.data.data.upiOptions) {
+            response.data.data.upiOptions = response.data.data.upiOptions.map(option => ({
+              ...option,
+              // Make sure imageUrl is a valid URL or empty string
+              imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
+            }));
+          }
+          
+          if (response.data.data.cryptoOptions) {
+            response.data.data.cryptoOptions = response.data.data.cryptoOptions.map(option => ({
+              ...option,
+              // Make sure imageUrl is a valid URL or empty string
+              imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
+            }));
+          }
+          
           setPaymentSettings(response.data.data);
         } else {
           setErrorSettings('Failed to load withdrawal options');
@@ -238,28 +287,6 @@ const Withdrawal = () => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);
-      
-      // Calculate converted amount based on selected option's conversion rate
-      if (value && withdrawalMode === 'upi' && selectedUpiOption) {
-        const converted = parseFloat(value) / selectedUpiOption.conversionRate;
-        setConvertedAmount(converted.toFixed(2));
-        
-        // Calculate fee based on fee type
-        let fee = 0;
-        if (selectedUpiOption.feeType === 'percent') {
-          fee = (converted * selectedUpiOption.withdrawalFee) / 100;
-        } else {
-          fee = selectedUpiOption.withdrawalFee;
-        }
-        
-        // Apply minimum fee if applicable
-        if (paymentSettings?.minimumWithdrawalFee > 0 && fee < paymentSettings.minimumWithdrawalFee) {
-          fee = paymentSettings.minimumWithdrawalFee;
-        }
-        
-        setWithdrawalFee(fee);
-        setFinalAmount(Math.max(0, converted - fee));
-      }
     }
   };
   
@@ -271,11 +298,6 @@ const Withdrawal = () => {
   // Handle UPI option selection
   const handleUpiOptionSelect = (upiOption) => {
     setSelectedUpiOption(upiOption);
-    // Reset amount to trigger recalculation
-    if (amount) {
-      const event = { target: { value: amount } };
-      handleAmountChange(event);
-    }
   };
   
   // Submit withdrawal request
@@ -330,17 +352,9 @@ const Withdrawal = () => {
       // Add payment specific fields
       if (withdrawalMode === 'upi') {
         requestData.upiId = upiId;
-        // Include conversion rate and converted amount for UPI if applicable
-        if (paymentSettings?.upiOptions && paymentSettings.upiOptions.length > 0 && 
-            paymentSettings.upiOptions[0].conversionRate !== 1) {
-          requestData.conversionRate = paymentSettings.upiOptions[0].conversionRate;
-          requestData.convertedAmount = parseFloat(convertedAmount);
-        }
       } else if (withdrawalMode === 'crypto') {
         requestData.cryptoCurrency = selectedCrypto.currency;
         requestData.cryptoAddress = cryptoAddress;
-        requestData.conversionRate = selectedCrypto.conversionRate;
-        requestData.convertedAmount = parseFloat(convertedAmount);
       }
       
       // Get token
@@ -459,6 +473,23 @@ const Withdrawal = () => {
                   });
                   
                   if (response.data.success) {
+                    // Ensure imageUrl is properly set for all options
+                    if (response.data.data.upiOptions) {
+                      response.data.data.upiOptions = response.data.data.upiOptions.map(option => ({
+                        ...option,
+                        // Make sure imageUrl is a valid URL or empty string
+                        imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
+                      }));
+                    }
+                    
+                    if (response.data.data.cryptoOptions) {
+                      response.data.data.cryptoOptions = response.data.data.cryptoOptions.map(option => ({
+                        ...option,
+                        // Make sure imageUrl is a valid URL or empty string
+                        imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
+                      }));
+                    }
+                    
                     setPaymentSettings(response.data.data);
                   } else {
                     setErrorSettings('Failed to load withdrawal options');
@@ -650,101 +681,151 @@ const Withdrawal = () => {
             )}
           </div>
           
-          {/* Fee and Conversion Information */}
-          {amount && paymentSettings && (
+          {/* Fee and Conversion Information - Only shown after option selection */}
+          {amount && ((withdrawalMode === 'upi' && selectedUpiOption) || (withdrawalMode === 'crypto' && selectedCrypto)) && (
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-bold text-gray-700 mb-2">Fee & Conversion Information</h3>
-              <div className="flex justify-between mb-2">
-                <span>Withdrawal Amount:</span>
-                <span>{parseFloat(amount).toFixed(2)}</span>
-              </div>
-              
-              {/* Display conversion rate information */}
-              {withdrawalMode === 'upi' && paymentSettings.upiOptions && paymentSettings.upiOptions.length > 0 && 
-                paymentSettings.upiOptions[0].conversionRate !== 1 && (
-                <div className="flex justify-between mb-2">
-                  <span>Conversion Rate:</span>
-                  <span>1:{paymentSettings.upiOptions[0].conversionRate}</span>
+              <h3 className="font-medium text-gray-700 mb-2">Fee & Conversion Information</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Amount:</span>
+                  <span>₹{amount}</span>
                 </div>
-              )}
-              
-              {withdrawalMode === 'crypto' && selectedCrypto && (
-                <div className="flex justify-between mb-2">
-                  <span>Conversion Rate:</span>
-                  <span>1:{selectedCrypto.conversionRate} {selectedCrypto.currency}</span>
-                </div>
-              )}
-              
-              {/* Display converted amount if applicable */}
-              {convertedAmount && ((withdrawalMode === 'crypto' && selectedCrypto) || 
-                (withdrawalMode === 'upi' && paymentSettings.upiOptions && 
-                 paymentSettings.upiOptions.length > 0 && 
-                 paymentSettings.upiOptions[0].conversionRate !== 1)) && (
-                <div className="flex justify-between mb-2">
-                  <span>Converted Amount:</span>
-                  <span>
-                    {convertedAmount} 
-                    {withdrawalMode === 'crypto' ? selectedCrypto.currency : ''}
-                  </span>
-                </div>
-              )}
-              
-              <div className="flex justify-between mb-2">
-                <span>Fee {withdrawalMode === 'upi' && paymentSettings.upiOptions && paymentSettings.upiOptions.length > 0
-                  ? (paymentSettings.upiOptions[0].feeType === 'percent' 
-                    ? `(${Number(paymentSettings.upiOptions[0].withdrawalFee).toFixed(2)}%)` 
-                    : '(Fixed)')
-                  : withdrawalMode === 'crypto' && selectedCrypto
-                    ? (selectedCrypto.feeType === 'percent' 
-                      ? `(${Number(selectedCrypto.withdrawalFee).toFixed(2)}%)` 
-                      : '(Fixed)')
-                    : ''}:</span>
-                <span className="text-red-600">-{isNaN(withdrawalFee) ? '0.00' : Number(withdrawalFee).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span>You will receive:</span>
-                <span className="text-green-600">{isNaN(finalAmount) ? '0.00' : Number(finalAmount).toFixed(2)}</span>
+                
+                {withdrawalMode === 'upi' && selectedUpiOption && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Conversion Rate:</span>
+                      <span>1:{selectedUpiOption.conversionRate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Converted Amount:</span>
+                      <span>₹{convertedAmount}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Fee ({selectedUpiOption.feeType === 'percent' ? `${selectedUpiOption.withdrawalFee}%` : 'Fixed'}):</span>
+                      <span className="text-red-500">-₹{withdrawalFee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-medium border-t pt-2">
+                      <span className="text-gray-700">Final Amount:</span>
+                      <span className="text-green-600">₹{finalAmount.toFixed(2)}</span>
+                    </div>
+                    
+                    {/* Additional UPI Details */}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">UPI App:</span>
+                      <span>{selectedUpiOption.name}</span>
+                    </div>
+                  </>
+                )}
+                
+                {withdrawalMode === 'crypto' && selectedCrypto && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Conversion Rate:</span>
+                      <span>1:{selectedCrypto.conversionRate}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Converted Amount:</span>
+                      <span>{convertedAmount} {selectedCrypto.currency}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Fee ({selectedCrypto.feeType === 'percent' ? `${selectedCrypto.withdrawalFee}%` : 'Fixed'}):</span>
+                      <span className="text-red-500">-{withdrawalFee.toFixed(6)} {selectedCrypto.currency}</span>
+                    </div>
+                    <div className="flex justify-between font-medium border-t pt-2">
+                      <span className="text-gray-700">Final Amount:</span>
+                      <span className="text-green-600">{(convertedAmount - withdrawalFee).toFixed(6)} {selectedCrypto.currency}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
           
-          {/* UPI ID Input */}
-          {withdrawalMode === 'upi' && (
+          {/* UPI ID Input - Only shown after UPI option selection */}
+          {withdrawalMode === 'upi' && selectedUpiOption && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select UPI Option</label>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {paymentSettings?.upiOptions?.map((option, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedUpiOption === option ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-primary/50'}`}
-                    onClick={() => handleUpiOptionSelect(option)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      {option.svgCode ? (
-                        <div className="w-8 h-8" dangerouslySetInnerHTML={{ __html: option.svgCode }} />
-                      ) : (
-                        <FaCreditCard className="w-8 h-8 text-gray-500" />
-                      )}
-                      <div>
-                        <p className="font-medium">{option.name}</p>
-                        {option.withdrawalFee > 0 && (
-                          <p className="text-sm text-gray-500">
-                            Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Enter UPI ID</label>
               <input
                 type="text"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-                placeholder="Enter UPI ID"
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
-                required={withdrawalMode === 'upi'}
+                placeholder="Enter your UPI ID (e.g., name@upi)"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+                required
               />
+            </div>
+          )}
+
+          {/* Crypto Address Input - Only shown after crypto selection */}
+          {withdrawalMode === 'crypto' && selectedCrypto && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {selectedCrypto.currency} Wallet Address
+              </label>
+              <input
+                type="text"
+                value={cryptoAddress}
+                onChange={(e) => setCryptoAddress(e.target.value)}
+                placeholder={`Enter your ${selectedCrypto.currency} wallet address`}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+                required
+              />
+            </div>
+          )}
+          
+          {/* UPI Options */}
+          {withdrawalMode === 'upi' && paymentSettings?.upiOptions && (
+            <div className="mb-6">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Select UPI Option</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {paymentSettings.upiOptions.map((option, index) => {
+                  // Debug the imageUrl for this option
+                  console.log(`Rendering UPI option ${option.name} with imageUrl:`, option.imageUrl);
+                  
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      className={`p-3 rounded-lg border text-left transition-colors ${
+                        selectedUpiOption === option 
+                          ? 'border-primary bg-primary bg-opacity-5' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleUpiOptionSelect(option)}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
+                          {option.imageUrl ? (
+                            <img 
+                              src={option.imageUrl} 
+                              alt={option.name} 
+                              className="w-6 h-6 object-contain" 
+                              onError={(e) => {
+                                console.log(`Failed to load image for ${option.name}:`, option.imageUrl);
+                                e.target.onerror = null;
+                                e.target.src = 'https://via.placeholder.com/24?text=' + encodeURIComponent(option.name.charAt(0));
+                              }}
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+                              {option.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium">{option.name}</div>
+                          {option.withdrawalFee > 0 && (
+                            <div className="text-sm text-gray-600">
+                              Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           
@@ -756,67 +837,52 @@ const Withdrawal = () => {
                   Select Cryptocurrency
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {paymentSettings.cryptoOptions.map((crypto, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className={`p-3 rounded-lg border text-left transition-colors ${
-                        selectedCrypto && selectedCrypto.currency === crypto.currency 
-                          ? 'border-primary bg-primary bg-opacity-5' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleCryptoSelect(crypto)}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                          {crypto.imageUrl ? (
-                            <img src={crypto.imageUrl} alt={crypto.currency} className="w-6 h-6 object-contain" />
-                          ) : (
-                            <FaBitcoin className="text-gray-400" />
-                          )}
+                  {paymentSettings.cryptoOptions.map((crypto, index) => {
+                    // Debug the imageUrl for this crypto option
+                    console.log(`Rendering crypto option ${crypto.currency} with imageUrl:`, crypto.imageUrl);
+                    console.log(`Crypto option ${crypto.currency} has a valid imageUrl: ${!!crypto.imageUrl}`);
+                    console.log(`Crypto option ${crypto.currency} has a valid imageUrl that is a string: ${typeof crypto.imageUrl === 'string'}`);
+                    
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`p-3 rounded-lg border text-left transition-colors ${
+                          selectedCrypto && selectedCrypto.currency === crypto.currency 
+                            ? 'border-primary bg-primary bg-opacity-5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleCryptoSelect(crypto)}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
+                            {crypto.imageUrl ? (
+                              <img 
+                                src={crypto.imageUrl} 
+                                alt={crypto.currency} 
+                                className="w-6 h-6 object-contain" 
+                                onError={(e) => {
+                                  console.log(`Failed to load image for ${crypto.currency}:`, crypto.imageUrl);
+                                  e.target.onerror = null;
+                                  e.target.src = 'https://via.placeholder.com/24?text=' + encodeURIComponent(crypto.currency.charAt(0));
+                                }}
+                              />
+                            ) : (
+                              <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600 font-bold">
+                                {crypto.currency.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{crypto.currency}</div>
+                            <div className="text-sm text-gray-600">Rate: 1 {crypto.currency} = {crypto.conversionRate}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium">{crypto.currency}</div>
-                          <div className="text-sm text-gray-600">Rate: 1 {crypto.currency} = {crypto.conversionRate}</div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              
-              {selectedCrypto && (
-                <div className="mb-6">
-                  <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="cryptoAddress">
-                    Your {selectedCrypto.currency} Wallet Address
-                  </label>
-                  <input
-                    type="text"
-                    id="cryptoAddress"
-                    value={cryptoAddress}
-                    onChange={(e) => setCryptoAddress(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder={`Enter your ${selectedCrypto.currency} wallet address`}
-                    required={withdrawalMode === 'crypto'}
-                  />
-                  {amount && (
-                    <div className="space-y-2 mt-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Converted Amount:</span>
-                        <span>{convertedAmount} {selectedCrypto.currency}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Fee:</span>
-                        <span className="text-red-500">-{withdrawalFee} {selectedCrypto.currency}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-semibold border-t pt-2">
-                        <span className="text-gray-700">Final Amount:</span>
-                        <span className="text-green-600">{(convertedAmount - withdrawalFee).toFixed(6)} {selectedCrypto.currency}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </>
           )}
           
@@ -847,19 +913,6 @@ const Withdrawal = () => {
                   <span className="text-gray-600">UPI ID:</span>
                   <span className="font-medium">{upiId}</span>
                 </div>
-                {paymentSettings?.upiOptions && paymentSettings.upiOptions.length > 0 && 
-                 paymentSettings.upiOptions[0].conversionRate !== 1 && (
-                  <>
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Conversion Rate:</span>
-                      <span className="font-medium">1:{paymentSettings.upiOptions[0].conversionRate}</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b">
-                      <span className="text-gray-600">Converted Amount:</span>
-                      <span className="font-medium">{convertedAmount}</span>
-                    </div>
-                  </>
-                )}
               </>
             )}
             
@@ -873,14 +926,6 @@ const Withdrawal = () => {
                   <span className="text-gray-600">Address:</span>
                   <span className="font-medium break-all">{cryptoAddress}</span>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Conversion Rate:</span>
-                  <span className="font-medium">1:{selectedCrypto?.conversionRate}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Converted Amount:</span>
-                  <span className="font-medium">{convertedAmount} {selectedCrypto?.currency}</span>
-                </div>
               </>
             )}
             
@@ -890,18 +935,45 @@ const Withdrawal = () => {
             </div>
             
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Converted Amount:</span>
-                <span className="font-medium">₹{convertedAmount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Transaction Fee:</span>
-                <span className="font-medium text-red-600">-₹{withdrawalFee.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-gray-600 font-semibold">Final Amount:</span>
-                <span className="font-medium text-green-600">₹{(convertedAmount - withdrawalFee).toFixed(2)}</span>
-              </div>
+              {withdrawalMode === 'upi' ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Converted Amount:</span>
+                    <span className="font-medium">₹{convertedAmount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Transaction Fee:</span>
+                    <span className="font-medium text-red-600">-₹{withdrawalFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-gray-600 font-semibold">Final Amount:</span>
+                    <span className="font-medium text-green-600">₹{(convertedAmount - withdrawalFee).toFixed(2)}</span>
+                  </div>
+                </>
+              ) : withdrawalMode === 'crypto' && selectedCrypto ? (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Amount:</span>
+                    <span>₹{amount}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Conversion Rate:</span>
+                    <span>1:{selectedCrypto.conversionRate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Converted Amount:</span>
+                    <span>{convertedAmount} {selectedCrypto.currency}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Fee ({selectedCrypto.feeType === 'percent' ? `${selectedCrypto.withdrawalFee}%` : 'Fixed'}):</span>
+                    <span className="font-medium text-red-600">-{withdrawalFee.toFixed(6)} {selectedCrypto.currency}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-gray-600 font-semibold">Final Amount:</span>
+                    <span className="font-medium text-green-600">{(convertedAmount - withdrawalFee).toFixed(6)} {selectedCrypto.currency}</span>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
           

@@ -1302,6 +1302,20 @@ router.put('/withdrawal-settings', adminMiddleware, async (req, res) => {
       cryptoWithdrawalActive
     } = req.body;
 
+    console.log('Received withdrawal settings update:');
+    if (upiOptions) {
+      console.log('UPI Options with imageUrls:', upiOptions.map(opt => ({
+        name: opt.name,
+        imageUrl: opt.imageUrl
+      })));
+    }
+    if (cryptoOptions) {
+      console.log('Crypto Options with imageUrls:', cryptoOptions.map(opt => ({
+        currency: opt.currency,
+        imageUrl: opt.imageUrl
+      })));
+    }
+
     // Find existing settings or create new one
     let settings = await WithdrawalSettings.findOne();
     if (!settings) {

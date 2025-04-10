@@ -18,24 +18,32 @@ router.get('/settings', auth, async (req, res) => {
     
     // Format the response for the client
     const upiOptions = settings.upiWithdrawalActive ? 
-      settings.upiOptions.filter(option => option.isActive).map(option => ({
-        name: option.name,
-        upiId: option.upiId,
-        withdrawalFee: option.withdrawalFee,
-        feeType: option.feeType,
-        conversionRate: option.conversionRate,
-        svgCode: option.svgCode || ''
-      })) : [];
+      settings.upiOptions.filter(option => option.isActive).map(option => {
+        console.log(`UPI Option ${option.name} imageUrl:`, option.imageUrl);
+        return {
+          name: option.name,
+          upiId: option.upiId,
+          withdrawalFee: option.withdrawalFee,
+          feeType: option.feeType,
+          conversionRate: option.conversionRate,
+          imageUrl: option.imageUrl || '',
+          svgCode: option.svgCode || ''
+        };
+      }) : [];
     
     const cryptoOptions = settings.cryptoWithdrawalActive ? 
-      settings.cryptoOptions.filter(option => option.isActive).map(option => ({
-        currency: option.currency,
-        address: option.address,
-        conversionRate: option.conversionRate,
-        withdrawalFee: option.withdrawalFee,
-        feeType: option.feeType,
-        svgCode: option.svgCode || ''
-      })) : [];
+      settings.cryptoOptions.filter(option => option.isActive).map(option => {
+        console.log(`Crypto Option ${option.currency} imageUrl:`, option.imageUrl);
+        return {
+          currency: option.currency,
+          address: option.address,
+          conversionRate: option.conversionRate,
+          withdrawalFee: option.withdrawalFee,
+          feeType: option.feeType,
+          imageUrl: option.imageUrl || '',
+          svgCode: option.svgCode || ''
+        };
+      }) : [];
     
     return res.json({
       success: true,
@@ -68,26 +76,38 @@ router.get('/options', auth, async (req, res) => {
     // Get withdrawal settings
     const settings = await WithdrawalSettings.getSettings();
     
+    // Debug the raw settings from database
+    console.log('Raw UPI options from database:', JSON.stringify(settings.upiOptions));
+    console.log('Raw crypto options from database:', JSON.stringify(settings.cryptoOptions));
+    
     // Format the response for the client
     const upiOptions = settings.upiWithdrawalActive ? 
-      settings.upiOptions.filter(option => option.isActive).map(option => ({
-        name: option.name,
-        upiId: option.upiId,
-        withdrawalFee: option.withdrawalFee,
-        feeType: option.feeType,
-        conversionRate: option.conversionRate,
-        svgCode: option.svgCode || ''
-      })) : [];
+      settings.upiOptions.filter(option => option.isActive).map(option => {
+        console.log(`UPI Option ${option.name} imageUrl:`, option.imageUrl);
+        return {
+          name: option.name,
+          upiId: option.upiId,
+          withdrawalFee: option.withdrawalFee,
+          feeType: option.feeType,
+          conversionRate: option.conversionRate,
+          imageUrl: option.imageUrl || '',
+          svgCode: option.svgCode || ''
+        };
+      }) : [];
     
     const cryptoOptions = settings.cryptoWithdrawalActive ? 
-      settings.cryptoOptions.filter(option => option.isActive).map(option => ({
-        currency: option.currency,
-        address: option.address,
-        conversionRate: option.conversionRate,
-        withdrawalFee: option.withdrawalFee,
-        feeType: option.feeType,
-        svgCode: option.svgCode || ''
-      })) : [];
+      settings.cryptoOptions.filter(option => option.isActive).map(option => {
+        console.log(`Crypto Option ${option.currency} imageUrl:`, option.imageUrl);
+        return {
+          currency: option.currency,
+          address: option.address,
+          conversionRate: option.conversionRate,
+          withdrawalFee: option.withdrawalFee,
+          feeType: option.feeType,
+          imageUrl: option.imageUrl || '',
+          svgCode: option.svgCode || ''
+        };
+      }) : [];
     
     return res.json({
       success: true,
