@@ -14,7 +14,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : ['http://localhost:5173', 'http://localhost:5175'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
   exposedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
@@ -108,7 +108,7 @@ const server = http.createServer(app);
 // Set up Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:5173'],
+    origin: process.env.NODE_ENV === 'production' ? false : ['http://localhost:5173', 'http://localhost:5175'],
     methods: ['GET', 'POST']
   }
 });

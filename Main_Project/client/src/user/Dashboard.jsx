@@ -2,9 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaHistory, FaShareAlt, FaCoins, FaWallet } from 'react-icons/fa';
+import AdminGamesGrid from '../components/Games/AdminGamesGrid';
 import GamesGrid from '../components/Games/GamesGrid';
+import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading user data...</div>;
+  }
+
+  if (!user) {
+    return <div className="flex items-center justify-center min-h-screen text-red-500">Authentication required. Please login.</div>;
+  }
   const [userStats, setUserStats] = useState({
     balance: 0,
     totalGames: 45,
@@ -154,7 +165,7 @@ const Dashboard = () => {
       
       {/* Games Grid - Shows games available according to settings */}
       <div className="mb-8">
-        <GamesGrid />
+        {user?.isAdmin ? <AdminGamesGrid /> : <GamesGrid />}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

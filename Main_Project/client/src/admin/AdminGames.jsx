@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import ErrorBoundary from '../components/ErrorBoundary';
+import GameImageUpload from '../components/Admin/GameImageUpload';
 
 const AdminGamesContent = () => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editValues, setEditValues] = useState({});
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     fetchGames();
@@ -45,6 +48,7 @@ const AdminGamesContent = () => {
   };
 
   const handleGameUpdate = async (identifier, updates) => {
+    setIsUpdating(true);
     try {
       const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
@@ -59,7 +63,7 @@ const AdminGamesContent = () => {
         'Authorization': `Bearer ${token}`
       };
 
-      const response = await axios.put(
+      const response = await axios.patch(
         `${API_BASE_URL}/api/admin/games/${identifier}`,
         updates,
         { headers }
@@ -75,7 +79,10 @@ const AdminGamesContent = () => {
       }
     } catch (error) {
       console.error('Error updating game:', error);
-      toast.error(error.response?.data?.message || 'Failed to update game');
+      const errorMessage = error.response?.data?.message || 'Failed to update game';
+      toast.error(errorMessage.includes('validation') ? 'Invalid image URL format' : errorMessage);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -115,6 +122,84 @@ const AdminGamesContent = () => {
             <div className="space-y-2">
               <p className="text-gray-600">Identifier: {game.identifier}</p>
               <p className="text-gray-600">Description: {game.description || 'No description'}</p>
+              <div className="space-y-2">
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium mb-1">Thumbnail URL</label>
+                  <input
+                    type="text"
+                    value={(editValues[game.identifier]?.thumbnailUrl ?? game.thumbnailUrl) || ''}
+                    onChange={(e) => {
+                      setEditValues(prev => ({
+                        ...prev,
+                        [game.identifier]: {
+                          ...prev[game.identifier],
+                          thumbnailUrl: e.target.value
+                        }
+                      }));
+                    }}
+                    onBlur={() => {
+                      if(/^https:\/\/.+\.(svg|png)$/i.test(editValues[game.identifier]?.thumbnailUrl)) {
+                        handleGameUpdate(game.identifier, { thumbnailUrl: editValues[game.identifier]?.thumbnailUrl })
+                      } else if(editValues[game.identifier]?.thumbnailUrl !== game.thumbnailUrl) {
+                        toast.error('Invalid URL - must use HTTPS and end with .svg/.png');
+                        setEditValues(prev => ({
+                          ...prev,
+                          [game.identifier]: {
+                            ...prev[game.identifier],
+                            thumbnailUrl: game.thumbnailUrl
+                          }
+                        }));
+                      }
+                    }}
+                    pattern="^https://.*\.(svg|png)$"
+                    title="Must be HTTPS URL ending with .svg or .png"
+                    className={`border rounded p-2 ${/^https:\/\/.+\.(svg|png)$/i.test(editValues[game.identifier]?.thumbnailUrl) ? 'border-green-500' : editValues[game.identifier]?.thumbnailUrl ? 'border-red-500' : ''}`}
+                    className="border rounded p-2"
+                    pattern="^https://.*"
+                    title="Must use HTTPS protocol"
+                    placeholder="Enter HTTPS image URL"
+                    key={game.thumbnailUrl}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium mb-1">Card Image URL</label>
+                  <input
+                    type="text"
+                    value={(editValues[game.identifier]?.cardImageUrl ?? game.cardImageUrl) || ''}
+                    onChange={(e) => {
+                      setEditValues(prev => ({
+                        ...prev,
+                        [game.identifier]: {
+                          ...prev[game.identifier],
+                          cardImageUrl: e.target.value
+                        }
+                      }));
+                    }}
+                    onBlur={() => {
+                      if(/^https:\/\/.+\.(svg|png)$/i.test(editValues[game.identifier]?.cardImageUrl)) {
+                        handleGameUpdate(game.identifier, { cardImageUrl: editValues[game.identifier]?.cardImageUrl })
+                      } else if(editValues[game.identifier]?.cardImageUrl !== game.cardImageUrl) {
+                        toast.error('Invalid URL - must use HTTPS and end with .svg/.png');
+                        setEditValues(prev => ({
+                          ...prev,
+                          [game.identifier]: {
+                            ...prev[game.identifier],
+                            cardImageUrl: game.cardImageUrl
+                          }
+                        }));
+                      }
+                    }}
+                    pattern="^https://.*\.(svg|png)$"
+                    title="Must be HTTPS URL ending with .svg or .png"
+                    className={`border rounded p-2 ${/^https:\/\/.+\.(svg|png)$/i.test(editValues[game.identifier]?.cardImageUrl) ? 'border-green-500' : editValues[game.identifier]?.cardImageUrl ? 'border-red-500' : ''}`}
+                    className="border rounded p-2"
+                    pattern="^https://.*"
+                    title="Must use HTTPS protocol"
+                    placeholder="Enter HTTPS image URL"
+                    key={game.cardImageUrl}
+                  />
+                </div>
+              </div>
               <div className="mt-4">
                 <button
                   onClick={() => {

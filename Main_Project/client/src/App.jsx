@@ -24,7 +24,7 @@ import ReferralCommissions from './user/ReferralCommissions';
 import AdminLayout from './admin/AdminLayout';
 import AdminDashboard from './admin/Dashboard';
 import UserManagement from './admin/UserManagement';
-import AdminGames from './admin/AdminGames';
+import AdminGameManagement from './admin/AdminGameManagement';
 import GameHistory from './admin/GameHistory';
 import Settings from './admin/Settings';
 import AdminTransactions from './admin/Transactions';
@@ -46,6 +46,9 @@ const LudoGame = lazy(() => import('./components/Games/Ludo/Ludo'));
 const ChessGame = lazy(() => import('./components/Games/Chess/Chess'));
 const NummaGame = lazy(() => import('./components/Games/Numma/Numma'));
 const FortuneWheelGame = lazy(() => import('./components/Games/FortuneWheel/FortuneWheel'));
+import { ToastProvider } from './components/ToastNotification';
+
+import { AuthContext } from './contexts/AuthContext';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -94,94 +97,101 @@ function App() {
   }
   
   return (
+    <AuthContext.Provider value={{ 
+  user: isAuthenticated ? { isAdmin: isAdmin } : null,
+  loading: loading
+}}>
     <SiteSettingsProvider>
-      <Router>
-        <Routes>
-          {/* Public routes that don't require authentication */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={isAuthenticated ? (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Login setIsAuthenticated={setIsAuthenticated} setIsAdmin={setIsAdmin} />} />
-          <Route path="/register" element={isAuthenticated ? (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Register setIsAuthenticated={setIsAuthenticated} setIsAdmin={setIsAdmin} />} />
-          
-          {/* Protected routes */}
-          {isAuthenticated && isAdmin ? (
-            // Admin Routes
-            <Route element={<AdminLayout onLogout={handleLogout} />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/games" element={<AdminGames />} />
-              <Route path="/admin/settings" element={<Settings />} />
-              <Route path="/admin/transactions" element={<AdminTransactions />} />
-              <Route path="/admin/referral-commission-settings" element={<ReferralCommissionSettings />} />
-              <Route path="/admin/payment-settings" element={<PaymentSettings />} />
-              <Route path="/admin/withdrawal-settings" element={<WithdrawalSettings />} />
-              <Route path="/admin/withdrawal-requests" element={<WithdrawalRequests />} />
-              <Route path="/admin/smtp-settings" element={<SmtpSettings />} />
-              <Route path="/admin/email-templates" element={<EmailTemplates />} />
-              <Route path="/admin/site-settings" element={<SiteSettings />} />
-              <Route path="/admin/deposit-requests" element={<DepositRequests />} />
-            </Route>
-          ) : isAuthenticated ? (
-            // User Routes
-            <Route element={<UserLayout onLogout={handleLogout} />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/wallet/recharge" element={<WalletRecharge />} />
-              <Route path="/wallet/withdraw" element={<Withdrawal />} />
-              <Route path="/transactions" element={<Transactions />} />
-              <Route path="/referrals" element={<Referrals />} />
-              <Route path="/referral-commissions" element={<ReferralCommissions />} />
-              
-              {/* Game Routes - dynamically loaded based on active games */}
-              <Route path="/games/wingo" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <WingoGame />
-                </Suspense>
-              } />
-              <Route path="/games/k3" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <K3Game />
-                </Suspense>
-              } />
-              <Route path="/games/5d" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <FiveDGame />
-                </Suspense>
-              } />
-              <Route path="/games/wingo-trx" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <WingoTrxGame />
-                </Suspense>
-              } />
-              <Route path="/games/ludo" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <LudoGame />
-                </Suspense>
-              } />
-              <Route path="/games/chess" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <ChessGame />
-                </Suspense>
-              } />
-              <Route path="/games/numma" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <NummaGame />
-                </Suspense>
-              } />
-              <Route path="/games/fortune-wheel" element={
-                <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
-                  <FortuneWheelGame />
-                </Suspense>
-              } />
-              
-              <Route path="*" element={<Navigate to="/dashboard" />} />
-            </Route>
-          ) : (
-            // Redirect to login for any other route when not authenticated
-            <Route path="*" element={<Navigate to="/login" />} />
-          )}
-        </Routes>
-      </Router>
-    </SiteSettingsProvider>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            {/* Public routes that don't require authentication */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={isAuthenticated ? (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Login setIsAuthenticated={setIsAuthenticated} setIsAdmin={setIsAdmin} />} />
+            <Route path="/register" element={isAuthenticated ? (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Register setIsAuthenticated={setIsAuthenticated} setIsAdmin={setIsAdmin} />} />
+            
+            {/* Protected routes */}
+            {isAuthenticated && isAdmin ? (
+              // Admin Routes
+              <Route element={<AdminLayout onLogout={handleLogout} />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<UserManagement />} />
+                <Route path="/admin/games" element={<AdminGameManagement />} />
+                <Route path="/admin/settings" element={<Settings />} />
+                <Route path="/admin/transactions" element={<AdminTransactions />} />
+                <Route path="/admin/referral-commission-settings" element={<ReferralCommissionSettings />} />
+                <Route path="/admin/payment-settings" element={<PaymentSettings />} />
+                <Route path="/admin/withdrawal-settings" element={<WithdrawalSettings />} />
+                <Route path="/admin/withdrawal-requests" element={<WithdrawalRequests />} />
+                <Route path="/admin/smtp-settings" element={<SmtpSettings />} />
+                <Route path="/admin/email-templates" element={<EmailTemplates />} />
+                <Route path="/admin/site-settings" element={<SiteSettings />} />
+                <Route path="/admin/deposit-requests" element={<DepositRequests />} />
+              </Route>
+            ) : isAuthenticated ? (
+              // User Routes
+              <Route element={<UserLayout onLogout={handleLogout} />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/wallet/recharge" element={<WalletRecharge />} />
+                <Route path="/wallet/withdraw" element={<Withdrawal />} />
+                <Route path="/transactions" element={<Transactions />} />
+                <Route path="/referrals" element={<Referrals />} />
+                <Route path="/referral-commissions" element={<ReferralCommissions />} />
+                
+                {/* Game Routes - dynamically loaded based on active games */}
+                <Route path="/games/wingo" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <WingoGame />
+                  </Suspense>
+                } />
+                <Route path="/games/k3" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <K3Game />
+                  </Suspense>
+                } />
+                <Route path="/games/5d" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <FiveDGame />
+                  </Suspense>
+                } />
+                <Route path="/games/wingo-trx" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <WingoTrxGame />
+                  </Suspense>
+                } />
+                <Route path="/games/ludo" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <LudoGame />
+                  </Suspense>
+                } />
+                <Route path="/games/chess" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <ChessGame />
+                  </Suspense>
+                } />
+                <Route path="/games/numma" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <NummaGame />
+                  </Suspense>
+                } />
+                <Route path="/games/fortune-wheel" element={
+                  <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
+                    <FortuneWheelGame />
+                  </Suspense>
+                } />
+                
+                <Route path="*" element={<Navigate to="/dashboard" />} />
+              </Route>
+            ) : (
+              // Redirect to login for any other route when not authenticated
+              <Route path="*" element={<Navigate to="/login" />} />
+            )}
+          </Routes>
+        </Router>
+      </ToastProvider>
+      </SiteSettingsProvider>
+    </AuthContext.Provider>
   );
 }
 

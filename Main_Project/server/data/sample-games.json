@@ -1,0 +1,31 @@
+{
+  "games": [
+    {
+      "identifier": "classic-dice",
+      "name": "Classic Dice",
+      "description": "Roll the dice and test your luck in this classic game of chance",
+      "thumbnailUrl": "https://example.com/images/dice-thumb.svg",
+      "cardImageUrl": "https://example.com/images/dice-card.svg",
+      "isActive": true,
+      "isDefault": true
+    },
+    {
+      "identifier": "color-wheel",
+      "name": "Color Wheel",
+      "description": "Spin the wheel and pick your lucky color to win big",
+      "thumbnailUrl": "https://example.com/images/wheel-thumb.svg",
+      "cardImageUrl": "https://example.com/images/wheel-card.svg",
+      "isActive": true,
+      "isDefault": false
+    },
+    {
+      "identifier": "card-flip",
+      "name": "Card Flip",
+      "description": "Choose your card and flip to reveal your fortune",
+      "thumbnailUrl": "https://example.com/images/cards-thumb.svg",
+      "cardImageUrl": "https://example.com/images/cards-card.svg",
+      "isActive": false,
+      "isDefault": false
+    }
+  ]
+}

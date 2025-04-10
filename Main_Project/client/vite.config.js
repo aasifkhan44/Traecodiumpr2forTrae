@@ -5,13 +5,15 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: {
-    strictPort: false, // Allow port fallback
+    port: 5175,
+    strictPort: true, // Ensure consistent port usage
     hmr: {
       protocol: 'ws',
       host: 'localhost',
-      port: 5174, // Base port for HMR
-      timeout: 30000,
-      overlay: false
+      port: 5175, // Match with server port
+      timeout: 60000, // Increased timeout
+      overlay: true, // Show errors in browser overlay
+      clientPort: 5175 // Ensure client connects to correct port
     }
   }
 });

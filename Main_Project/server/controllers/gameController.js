@@ -26,24 +26,29 @@ exports.getGame = async (req, res) => {
 // Update game settings
 exports.updateGame = async (req, res) => {
   try {
-    const { isActive, isDefault, settings } = req.body;
-    const game = await Game.findOne({ identifier: req.params.identifier });
+    const updates = req.body;
+    const identifier = req.params.identifier;
 
+    // Find game by exact identifier match
+    let game = await Game.findOne({ identifier: { $regex: `^${identifier}$`, $options: 'i' } });
+    
     if (!game) {
-      return res.status(404).json({ message: 'Game not found' });
+      return res.status(404).json({ success: false, message: 'Game not found' });
     }
 
-    // Update fields if provided
-    if (typeof isActive === 'boolean') game.isActive = isActive;
-    if (typeof isDefault === 'boolean') game.isDefault = isDefault;
-    if (settings) game.settings = { ...game.settings, ...settings };
+    // Apply updates and let Mongoose validation handle the URL format
+    Object.keys(updates).forEach(key => {
+      game[key] = updates[key];
+    });
 
     const updatedGame = await game.save();
-    res.json(updatedGame);
+    res.json({ success: true, data: updatedGame });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
+
 
 // Get default game
 exports.getDefaultGame = async (req, res) => {

@@ -10,7 +10,13 @@ const gameSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    enum: ['Wingo', 'K3', '5D', 'WingoTrx', 'Ludo', 'Chess', 'Numma', 'FortuneWheel']
+    validate: {
+      validator: function(v) {
+        const validIdentifiers = ['Wingo', 'K3', '5D', 'WingoTrx', 'Ludo', 'Chess', 'Numma', 'FortuneWheel'];
+        return validIdentifiers.some(id => id.toLowerCase() === v.toLowerCase());
+      },
+      message: 'Invalid game identifier'
+    }
   },
   isActive: {
     type: Boolean,
@@ -30,11 +36,21 @@ const gameSchema = new mongoose.Schema({
   },
   thumbnailUrl: {
     type: String,
-    default: ''
+    validate: {
+      validator: function(v) {
+        return /^(https?:\/\/).+\.(svg|png)$/i.test(v);
+      },
+      message: 'Image URL must be a valid HTTPS link ending with .svg or .png'
+    }
   },
   cardImageUrl: {
     type: String,
-    default: ''
+    validate: {
+      validator: function(v) {
+        return /^(https?:\/\/).+\.(svg|png)$/i.test(v);
+      },
+      message: 'Image URL must be a valid HTTPS link ending with .svg or .png'
+    }
   },
   createdAt: {
     type: Date,

@@ -68,6 +68,9 @@ router.put('/:id', [auth, admin], async (req, res) => {
     res.json({ success: true, data: game });
   } catch (err) {
     console.error('Error updating game:', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: err.message });
+    }
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
