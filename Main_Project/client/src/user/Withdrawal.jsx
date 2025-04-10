@@ -23,12 +23,25 @@ const Withdrawal = () => {
   // Form state
   const [withdrawalMode, setWithdrawalMode] = useState('upi');
   const [selectedCrypto, setSelectedCrypto] = useState(null);
+  const [selectedUpiOption, setSelectedUpiOption] = useState(null);
   const [amount, setAmount] = useState('');
   const [convertedAmount, setConvertedAmount] = useState('');
   const [upiId, setUpiId] = useState('');
   const [cryptoAddress, setCryptoAddress] = useState('');
   const [withdrawalFee, setWithdrawalFee] = useState(0);
   const [finalAmount, setFinalAmount] = useState(0);
+  
+  // Initialize form values
+  useEffect(() => {
+    setAmount('');
+    setConvertedAmount('');
+    setUpiId('');
+    setCryptoAddress('');
+    setWithdrawalFee(0);
+    setFinalAmount(0);
+    setSelectedUpiOption(null);
+    setSelectedCrypto(null);
+  }, [withdrawalMode]);
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -103,15 +116,11 @@ const Withdrawal = () => {
         if (response.data.success) {
           setPaymentSettings(response.data.data);
         } else {
-          setErrorSettings('Failed to load withdrawal options. Please try again.');
+          setErrorSettings('Failed to load withdrawal options');
         }
       } catch (error) {
         console.error('Error fetching withdrawal settings:', error);
-        setErrorSettings(
-          error.response?.status === 404 
-            ? 'Withdrawal service is currently unavailable. Please try again later.'
-            : 'Failed to load withdrawal options. Please try again.'
-        );
+        setErrorSettings('Failed to load withdrawal options. Please try again.');
       } finally {
         setLoadingSettings(false);
       }
@@ -161,18 +170,17 @@ const Withdrawal = () => {
         // For crypto, apply the conversion rate from the selected crypto option
         const converted = parseFloat(amount) / selectedCrypto.conversionRate;
         setConvertedAmount(converted.toFixed(6));
-      } else if (withdrawalMode === 'upi' && paymentSettings?.upiOptions?.length > 0) {
-        // For UPI, apply the conversion rate from the selected UPI option or the first one
-        const upiOption = paymentSettings.upiOptions[0]; // Using the first UPI option
-        if (upiOption.conversionRate && upiOption.conversionRate !== 1) {
-          const converted = parseFloat(amount) / upiOption.conversionRate;
+      } else if (withdrawalMode === 'upi' && selectedUpiOption) {
+        // For UPI, apply the conversion rate from the selected UPI option
+        if (selectedUpiOption.conversionRate && selectedUpiOption.conversionRate !== 1) {
+          const converted = parseFloat(amount) / selectedUpiOption.conversionRate;
           setConvertedAmount(converted.toFixed(2));
         } else {
           setConvertedAmount(amount); // No conversion if rate is 1
         }
       }
     }
-  }, [withdrawalMode, selectedCrypto, amount, paymentSettings]);
+  }, [withdrawalMode, selectedCrypto, selectedUpiOption, amount]);
   
   // Calculate withdrawal fee and final amount with currency conversion
   useEffect(() => {
@@ -184,11 +192,10 @@ const Withdrawal = () => {
       let withdrawalFeeValue = 0;
       
       // Get fee and conversion rate based on withdrawal mode
-      if (withdrawalMode === 'upi' && paymentSettings.upiOptions && paymentSettings.upiOptions.length > 0) {
-        const upiOption = paymentSettings.upiOptions[0];
-        withdrawalFeeValue = parseFloat(upiOption.withdrawalFee) || 0;
-        feeType = upiOption.feeType || 'fixed';
-        conversionRate = upiOption.conversionRate || 1;
+      if (withdrawalMode === 'upi' && selectedUpiOption) {
+        withdrawalFeeValue = parseFloat(selectedUpiOption.withdrawalFee) || 0;
+        feeType = selectedUpiOption.feeType || 'fixed';
+        conversionRate = selectedUpiOption.conversionRate || 1;
       } else if (withdrawalMode === 'crypto' && selectedCrypto) {
         withdrawalFeeValue = parseFloat(selectedCrypto.withdrawalFee) || 0;
         feeType = selectedCrypto.feeType || 'fixed';
@@ -231,12 +238,44 @@ const Withdrawal = () => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setAmount(value);
+      
+      // Calculate converted amount based on selected option's conversion rate
+      if (value && withdrawalMode === 'upi' && selectedUpiOption) {
+        const converted = parseFloat(value) / selectedUpiOption.conversionRate;
+        setConvertedAmount(converted.toFixed(2));
+        
+        // Calculate fee based on fee type
+        let fee = 0;
+        if (selectedUpiOption.feeType === 'percent') {
+          fee = (converted * selectedUpiOption.withdrawalFee) / 100;
+        } else {
+          fee = selectedUpiOption.withdrawalFee;
+        }
+        
+        // Apply minimum fee if applicable
+        if (paymentSettings?.minimumWithdrawalFee > 0 && fee < paymentSettings.minimumWithdrawalFee) {
+          fee = paymentSettings.minimumWithdrawalFee;
+        }
+        
+        setWithdrawalFee(fee);
+        setFinalAmount(Math.max(0, converted - fee));
+      }
     }
   };
   
   // Handle Crypto selection
   const handleCryptoSelect = (crypto) => {
     setSelectedCrypto(crypto);
+  };
+
+  // Handle UPI option selection
+  const handleUpiOptionSelect = (upiOption) => {
+    setSelectedUpiOption(upiOption);
+    // Reset amount to trigger recalculation
+    if (amount) {
+      const event = { target: { value: amount } };
+      handleAmountChange(event);
+    }
   };
   
   // Submit withdrawal request
@@ -671,17 +710,39 @@ const Withdrawal = () => {
           
           {/* UPI ID Input */}
           {withdrawalMode === 'upi' && (
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="upiId">
-                Your UPI ID
-              </label>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select UPI Option</label>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {paymentSettings?.upiOptions?.map((option, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedUpiOption === option ? 'border-primary bg-primary/10' : 'border-gray-200 hover:border-primary/50'}`}
+                    onClick={() => handleUpiOptionSelect(option)}
+                  >
+                    <div className="flex items-center space-x-3">
+                      {option.svgCode ? (
+                        <div className="w-8 h-8" dangerouslySetInnerHTML={{ __html: option.svgCode }} />
+                      ) : (
+                        <FaCreditCard className="w-8 h-8 text-gray-500" />
+                      )}
+                      <div>
+                        <p className="font-medium">{option.name}</p>
+                        {option.withdrawalFee > 0 && (
+                          <p className="text-sm text-gray-500">
+                            Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <input
                 type="text"
-                id="upiId"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                placeholder="Enter UPI ID"
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Enter your UPI ID"
                 required={withdrawalMode === 'upi'}
               />
             </div>
