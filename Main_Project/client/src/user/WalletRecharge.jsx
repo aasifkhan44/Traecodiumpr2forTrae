@@ -48,8 +48,8 @@ const WalletRecharge = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          setErrorSettings('Authentication required');
-          setLoadingSettings(false);
+          // Redirect to login if no token
+          window.location.href = '/login';
           return;
         }
         
@@ -73,6 +73,11 @@ const WalletRecharge = () => {
         }
       } catch (error) {
         console.error('Error fetching payment settings:', error);
+        if (error.response?.status === 401) {
+          // Redirect to login on unauthorized access
+          window.location.href = '/login';
+          return;
+        }
         setErrorSettings('Failed to load payment options');
       } finally {
         setLoadingSettings(false);
@@ -92,6 +97,7 @@ const WalletRecharge = () => {
         const token = localStorage.getItem('token');
         if (!token) {
           setLoadingHistory(false);
+          window.location.href = '/login';
           return;
         }
         
@@ -108,6 +114,11 @@ const WalletRecharge = () => {
         }
       } catch (error) {
         console.error('Error fetching deposit history:', error);
+        if (error.response?.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        setError('Failed to load deposit history');
       } finally {
         setLoadingHistory(false);
       }
@@ -238,7 +249,12 @@ const WalletRecharge = () => {
       }
     } catch (error) {
       console.error('Error submitting deposit request:', error);
-      setError(error.response?.data?.message || 'Something went wrong. Please try again.');
+      if (error.response?.status === 401) {
+        setError('Authentication required');
+        // Redirect to login or show appropriate message
+      } else {
+        setError(error.response?.data?.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -446,160 +462,210 @@ const WalletRecharge = () => {
             </div>
           </div>
           
-          {/* UPI Options */}
-          {paymentMode === 'upi' && paymentSettings?.upiOptions && (
+          {/* UPI Section */}
+          {paymentMode === 'upi' && (
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Select UPI Option
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {paymentSettings.upiOptions.map((upi, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      selectedUpi && selectedUpi.upiId === upi.upiId 
-                        ? 'border-primary bg-primary bg-opacity-5' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handleUpiSelect(upi)}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                        {upi.imageUrl ? (
-                          <img src={upi.imageUrl} alt={upi.name} className="w-6 h-6 object-contain" />
-                        ) : (
-                          <FaWallet className="text-gray-400" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium">{upi.name}</div>
-                        <div className="text-sm text-gray-600">{upi.upiId}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              
-              {selectedUpi && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex flex-col items-center mb-4">
-                    {selectedUpi.svgCode ? (
-                      <div 
-                        className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3" 
-                        dangerouslySetInnerHTML={{ __html: selectedUpi.svgCode }} 
-                      />
-                    ) : selectedUpi.imageUrl ? (
-                      <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3">
-                        <img 
-                          src={selectedUpi.imageUrl} 
-                          alt={selectedUpi.name} 
-                          className="max-w-full max-h-full object-contain" 
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
-                        <FaWallet className="text-gray-400 text-5xl" />
-                      </div>
-                    )}
-                    <div className="w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                        <span className="text-gray-700 font-medium mb-1 sm:mb-0">UPI ID:</span>
+              {paymentSettings?.upiOptions && paymentSettings.upiOptions.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">UPI Payment Options</h3>
+                    <button
+                      onClick={() => handlePaymentModeChange('crypto')}
+                      className="btn btn-outline btn-secondary"
+                    >
+                      Switch to Cryptocurrency
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentSettings.upiOptions.map((upi, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`p-3 rounded-lg border text-left transition-colors ${
+                          selectedUpi && selectedUpi.upiId === upi.upiId 
+                            ? 'border-primary bg-primary bg-opacity-5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleUpiSelect(upi)}
+                      >
                         <div className="flex items-center">
-                          <span ref={paymentAddressRef} className="mr-2 text-red-600 font-medium break-all">{selectedUpi.upiId}</span>
-                          <button
-                            type="button"
-                            onClick={copyToClipboard}
-                            className="flex items-center text-primary px-2 py-1 rounded hover:bg-gray-200 text-sm"
-                            title="Copy to clipboard"
-                          >
-                            {copiedToClipboard ? <FaCheck className="mr-1" /> : <FaClipboard className="mr-1" />}
-                            {copiedToClipboard ? "Copied!" : "Copy this UPI"}
-                          </button>
+                          <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
+                            {upi.imageUrl ? (
+                              <img src={upi.imageUrl} alt={upi.name} className="w-6 h-6 object-contain" />
+                            ) : (
+                              <FaWallet className="text-gray-400" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{upi.name}</div>
+                            <div className="text-sm text-gray-600">{upi.upiId}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {selectedUpi && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex flex-col items-center mb-4">
+                        {selectedUpi.svgCode ? (
+                          <div 
+                            className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3" 
+                            dangerouslySetInnerHTML={{ __html: selectedUpi.svgCode }} 
+                          />
+                        ) : selectedUpi.imageUrl ? (
+                          <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3">
+                            <img 
+                              src={selectedUpi.imageUrl} 
+                              alt={selectedUpi.name} 
+                              className="max-w-full max-h-full object-contain" 
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
+                            <FaWallet className="text-gray-400 text-5xl" />
+                          </div>
+                        )}
+                        <div className="w-full">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                            <span className="text-gray-700 font-medium mb-1 sm:mb-0">UPI ID:</span>
+                            <div className="flex items-center">
+                              <span ref={paymentAddressRef} className="mr-2 text-red-600 font-medium break-all">{selectedUpi.upiId}</span>
+                              <button
+                                type="button"
+                                onClick={copyToClipboard}
+                                className="flex items-center text-primary px-2 py-1 rounded hover:bg-gray-200 text-sm"
+                                title="Copy to clipboard"
+                              >
+                                {copiedToClipboard ? <FaCheck className="mr-1" /> : <FaClipboard className="mr-1" />}
+                                {copiedToClipboard ? "Copied!" : "Copy this UPI"}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Make payment to this UPI ID and enter the UTR number below.
+                          </p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Make payment to this UPI ID and enter the UTR number below.
-                      </p>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 mb-4">
+                  <div className="flex items-center">
+                    <FaExclamationTriangle className="mr-2" />
+                    <p className="text-sm">
+                      No UPI payment options are currently available.
+                      <button
+                        onClick={() => handlePaymentModeChange('crypto')}
+                        className="ml-2 text-primary hover:text-primary-dark font-medium"
+                      >
+                        Switch to Cryptocurrency
+                      </button>
+                    </p>
                   </div>
                 </div>
               )}
             </div>
           )}
           
-          {/* Crypto Options */}
-          {paymentMode === 'crypto' && paymentSettings?.cryptoOptions && (
+          {/* Crypto Section */}
+          {paymentMode === 'crypto' && (
             <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Select Cryptocurrency
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {paymentSettings.cryptoOptions.map((crypto, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      selectedCrypto && selectedCrypto.currency === crypto.currency 
-                        ? 'border-primary bg-primary bg-opacity-5' 
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                    onClick={() => handleCryptoSelect(crypto)}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                        <FaCoins className="text-gray-400" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{crypto.currency}</div>
-                        <div className="text-sm text-gray-600">Rate: 1 {crypto.currency} = {crypto.conversionRate}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              
-              {selectedCrypto && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex flex-col items-center mb-4">
-                    {selectedCrypto.svgCode ? (
-                      <div 
-                        className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3" 
-                        dangerouslySetInnerHTML={{ __html: selectedCrypto.svgCode }} 
-                      />
-                    ) : selectedCrypto.imageUrl ? (
-                      <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3">
-                        <img 
-                          src={selectedCrypto.imageUrl} 
-                          alt={selectedCrypto.currency} 
-                          className="max-w-full max-h-full object-contain" 
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
-                        <FaCoins className="text-gray-400 text-5xl" />
-                      </div>
-                    )}
-                    <div className="w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-                        <span className="text-gray-700 font-medium mb-1 sm:mb-0">{selectedCrypto.currency} Address:</span>
-                        <div className="flex items-center flex-wrap">
-                          <span ref={paymentAddressRef} className="mr-2 text-xs md:text-sm break-all text-red-600 font-medium">{selectedCrypto.address}</span>
-                          <button
-                            type="button"
-                            onClick={copyToClipboard}
-                            className="flex items-center text-primary px-2 py-1 rounded hover:bg-gray-200 text-sm flex-shrink-0 mt-1 sm:mt-0"
-                            title="Copy to clipboard"
-                          >
-                            {copiedToClipboard ? <FaCheck className="mr-1" /> : <FaClipboard className="mr-1" />}
-                            {copiedToClipboard ? "Copied!" : "Copy this address"}
-                          </button>
+              {paymentSettings?.cryptoOptions && paymentSettings.cryptoOptions.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Cryptocurrency Payment Options</h3>
+                    <button
+                      onClick={() => handlePaymentModeChange('upi')}
+                      className="btn btn-outline btn-secondary"
+                    >
+                      Switch to UPI
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentSettings.cryptoOptions.map((crypto, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`p-3 rounded-lg border text-left transition-colors ${
+                          selectedCrypto && selectedCrypto.currency === crypto.currency 
+                            ? 'border-primary bg-primary bg-opacity-5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleCryptoSelect(crypto)}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
+                            <FaCoins className="text-gray-400" />
+                          </div>
+                          <div>
+                            <div className="font-medium">{crypto.currency}</div>
+                            <div className="text-sm text-gray-600">Rate: 1 {crypto.currency} = {crypto.conversionRate}</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {selectedCrypto && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex flex-col items-center mb-4">
+                        {selectedCrypto.svgCode ? (
+                          <div 
+                            className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3" 
+                            dangerouslySetInnerHTML={{ __html: selectedCrypto.svgCode }} 
+                          />
+                        ) : selectedCrypto.imageUrl ? (
+                          <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-white border rounded-lg p-4 mb-3">
+                            <img 
+                              src={selectedCrypto.imageUrl} 
+                              alt={selectedCrypto.currency} 
+                              className="max-w-full max-h-full object-contain" 
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-[250px] h-[250px] flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg mb-3">
+                            <FaCoins className="text-gray-400 text-5xl" />
+                          </div>
+                        )}
+                        <div className="w-full">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                            <span className="text-gray-700 font-medium mb-1 sm:mb-0">{selectedCrypto.currency} Address:</span>
+                            <div className="flex items-center flex-wrap">
+                              <span ref={paymentAddressRef} className="mr-2 text-xs md:text-sm break-all text-red-600 font-medium">{selectedCrypto.address}</span>
+                              <button
+                                type="button"
+                                onClick={copyToClipboard}
+                                className="flex items-center text-primary px-2 py-1 rounded hover:bg-gray-200 text-sm flex-shrink-0 mt-1 sm:mt-0"
+                                title="Copy to clipboard"
+                              >
+                                {copiedToClipboard ? <FaCheck className="mr-1" /> : <FaClipboard className="mr-1" />}
+                                {copiedToClipboard ? "Copied!" : "Copy this address"}
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Send {selectedCrypto.currency} to this address and enter the transaction reference number below.
+                          </p>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Send {selectedCrypto.currency} to this address and enter the transaction reference number below.
-                      </p>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-4 mb-4">
+                  <div className="flex items-center">
+                    <FaExclamationTriangle className="mr-2" />
+                    <p className="text-sm">
+                      No cryptocurrency payment options are currently available.
+                      <button
+                        onClick={() => handlePaymentModeChange('upi')}
+                        className="ml-2 text-primary hover:text-primary-dark font-medium"
+                      >
+                        Switch to UPI
+                      </button>
+                    </p>
                   </div>
                 </div>
               )}

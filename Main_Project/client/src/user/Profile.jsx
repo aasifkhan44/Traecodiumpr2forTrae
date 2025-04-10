@@ -339,7 +339,13 @@ const Profile = () => {
           <div>
             <p className="text-gray-600">Current Balance</p>
             <p className="text-3xl font-bold">
-              {profile.balance.toFixed(2)}
+              {loading ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : profile.balance !== undefined ? (
+                profile.balance.toFixed(2)
+              ) : (
+                '0.00'
+              )}
             </p>
           </div>
           <Link 
