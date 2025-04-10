@@ -775,80 +775,85 @@ const Withdrawal = () => {
           )}
           
           {/* UPI Options */}
-          {withdrawalMode === 'upi' && paymentSettings?.upiOptions && (
+          {withdrawalMode === 'upi' && (
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-bold mb-2">Select UPI Option</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {paymentSettings.upiOptions.map((option, index) => {
-                  // Debug the imageUrl for this option
-                  console.log(`Rendering UPI option ${option.name} with imageUrl:`, option.imageUrl);
-                  
-                  return (
-                    <button
-                      key={index}
-                      type="button"
-                      className={`p-3 rounded-lg border text-left transition-colors ${
-                        selectedUpiOption === option 
-                          ? 'border-primary bg-primary bg-opacity-5' 
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleUpiOptionSelect(option)}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                          {option.imageUrl ? (
-                            <img 
-                              src={option.imageUrl} 
-                              alt={option.name} 
-                              className="w-6 h-6 object-contain" 
-                              onError={(e) => {
-                                console.log(`Failed to load image for ${option.name}:`, option.imageUrl);
-                                e.target.onerror = null;
-                                e.target.src = 'https://via.placeholder.com/24?text=' + encodeURIComponent(option.name.charAt(0));
-                              }}
-                            />
-                          ) : (
-                            <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
-                              {option.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium">{option.name}</div>
-                          {option.withdrawalFee > 0 && (
-                            <div className="text-sm text-gray-600">
-                              Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          
-          {/* Crypto Options */}
-          {withdrawalMode === 'crypto' && paymentSettings?.cryptoOptions && (
-            <>
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-bold mb-2">
-                  Select Cryptocurrency
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {paymentSettings.cryptoOptions.map((crypto, index) => {
-                    // Debug the imageUrl for this crypto option
-                    console.log(`Rendering crypto option ${crypto.currency} with imageUrl:`, crypto.imageUrl);
-                    console.log(`Crypto option ${crypto.currency} has a valid imageUrl: ${!!crypto.imageUrl}`);
-                    console.log(`Crypto option ${crypto.currency} has a valid imageUrl that is a string: ${typeof crypto.imageUrl === 'string'}`);
+              {paymentSettings?.upiOptions && paymentSettings.upiOptions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {paymentSettings.upiOptions.map((option, index) => {
+                    // Debug the imageUrl for this option
+                    console.log(`Rendering UPI option ${option.name} with imageUrl:`, option.imageUrl);
                     
                     return (
                       <button
                         key={index}
                         type="button"
                         className={`p-3 rounded-lg border text-left transition-colors ${
-                          selectedCrypto && selectedCrypto.currency === crypto.currency 
+                          selectedUpiOption === option 
+                            ? 'border-primary bg-primary bg-opacity-5' 
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => handleUpiOptionSelect(option)}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
+                            {option.imageUrl ? (
+                              <img 
+                                src={option.imageUrl} 
+                                alt={option.name} 
+                                className="w-6 h-6 object-contain" 
+                                onError={(e) => {
+                                  console.log(`Failed to load image for ${option.name}:`, option.imageUrl);
+                                  e.target.onerror = null;
+                                  e.target.src = 'https://via.placeholder.com/24?text=' + encodeURIComponent(option.name.charAt(0));
+                                }}
+                              />
+                            ) : (
+                              <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+                                {option.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{option.name}</div>
+                            {option.withdrawalFee > 0 && (
+                              <div className="text-sm text-gray-600">
+                                Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                  <p className="text-yellow-700">No UPI withdrawal options are currently available.</p>
+                  <button
+                    onClick={() => setWithdrawalMode('crypto')}
+                    className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Switch to Cryptocurrency
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Crypto Options */}
+          {withdrawalMode === 'crypto' && (
+            <>
+              <div className="mb-6">
+                <label className="block text-gray-700 text-sm font-bold mb-2">Select Cryptocurrency</label>
+                {paymentSettings?.cryptoOptions && paymentSettings.cryptoOptions.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {paymentSettings.cryptoOptions.map((crypto, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`p-3 rounded-lg border text-left transition-colors ${
+                          selectedCrypto === crypto 
                             ? 'border-primary bg-primary bg-opacity-5' 
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
@@ -879,9 +884,19 @@ const Withdrawal = () => {
                           </div>
                         </div>
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 p-4 rounded-lg text-center">
+                    <p className="text-yellow-700">No cryptocurrency withdrawal options are currently available.</p>
+                    <button
+                      onClick={() => setWithdrawalMode('upi')}
+                      className="mt-2 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    >
+                      Switch to UPI
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
