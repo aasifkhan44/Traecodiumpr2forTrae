@@ -175,3 +175,76 @@ exports.initializeGame = async () => {
     console.error('Error initializing Wingo game rounds:', err.message);
   }
 };
+
+// Get Wingo rounds results
+exports.getWingoRounds = async (req, res) => {
+  try {
+    const { duration } = req.query;
+    const RoundModel = {
+      1: WingoRound1m,
+      3: WingoRound3m,
+      5: WingoRound5m,
+      10: WingoRound10m
+    }[duration];
+
+    if (!RoundModel) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid duration. Valid values are 1, 3, 5, 10' 
+      });
+    }
+
+    const rounds = await RoundModel.find({ 
+      status: { $in: ['completed', 'closed'] } 
+    }).sort({ endTime: -1 }).limit(50);
+
+    res.json({ 
+      success: true, 
+      data: rounds 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};
+
+// Admin: Get Wingo rounds for admin panel
+exports.getAdminWingoRounds = async (req, res) => {
+  try {
+    // Validate admin permission
+    if (!req.user.isAdmin) {
+      return res.status(403).json({ success: false, message: 'Admin permission required' });
+    }
+
+    const { duration } = req.query;
+    const RoundModel = {
+      1: WingoRound1m,
+      3: WingoRound3m,
+      5: WingoRound5m,
+      10: WingoRound10m
+    }[duration];
+
+    if (!RoundModel) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid duration. Valid values are 1, 3, 5, 10' 
+      });
+    }
+
+    const rounds = await RoundModel.find({ 
+      status: { $in: ['open', 'completed', 'closed'] } 
+    }).sort({ endTime: -1 }).limit(50);
+
+    res.json({ 
+      success: true, 
+      data: rounds 
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};

@@ -314,16 +314,39 @@ const AdminGameManagement = () => {
       'Authorization': `Bearer ${token}`
     };
 
-    const response = await axios.get(
-      `${API_BASE_URL}/api/admin/games/${gameIdentifier}/results`, 
-      { headers }
-    );
-    
-    if (response.data?.success && Array.isArray(response.data.data)) {
-      setResults(response.data.data);
+    let response;
+    if (gameIdentifier === 'Wingo') {
+      // Special handling for Wingo game results
+      response = await axios.get(
+        `${API_BASE_URL}/api/admin/games/Wingo/rounds`, 
+        { headers }
+      );
+      
+      if (response.data?.success && Array.isArray(response.data.data)) {
+        setResults(response.data.data.map(round => ({
+          ...round,
+          color: round.result?.color || '',
+          number: round.result?.number || null,
+          duration: round.duration,
+          roundNumber: round.roundNumber
+        })));
+      } else {
+        setResults([]);
+        toast.warning('No Wingo rounds data available');
+      }
     } else {
-      setResults([]);
-      toast.warning('No results data available');
+      // Default handling for other games
+      response = await axios.get(
+        `${API_BASE_URL}/api/admin/games/${gameIdentifier}/results`, 
+        { headers }
+      );
+      
+      if (response.data?.success && Array.isArray(response.data.data)) {
+        setResults(response.data.data);
+      } else {
+        setResults([]);
+        toast.warning('No results data available');
+      }
     }
   } catch (error) {
     console.error('Error fetching results:', error);
@@ -441,16 +464,40 @@ return (
                 results.map(result => (
                   <div key={result._id} className="bg-white rounded-lg shadow-lg p-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold">{result.user?.username || 'Unknown user'}</h3>
-                      <span className="text-sm text-gray-500">
-                        {new Date(result.createdAt).toLocaleString()}
-                      </span>
+                      {selectedGame === 'Wingo' ? (
+                        <>
+                          <h3 className="text-lg font-semibold">Round {result.roundNumber}</h3>
+                          <span className="text-sm text-gray-500">
+                            {result.duration} min round
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="text-lg font-semibold">{result.user?.username || 'Unknown user'}</h3>
+                          <span className="text-sm text-gray-500">
+                            {new Date(result.createdAt).toLocaleString()}
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="space-y-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Score</p>
-                        <p className="text-xl font-bold">{result.score}</p>
-                      </div>
+                      {selectedGame === 'Wingo' ? (
+                        <div className="flex flex-col items-center">
+                          <div className="text-2xl font-bold mb-2">
+                            {result.number !== null ? result.number : 'Pending'}
+                          </div>
+                          <div 
+                            className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold ${result.color === 'Red' ? 'bg-red-500' : result.color === 'Green' ? 'bg-green-500' : result.color === 'Violet' ? 'bg-purple-500' : 'bg-gray-300'}`}
+                          >
+                            {result.color || '-'}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Score</p>
+                          <p className="text-xl font-bold">{result.score}</p>
+                        </div>
+                      )}
                       <div className="flex items-center">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${result.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                           {result.verified ? 'Verified' : 'Pending'}

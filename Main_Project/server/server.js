@@ -48,6 +48,7 @@ const gameRoutes = require('./routes/game');
 const depositRoutes = require('./routes/deposit');
 const commissionSettingsRoutes = require('./routes/commissionSettings');
 const wingoRoutes = require('./routes/wingo');
+const adminGamesRoutes = require('./routes/admin/games');
 const SiteSettings = require('./models/SiteSettings');
 const wingoController = require('./controllers/wingoController');
 
@@ -57,6 +58,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/games', gameRoutes);
+app.use('/api/admin/games', adminGamesRoutes);
 console.log('Mounting deposit routes at /api/deposit');
 app.use('/api/deposit', depositRoutes);
 app.use('/api/withdrawal', require('./routes/withdrawal'));

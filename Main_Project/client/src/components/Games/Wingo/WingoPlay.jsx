@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../../utils/api';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export default function WingoPlay() {
+  const { user } = useAuth();
   const [selectedDuration, setSelectedDuration] = useState(1); // Default to 1 minute
   const [activeRounds, setActiveRounds] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedBetType, setSelectedBetType] = useState(null); // 'color' or 'number'
+  const [selectedBetValue, setSelectedBetValue] = useState(null);
+  const [betAmount, setBetAmount] = useState('');
+  const [betLoading, setBetLoading] = useState(false);
+  const [betError, setBetError] = useState(null);
+
+  const colors = [
+    { value: 'Red', className: 'bg-red-500' },
+    { value: 'Violet', className: 'bg-purple-500' },
+    { value: 'Green', className: 'bg-green-500' }
+  ];
+
+  const numbers = Array.from({ length: 10 }, (_, i) => i);
 
   const durations = [
     { value: 1, label: '1 Minute' },
@@ -227,6 +242,77 @@ export default function WingoPlay() {
     setSelectedDuration(duration);
   };
 
+  const handleBetTypeSelect = (type, value) => {
+    setSelectedBetType(type);
+    setSelectedBetValue(value);
+    setBetError(null);
+  };
+
+  const handleBetSubmit = async () => {
+    try {
+      setBetError(null);
+      setBetLoading(true);
+
+      // Client-side validation
+      if (!user) {
+        throw new Error('Please log in to place a bet');
+      }
+
+      if (!selectedBetType || !selectedBetValue) {
+        throw new Error('Please select a color or number to bet on');
+      }
+
+      if (!betAmount || isNaN(betAmount) || betAmount <= 0) {
+        throw new Error('Please enter a valid bet amount');
+      }
+
+      if (!user.balance || user.balance < Number(betAmount)) {
+        throw new Error('Insufficient balance to place this bet');
+      }
+
+      // Additional validation
+      if (selectedBetType === 'color' && !['Red', 'Violet', 'Green'].includes(selectedBetValue)) {
+        throw new Error('Invalid color selection');
+      }
+
+      if (selectedBetType === 'number' && !/^[0-9]$/.test(selectedBetValue)) {
+        throw new Error('Invalid number selection');
+      }
+
+      const response = await api.post('/wingo/bet', {
+        duration: selectedDuration,
+        betType: selectedBetType,
+        betValue: selectedBetValue,
+        amount: Number(betAmount)
+      });
+
+      if (response.data.success) {
+        // Reset form
+        setSelectedBetType(null);
+        setSelectedBetValue(null);
+        setBetAmount('');
+        // You might want to update user's balance here
+      } else {
+        throw new Error(response.data.message || 'Failed to place bet');
+      }
+    } catch (err) {
+      console.error('Bet placement error:', err);
+      if (err.response) {
+        // Server returned an error response
+        const errorMessage = err.response.data?.message || 'Server error occurred while placing bet';
+        setBetError(errorMessage);
+      } else if (err.request) {
+        // Request was made but no response received
+        setBetError('Unable to connect to the server. Please check your connection.');
+      } else {
+        // Client-side error
+        setBetError(err.message || 'An error occurred while placing your bet');
+      }
+    } finally {
+      setBetLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -248,7 +334,7 @@ export default function WingoPlay() {
   const currentRound = activeRounds[selectedDuration];
 
   return (
-    <div className="game-container p-4">
+    <div className="p-4">
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-4">Select Round Duration</h2>
         <div className="flex space-x-4">
@@ -268,8 +354,70 @@ export default function WingoPlay() {
         </div>
       </div>
 
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-4">Place Your Bet</h3>
+        
+        {/* Color Selection */}
+        <div className="mb-6">
+          <h4 className="text-md font-medium mb-2">Select Color</h4>
+          <div className="flex gap-4">
+            {colors.map(color => (
+              <button
+                key={color.value}
+                onClick={() => handleBetTypeSelect('color', color.value)}
+                className={`${color.className} px-4 py-2 rounded-md text-white ${selectedBetType === 'color' && selectedBetValue === color.value ? 'ring-2 ring-white' : ''}`}
+              >
+                {color.value}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Number Selection */}
+        <div className="mb-6">
+          <h4 className="text-md font-medium mb-2">Select Number</h4>
+          <div className="grid grid-cols-5 gap-2">
+            {numbers.map(number => (
+              <button
+                key={number}
+                onClick={() => handleBetTypeSelect('number', number.toString())}
+                className={`px-4 py-2 rounded-md border ${selectedBetType === 'number' && selectedBetValue === number.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+              >
+                {number}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bet Amount Input */}
+        <div className="mb-6">
+          <h4 className="text-md font-medium mb-2">Bet Amount</h4>
+          <input
+            type="number"
+            value={betAmount}
+            onChange={(e) => setBetAmount(e.target.value)}
+            placeholder="Enter bet amount"
+            className="w-full px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Error Message */}
+        {betError && (
+          <div className="text-red-500 mb-4">{betError}</div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          onClick={handleBetSubmit}
+          disabled={betLoading || !selectedBetType || !selectedBetValue || !betAmount}
+          className={`w-full py-2 rounded-md text-white ${betLoading || !selectedBetType || !selectedBetValue || !betAmount ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'}`}
+        >
+          {betLoading ? 'Placing Bet...' : 'Place Bet'}
+        </button>
+      </div>
+
       {currentRound ? (
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-6 mt-6">
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <h3 className="text-lg font-semibold">Round Number</h3>
@@ -282,33 +430,6 @@ export default function WingoPlay() {
                   ? Math.max(0, Math.floor((new Date(currentRound.endTime) - new Date()) / 1000))
                   : 0}s
               </p>
-            </div>
-          </div>
-
-          <div className="betting-options">
-            <h3 className="text-lg font-semibold mb-4">Place Your Bet</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="color-betting p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-2">Color Bet</h4>
-                <div className="flex space-x-2">
-                  <button className="w-12 h-12 rounded-full bg-red-500"></button>
-                  <button className="w-12 h-12 rounded-full bg-violet-500"></button>
-                  <button className="w-12 h-12 rounded-full bg-green-500"></button>
-                </div>
-              </div>
-              <div className="number-betting p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-2">Number Bet</h4>
-                <div className="grid grid-cols-5 gap-2">
-                  {[...Array(10)].map((_, i) => (
-                    <button
-                      key={i}
-                      className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
-                    >
-                      {i}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </div>
