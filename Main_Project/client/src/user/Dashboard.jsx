@@ -35,21 +35,18 @@ const Dashboard = () => {
   ]);
   
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserData = async (retryCount = 0) => {
       try {
         setLoading(true);
-        // Try to get the token - check both possible storage formats
-        let token = localStorage.getItem('token');
+        setError(null); // Clear any previous errors
         
-        // Sometimes the token might be stored with quotes, let's handle that
+        let token = localStorage.getItem('token');
         if (token && (token.startsWith('"') || token.startsWith("'")) && (token.endsWith('"') || token.endsWith("'"))) {
           token = token.substring(1, token.length - 1);
         }
         
-        console.log('Token found:', token ? 'YES (length: ' + token.length + ')' : 'NO');
-        
         if (!token) {
-          setError('Authentication token not found');
+          setError('Authentication token not found. Please log in again.');
           setLoading(false);
           return;
         }
@@ -60,26 +57,39 @@ const Dashboard = () => {
           'Authorization': `Bearer ${token}`
         };
         
-        // Fetch user profile - contains balance and basic info
-        console.log('Making API request to:', `${API_BASE_URL}/api/user/profile`);
-        const profileResponse = await axios.get(`${API_BASE_URL}/api/user/profile`, { headers });
-        
-        // Fetch referrals data
-        console.log('Making API request to:', `${API_BASE_URL}/api/user/referrals`);
-        const referralsResponse = await axios.get(`${API_BASE_URL}/api/user/referrals`, { headers });
-        
-        // Update user stats with real data
+        // Fetch user profile with retry mechanism
+        const makeRequest = async (endpoint) => {
+          try {
+            return await axios.get(`${API_BASE_URL}${endpoint}`, { headers });
+          } catch (error) {
+            if (error.code === 'ERR_NETWORK' && retryCount < 3) {
+              console.log(`Retrying request to ${endpoint} (attempt ${retryCount + 1})`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+              throw error; // Propagate error for retry
+            }
+            throw error; // Propagate other errors
+          }
+        };
+
+        const [profileResponse, referralsResponse] = await Promise.all([
+          makeRequest('/api/user/profile'),
+          makeRequest('/api/user/referrals')
+        ]).catch(async (error) => {
+          if (error.code === 'ERR_NETWORK' && retryCount < 3) {
+            // Retry the entire operation
+            return fetchUserData(retryCount + 1);
+          }
+          throw error;
+        });
+
         if (profileResponse.data.success && profileResponse.data.data) {
           const userData = profileResponse.data.data;
-          
-          // Start building updated stats
           const updatedStats = {
             balance: userData.balance || 0,
-            totalGames: userStats.totalGames, // Keep existing value for now
-            winRate: userStats.winRate // Keep existing value for now
+            totalGames: userStats.totalGames,
+            winRate: userStats.winRate
           };
           
-          // Add referral data if available
           if (referralsResponse.data.success) {
             const referralData = referralsResponse.data;
             updatedStats.referrals = referralData.directReferralsCount || 0;
@@ -87,12 +97,17 @@ const Dashboard = () => {
             updatedStats.totalEarnings = (userData.balance || 0) + (referralData.totalCommission || 0);
           }
           
-          // Update the state
           setUserStats(updatedStats);
         }
       } catch (err) {
         console.error('Error fetching user profile:', err);
-        setError('Failed to load user data');
+        if (err.code === 'ERR_NETWORK') {
+          setError('Unable to connect to the server. Please check your internet connection or try again later.');
+        } else if (err.response?.status === 401) {
+          setError('Session expired. Please log in again.');
+        } else {
+          setError('Failed to load user data. Please try again.');
+        }
       } finally {
         setLoading(false);
       }

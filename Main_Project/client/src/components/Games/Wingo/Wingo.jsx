@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../../utils/api';
+import WingoPlay from './WingoPlay';
 
 export default function Wingo() {
   const [gameData, setGameData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -61,6 +63,10 @@ export default function Wingo() {
     );
   }
 
+  if (isPlaying) {
+    return <WingoPlay onClose={() => setIsPlaying(false)} />;
+  }
+
   return (
     <div className="game-container p-4">
       <div className="text-center mb-8">
@@ -95,7 +101,8 @@ export default function Wingo() {
           <div className="mt-6">
             <button 
               className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-              onClick={() => console.log('Start game clicked')}
+              onClick={() => setIsPlaying(true)}
+              disabled={!gameData.isActive}
             >
               Start Playing
             </button>
