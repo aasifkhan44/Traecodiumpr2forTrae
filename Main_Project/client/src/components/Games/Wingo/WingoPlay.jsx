@@ -448,7 +448,7 @@ export default function WingoPlay() {
             <h3 className="text-base md:text-lg font-semibold">Your Balance</h3>
           </div>
           {userProfile || user ? (
-            <p className="text-xl md:text-2xl font-bold">🪙 {userBalance.toFixed(2)}</p>
+            <p className="text-xl md:text-2xl font-bold"> {userBalance.toFixed(2)}</p>
           ) : (
             <p className="text-sm md:text-base text-red-500">Please log in to view your balance</p>
           )}
@@ -464,11 +464,13 @@ export default function WingoPlay() {
               </div>
               <div>
                 <h3 className="text-base md:text-lg font-semibold">Time Remaining</h3>
-                <p className="text-sm md:text-base text-gray-600">
-                  {currentRound.endTime
-                    ? Math.max(0, Math.floor((new Date(currentRound.endTime) - new Date()) / 1000))
-                    : 0}s
-                </p>
+                <div className="mt-1 flex items-center justify-center">
+                  <div className="flex items-center space-x-1 text-2xl md:text-3xl font-bold">
+                    <span className="text-blue-500">{currentRound.endTime ? Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString() : '00'}</span>
+                    <span className="text-gray-400">:</span>
+                    <span className="text-blue-500">{currentRound.endTime ? Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0') : '00'}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -498,7 +500,23 @@ export default function WingoPlay() {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-3 md:p-6">
-          <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Place Your Bet</h3>
+          <div className="flex justify-between items-center mb-4 md:mb-6">
+            <div className="flex items-center space-x-1">
+              <span className="text-sm md:text-base font-medium">Round</span>
+              <span className="text-sm md:text-base font-medium text-blue-500">
+                {currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}
+              </span>
+            </div>
+            {currentRound && (
+              <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-1 bg-blue-500 rounded-lg px-3 py-1 text-white">
+                  <span>{Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString()}</span>
+                  <span className="text-gray-200">:</span>
+                  <span>{Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0')}</span>
+                </div>
+              </div>
+            )}
+          </div>
           
           {/* Success message */}
           {betSuccess && successMessage && (
