@@ -175,6 +175,67 @@ exports.placeBet = async (req, res) => {
   }
 };
 
+// Get recent bets for the user
+exports.getRecentBets = async (req, res) => {
+  try {
+    console.log('=== GET RECENT BETS ===');
+    console.log('Request user:', req.user);
+    
+    // Get userId from authenticated user
+    let userId;
+    if (req.user) {
+      if (typeof req.user === 'object' && req.user !== null) {
+        userId = req.user._id || req.user.id;
+        console.log('Using userId from req.user object:', userId);
+      } else {
+        userId = req.user;
+        console.log('Using userId directly from req.user:', userId);
+      }
+    }
+    
+    if (!userId) {
+      console.log('No user ID found, returning empty bets array');
+      return res.json({
+        success: true,
+        bets: []
+      });
+    }
+    
+    const { limit = 10 } = req.query;
+    console.log('Fetching recent bets for user:', userId, 'limit:', limit);
+
+    // Find bets and populate round information
+    const bets = await WingoBet.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .lean();
+      
+    console.log('Found bets:', bets.length);
+
+    // Format the bets with additional information
+    const formattedBets = bets.map(bet => ({
+      _id: bet._id.toString(),
+      betType: bet.betType,
+      betValue: bet.betValue,
+      amount: bet.amount,
+      createdAt: bet.createdAt,
+      status: bet.status || 'pending',
+      payout: bet.status === 'won' ? bet.amount * 2 : 0,
+      roundId: bet.roundId ? bet.roundId.toString() : null
+    }));
+    
+    console.log('Formatted bets:', formattedBets.length);
+
+    res.json({
+      success: true,
+      bets: formattedBets
+    });
+  } catch (err) {
+    console.error('Error fetching recent bets:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // Get user's bet history
 exports.getBetHistory = async (req, res) => {
   try {

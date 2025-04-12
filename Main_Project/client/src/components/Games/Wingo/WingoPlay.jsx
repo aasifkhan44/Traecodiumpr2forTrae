@@ -18,6 +18,8 @@ export default function WingoPlay() {
   const [betError, setBetError] = useState(null);
   const [betLoading, setBetLoading] = useState(false);
   const [error, setError] = useState(null);
+  // State for recent bets
+  const [recentBets, setRecentBets] = useState([]);
 
   const colors = [
     { value: 'Red', className: 'bg-red-500' },
@@ -178,42 +180,43 @@ export default function WingoPlay() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        console.log('Current user state:', user);
-        
-        // Always fetch the latest user data from the profile endpoint
-        console.log('Fetching user profile data...');
-        const token = localStorage.getItem('token');
-        if (token) {
-          // First try the profile endpoint which Dashboard uses
-          try {
-            // Note: The correct endpoint is /api/user/profile
-            // But api.get already prepends /api/, so we just need /user/profile
-            const profileResponse = await api.get('/user/profile');
-            console.log('Profile response:', profileResponse.data);
+  // Move fetchUserData outside useEffect so it can be called from other functions
+  const fetchUserData = async () => {
+    try {
+      console.log('Current user state:', user);
+      
+      // Always fetch the latest user data from the profile endpoint
+      console.log('Fetching user profile data...');
+      const token = localStorage.getItem('token');
+      if (token) {
+        // First try the profile endpoint which Dashboard uses
+        try {
+          // Note: The correct endpoint is /api/user/profile
+          // But api.get already prepends /api/, so we just need /user/profile
+          const profileResponse = await api.get('/user/profile');
+          console.log('Profile response:', profileResponse.data);
+          
+          if (profileResponse.data.success && profileResponse.data.data) {
+            const userData = profileResponse.data.data;
+            console.log('Setting userProfile with profile data:', userData);
             
-            if (profileResponse.data.success && profileResponse.data.data) {
-              const userData = profileResponse.data.data;
-              console.log('Setting userProfile with profile data:', userData);
-              
-              // Store the profile data in a separate state
-              setUserProfile(userData);
-              
-              console.log('UserProfile updated with balance:', userData.balance);
-            }
-          } catch (profileError) {
-            console.error('Error fetching profile data:', profileError);
+            // Store the profile data in a separate state
+            setUserProfile(userData);
+            
+            console.log('UserProfile updated with balance:', userData.balance);
           }
-        } else {
-          console.log('No token found, cannot fetch user data');
+        } catch (profileError) {
+          console.error('Error fetching profile data:', profileError);
         }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
+      } else {
+        console.log('No token found, cannot fetch user data');
       }
-    };
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
 
+  useEffect(() => {
     fetchUserData();
   }, []);
 
@@ -339,8 +342,11 @@ export default function WingoPlay() {
         // Show success toast
         toast.success('Bet placed successfully!');
         
-        // Update user balance
-        fetchUserData();
+        // Update user balance immediately
+        await fetchUserData();
+        
+        // Fetch updated recent bets
+        await fetchRecentBets();
         
         // Reset form
         setSelectedBetType(null);
@@ -351,11 +357,49 @@ export default function WingoPlay() {
         toast.error(response.data.message || 'Failed to place bet');
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to place bet');
+      console.error('Bet placement error:', error);
+      // Only show one error message
+      const errorMessage = error.response?.data?.message || 'Failed to place bet';
+      toast.error(errorMessage);
     } finally {
       setBetLoading(false);
     }
   };
+
+  // Function to fetch recent bets
+  const fetchRecentBets = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No authentication token found');
+        return;
+      }
+      
+      const response = await api.get('/wingo/recent-bets');
+      if (response.data.success && response.data.bets) {
+        console.log('Recent bets fetched:', response.data.bets.length);
+        setRecentBets(response.data.bets);
+      } else {
+        console.log('No bets returned from server');
+        setRecentBets([]);
+      }
+    } catch (error) {
+      console.error('Error fetching recent bets:', error);
+      setRecentBets([]);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch recent bets on component mount
+    fetchRecentBets();
+    
+    // Set up polling for recent bets
+    const pollInterval = setInterval(fetchRecentBets, 10000);
+    
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -552,7 +596,88 @@ export default function WingoPlay() {
           </div>
         </div>
       </div>
+      
+      {/* Recent Bets Section */}
+      <RecentBets bets={recentBets} />
     </Fragment>
+  );
+}
+
+// Add a new component for recent bets
+function RecentBets({ bets }) {
+  if (!bets || bets.length === 0) {
+    return (
+      <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+        <h3 className="text-lg font-medium text-gray-700 mb-2">Recent Bets</h3>
+        <p className="text-gray-500">No recent bets found.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+      <h3 className="text-lg font-medium text-gray-700 mb-4">Recent Bets</h3>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bet Type</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bet Value</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payout</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Round ID</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {bets.map((bet) => (
+              <tr key={bet._id}>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(bet.createdAt).toLocaleTimeString()}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 capitalize">
+                  {bet.betType}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {bet.betValue}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  ${bet.amount}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap">
+                  {bet.status === 'pending' ? (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      Pending
+                    </span>
+                  ) : bet.status === 'won' ? (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                      Won
+                    </span>
+                  ) : (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                      Lost
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm">
+                  {bet.status === 'won' ? (
+                    <span className="text-green-600 font-medium">+${bet.payout}</span>
+                  ) : bet.status === 'lost' ? (
+                    <span className="text-red-600 font-medium">-${bet.amount}</span>
+                  ) : (
+                    <span className="text-gray-500">--</span>
+                  )}
+                </td>
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {bet.roundId}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
