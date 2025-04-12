@@ -1,19 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../../utils/api';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export default function WingoPlay() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const [userProfile, setUserProfile] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(1); // Default to 1 minute
   const [activeRounds, setActiveRounds] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedBetType, setSelectedBetType] = useState(null); // 'color' or 'number'
+  const [selectedBetType, setSelectedBetType] = useState(null);
   const [selectedBetValue, setSelectedBetValue] = useState(null);
   const [betAmount, setBetAmount] = useState('');
-  const [betLoading, setBetLoading] = useState(false);
   const [betError, setBetError] = useState(null);
+  const [betLoading, setBetLoading] = useState(false);
+  const [betSuccess, setBetSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [testResult, setTestResult] = useState(null);
+  const [error, setError] = useState(null);
 
   const colors = [
     { value: 'Red', className: 'bg-red-500' },
@@ -174,6 +178,69 @@ export default function WingoPlay() {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        console.log('Current user state:', user);
+        
+        // Always fetch the latest user data from the profile endpoint
+        console.log('Fetching user profile data...');
+        const token = localStorage.getItem('token');
+        if (token) {
+          // First try the profile endpoint which Dashboard uses
+          try {
+            // Note: The correct endpoint is /api/user/profile
+            // But api.get already prepends /api/, so we just need /user/profile
+            const profileResponse = await api.get('/user/profile');
+            console.log('Profile response:', profileResponse.data);
+            
+            if (profileResponse.data.success && profileResponse.data.data) {
+              const userData = profileResponse.data.data;
+              console.log('Setting userProfile with profile data:', userData);
+              
+              // Store the profile data in a separate state
+              setUserProfile(userData);
+              
+              console.log('UserProfile updated with balance:', userData.balance);
+            }
+          } catch (profileError) {
+            console.error('Error fetching profile data:', profileError);
+          }
+        } else {
+          console.log('No token found, cannot fetch user data');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Add a userBalance variable to safely access user.balance
+  const userBalance = useMemo(() => {
+    console.log('Calculating userBalance, user:', user);
+    console.log('UserProfile:', userProfile);
+    
+    // First try to get balance from userProfile
+    if (userProfile && userProfile.balance !== undefined) {
+      const profileBalance = typeof userProfile.balance === 'string' ? parseFloat(userProfile.balance) : userProfile.balance;
+      console.log('Using profile balance:', profileBalance);
+      return isNaN(profileBalance) ? 0 : profileBalance;
+    }
+    
+    // Fall back to user object if userProfile is not available
+    if (user && user.balance !== undefined) {
+      const userBalanceValue = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
+      console.log('Using user balance:', userBalanceValue);
+      return isNaN(userBalanceValue) ? 0 : userBalanceValue;
+    }
+    
+    return 0;
+  }, [user, userProfile]);
+
+  console.log('Rendered userBalance:', userBalance);
+
   const fetchActiveRounds = async () => {
     try {
       console.log('Fetching active rounds...');
@@ -253,8 +320,8 @@ export default function WingoPlay() {
       setBetError(null);
       setBetLoading(true);
 
-      // Client-side validation
-      if (!user) {
+      // Client-side validation - check if either user or userProfile exists
+      if (!user && !userProfile) {
         throw new Error('Please log in to place a bet');
       }
 
@@ -266,8 +333,15 @@ export default function WingoPlay() {
         throw new Error('Please enter a valid bet amount');
       }
 
-      if (!user.balance || user.balance < Number(betAmount)) {
-        throw new Error('Insufficient balance to place this bet');
+      // Get the bet amount as a number
+      const numericBetAmount = Number(betAmount);
+      
+      // Check if user has enough balance using the userBalance variable
+      // which safely gets the balance from either userProfile or user
+      console.log('Checking balance for bet:', userBalance, 'vs bet amount:', numericBetAmount);
+      
+      if (userBalance < numericBetAmount) {
+        throw new Error(`Insufficient balance (${userBalance}) to place this bet (${numericBetAmount})`);
       }
 
       // Additional validation
@@ -279,19 +353,50 @@ export default function WingoPlay() {
         throw new Error('Invalid number selection');
       }
 
+      console.log('Submitting bet:', {
+        duration: selectedDuration,
+        betType: selectedBetType,
+        betValue: selectedBetValue,
+        amount: numericBetAmount,
+        userId: userProfile?._id || user?.id || user?._id
+      });
+
       const response = await api.post('/wingo/bet', {
         duration: selectedDuration,
         betType: selectedBetType,
         betValue: selectedBetValue,
-        amount: Number(betAmount)
+        amount: numericBetAmount,
+        userId: userProfile?._id || user?.id || user?._id // Include user ID explicitly
       });
 
+      console.log('Bet response:', response.data);
+
       if (response.data.success) {
+        // Show success message
+        setSuccessMessage(`Bet placed successfully! Good luck!`);
+        setBetSuccess(true);
+        
         // Reset form
         setSelectedBetType(null);
         setSelectedBetValue(null);
         setBetAmount('');
-        // You might want to update user's balance here
+        
+        // Update user's balance if provided in the response
+        if (response.data.data && response.data.data.newBalance !== undefined) {
+          console.log('Updating balance to:', response.data.data.newBalance);
+          setUserProfile(prevUserProfile => {
+            if (prevUserProfile) {
+              return { ...prevUserProfile, balance: response.data.data.newBalance };
+            }
+            return prevUserProfile;
+          });
+        }
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setBetSuccess(false);
+          setSuccessMessage('');
+        }, 5000);
       } else {
         throw new Error(response.data.message || 'Failed to place bet');
       }
@@ -308,6 +413,58 @@ export default function WingoPlay() {
         // Client-side error
         setBetError(err.message || 'An error occurred while placing your bet');
       }
+    } finally {
+      setBetLoading(false);
+    }
+  };
+
+  // Add a test function to verify server communication
+  const testServerConnection = async () => {
+    try {
+      setBetError(null);
+      setBetLoading(true);
+      setTestResult(null);
+      
+      console.log('Testing server connection...');
+      
+      // Send a test request to the server
+      const testData = {
+        testField: 'Test Value',
+        userId: userProfile?._id || user?.id || user?._id,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('Sending test data:', testData);
+      
+      const response = await api.post('/wingo/test', testData);
+      
+      console.log('Test response:', response.data);
+      
+      if (response.data.success) {
+        setTestResult({
+          success: true,
+          message: 'Server communication successful!',
+          data: response.data
+        });
+        setSuccessMessage('Server communication successful!');
+        setBetSuccess(true);
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setBetSuccess(false);
+          setSuccessMessage('');
+        }, 5000);
+      } else {
+        throw new Error(response.data.message || 'Test failed');
+      }
+    } catch (err) {
+      console.error('Test error:', err);
+      setTestResult({
+        success: false,
+        message: err.message || 'Server communication failed',
+        error: err
+      });
+      setBetError(err.message || 'Server communication failed');
     } finally {
       setBetLoading(false);
     }
@@ -334,111 +491,172 @@ export default function WingoPlay() {
   const currentRound = activeRounds[selectedDuration];
 
   return (
-    <div className="p-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-4">Select Round Duration</h2>
-        <div className="flex space-x-4">
-          {durations.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => handleDurationChange(value)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedDuration === value
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-200 hover:bg-gray-300'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+    <Fragment>
+      <div className="p-4">
+        {/* Display user balance */}
+        <div className="mb-4 p-3 bg-blue-100 rounded-lg">
+          <div className="flex items-center mb-2">
+            <h3 className="text-lg font-semibold">Your Balance</h3>
+          </div>
+          {userProfile || user ? (
+            <p className="text-2xl font-bold">🪙 {userBalance.toFixed(2)}</p>
+          ) : (
+            <p className="text-red-500">Please log in to view your balance</p>
+          )}
         </div>
-      </div>
 
-      <div className="mt-6">
-        <h3 className="text-lg font-semibold mb-4">Place Your Bet</h3>
-        
-        {/* Color Selection */}
         <div className="mb-6">
-          <h4 className="text-md font-medium mb-2">Select Color</h4>
-          <div className="flex gap-4">
-            {colors.map(color => (
+          <h2 className="text-2xl font-bold mb-4">Select Round Duration</h2>
+          <div className="flex space-x-4">
+            {durations.map(({ value, label }) => (
               <button
-                key={color.value}
-                onClick={() => handleBetTypeSelect('color', color.value)}
-                className={`${color.className} px-4 py-2 rounded-md text-white ${selectedBetType === 'color' && selectedBetValue === color.value ? 'ring-2 ring-white' : ''}`}
+                key={value}
+                onClick={() => handleDurationChange(value)}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  selectedDuration === value
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-200 hover:bg-gray-300'
+                }`}
               >
-                {color.value}
+                {label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Number Selection */}
-        <div className="mb-6">
-          <h4 className="text-md font-medium mb-2">Select Number</h4>
-          <div className="grid grid-cols-5 gap-2">
-            {numbers.map(number => (
-              <button
-                key={number}
-                onClick={() => handleBetTypeSelect('number', number.toString())}
-                className={`px-4 py-2 rounded-md border ${selectedBetType === 'number' && selectedBetValue === number.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
-              >
-                {number}
-              </button>
-            ))}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-4">Place Your Bet</h3>
+          
+          {/* Success message */}
+          {betSuccess && successMessage && (
+            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg">
+              <p className="font-medium">{successMessage}</p>
+            </div>
+          )}
+          
+          {/* Error message */}
+          {betError && (
+            <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg">
+              <p className="font-medium">{betError}</p>
+            </div>
+          )}
+          
+          {/* Error Display */}
+          {error && (
+            <div className="mt-4 p-3 rounded-lg bg-red-100 text-red-800">
+              <p className="font-medium">Error: {error}</p>
+            </div>
+          )}
+          
+          {/* Bet Error Display */}
+          {betError && (
+            <div className="mt-4 p-3 rounded-lg bg-red-100 text-red-800">
+              <p className="font-medium">Bet Error: {betError}</p>
+            </div>
+          )}
+          
+          {/* Color Selection */}
+          <div className="mb-6">
+            <h4 className="text-md font-medium mb-2">Select Color</h4>
+            <div className="flex gap-4">
+              {colors.map(color => (
+                <button
+                  key={color.value}
+                  onClick={() => handleBetTypeSelect('color', color.value)}
+                  className={`${color.className} px-4 py-2 rounded-md text-white ${selectedBetType === 'color' && selectedBetValue === color.value ? 'ring-2 ring-white' : ''}`}
+                >
+                  {color.value}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Number Selection */}
+          <div className="mb-6">
+            <h4 className="text-md font-medium mb-2">Select Number</h4>
+            <div className="grid grid-cols-5 gap-2">
+              {numbers.map(number => (
+                <button
+                  key={number}
+                  onClick={() => handleBetTypeSelect('number', number.toString())}
+                  className={`px-4 py-2 rounded-md border ${selectedBetType === 'number' && selectedBetValue === number.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+                >
+                  {number}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bet Amount Input */}
+          <div className="mb-6">
+            <h4 className="text-md font-medium mb-2">Bet Amount</h4>
+            <input
+              type="number"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
+              placeholder="Enter bet amount"
+              className="w-full px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            onClick={handleBetSubmit}
+            disabled={betLoading || !selectedBetType || !selectedBetValue || !betAmount}
+            className={`w-full py-3 rounded-lg font-semibold ${
+              betLoading || !selectedBetType || !selectedBetValue || !betAmount
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary text-white hover:bg-primary-dark'
+            }`}
+          >
+            {betLoading ? 'Processing...' : 'Place Bet'}
+          </button>
+          
+          {/* Test Button */}
+          <button
+            onClick={testServerConnection}
+            className="mt-4 w-full py-2 rounded-lg font-semibold bg-blue-500 text-white hover:bg-blue-600"
+          >
+            Test Server Connection
+          </button>
+          
+          {/* Test Result */}
+          {testResult && (
+            <div className={`mt-4 p-3 rounded-lg ${testResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <p className="font-medium">{testResult.message}</p>
+              {testResult.data && (
+                <pre className="mt-2 text-xs overflow-auto max-h-40 bg-gray-100 p-2 rounded">
+                  {JSON.stringify(testResult.data, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Bet Amount Input */}
-        <div className="mb-6">
-          <h4 className="text-md font-medium mb-2">Bet Amount</h4>
-          <input
-            type="number"
-            value={betAmount}
-            onChange={(e) => setBetAmount(e.target.value)}
-            placeholder="Enter bet amount"
-            className="w-full px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Error Message */}
-        {betError && (
-          <div className="text-red-500 mb-4">{betError}</div>
+        {currentRound ? (
+          <div className="bg-white rounded-xl shadow-md p-6 mt-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <h3 className="text-lg font-semibold">Round Number</h3>
+                <p className="text-gray-600">{currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Time Remaining</h3>
+                <p className="text-gray-600">
+                  {currentRound.endTime
+                    ? Math.max(0, Math.floor((new Date(currentRound.endTime) - new Date()) / 1000))
+                    : 0}s
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-600">No active round for selected duration</p>
+          </div>
         )}
-
-        {/* Submit Button */}
-        <button
-          onClick={handleBetSubmit}
-          disabled={betLoading || !selectedBetType || !selectedBetValue || !betAmount}
-          className={`w-full py-2 rounded-md text-white ${betLoading || !selectedBetType || !selectedBetValue || !betAmount ? 'bg-gray-400' : 'bg-blue-500 hover:bg-blue-600'}`}
-        >
-          {betLoading ? 'Placing Bet...' : 'Place Bet'}
-        </button>
       </div>
-
-      {currentRound ? (
-        <div className="bg-white rounded-xl shadow-md p-6 mt-6">
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <h3 className="text-lg font-semibold">Round Number</h3>
-              <p className="text-gray-600">{currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}</p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Time Remaining</h3>
-              <p className="text-gray-600">
-                {currentRound.endTime
-                  ? Math.max(0, Math.floor((new Date(currentRound.endTime) - new Date()) / 1000))
-                  : 0}s
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-gray-600">No active round for selected duration</p>
-        </div>
-      )}
-    </div>
+    </Fragment>
   );
 }
 

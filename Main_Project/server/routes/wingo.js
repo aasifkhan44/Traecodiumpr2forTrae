@@ -7,6 +7,22 @@ const admin = require('../middleware/admin');
 // Public routes
 router.get('/active-rounds', wingoController.getActiveRounds);
 router.get('/websocket-status', wingoController.getWebSocketStatus);
+router.post('/test', async (req, res) => {
+  try {
+    console.log('=== TEST ENDPOINT CALLED ===');
+    console.log('Request body:', req.body);
+    
+    // Return success with the request body
+    res.json({
+      success: true,
+      message: 'Test endpoint working',
+      receivedData: req.body
+    });
+  } catch (err) {
+    console.error('Test endpoint error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // Protected routes (require authentication)
 router.post('/bet', auth, wingoController.placeBet);

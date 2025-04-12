@@ -34,8 +34,38 @@ exports.getActiveRounds = async (req, res) => {
 // Place a bet
 exports.placeBet = async (req, res) => {
   try {
-    const { duration, betType, betValue, amount } = req.body;
-    const userId = req.user._id;
+    console.log('=== PLACE BET REQUEST ===');
+    console.log('Request body:', req.body);
+    console.log('Request user:', req.user);
+    
+    const { duration, betType, betValue, amount, userId: bodyUserId } = req.body;
+    
+    // Get userId - prioritize the one from the request body if available
+    let userId;
+    
+    // First try to get userId from request body (explicitly sent from client)
+    if (bodyUserId) {
+      console.log('Using userId from request body:', bodyUserId);
+      userId = bodyUserId;
+    } 
+    // Then try to get it from the authenticated user object
+    else if (req.user) {
+      if (typeof req.user === 'object' && req.user !== null) {
+        userId = req.user._id || req.user.id;
+        console.log('Using userId from req.user object:', userId);
+      } else {
+        userId = req.user;
+        console.log('Using userId directly from req.user:', userId);
+      }
+    }
+    
+    if (!userId) {
+      console.error('User ID not found in request');
+      return res.status(401).json({ success: false, message: 'User ID not found' });
+    }
+    
+    console.log('Placing bet for user:', userId);
+    console.log('Bet details:', { duration, betType, betValue, amount });
 
     // Validate duration
     const RoundModel = {
@@ -46,32 +76,53 @@ exports.placeBet = async (req, res) => {
     }[duration];
 
     if (!RoundModel) {
+      console.error('Invalid duration:', duration);
       return res.status(400).json({ success: false, message: 'Invalid duration' });
     }
 
     // Find active round
     const round = await RoundModel.findOne({ status: 'open' });
     if (!round) {
+      console.error('No active round found for duration:', duration);
       return res.status(400).json({ success: false, message: 'No active round found' });
     }
+    console.log('Active round found:', round._id);
 
     // Validate bet type and value
     if (!['color', 'number'].includes(betType)) {
+      console.error('Invalid bet type:', betType);
       return res.status(400).json({ success: false, message: 'Invalid bet type' });
     }
 
     if (betType === 'color' && !['Red', 'Violet', 'Green'].includes(betValue)) {
+      console.error('Invalid color value:', betValue);
       return res.status(400).json({ success: false, message: 'Invalid color value' });
     }
 
     if (betType === 'number' && !/^[0-9]$/.test(betValue)) {
+      console.error('Invalid number value:', betValue);
       return res.status(400).json({ success: false, message: 'Invalid number value' });
     }
 
     // Check user balance
     const user = await User.findById(userId);
-    if (user.balance < amount) {
-      return res.status(400).json({ success: false, message: 'Insufficient balance' });
+    if (!user) {
+      console.error('User not found in database:', userId);
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Ensure balance and amount are numbers
+    const userBalance = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
+    const betAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    console.log('User balance (raw):', user.balance);
+    console.log('User balance (parsed):', userBalance);
+    console.log('Bet amount (raw):', amount);
+    console.log('Bet amount (parsed):', betAmount);
+
+    if (userBalance < betAmount) {
+      console.error('Insufficient balance:', userBalance, 'needed:', betAmount);
+      return res.status(400).json({ success: false, message: 'Insufficient balance to place this bet' });
     }
 
     // Create bet
@@ -81,29 +132,45 @@ exports.placeBet = async (req, res) => {
       duration,
       betType,
       betValue,
-      amount
+      amount: betAmount // Use the parsed amount
     });
+    console.log('Bet created:', bet);
 
     // Update user balance
-    user.balance -= amount;
+    user.balance = userBalance - betAmount;
     await user.save();
+    console.log('Updated user balance:', user.balance);
 
     // Save bet
     await bet.save();
+    console.log('Bet saved successfully:', bet._id);
 
     // Update round statistics
     round.totalBets += 1;
-    round.totalAmount += amount;
+    round.totalAmount += betAmount;
     await round.save();
+    console.log('Round statistics updated');
 
+    console.log('=== BET PLACED SUCCESSFULLY ===');
     res.json({
       success: true,
       data: {
-        bet,
+        bet: {
+          _id: bet._id,
+          roundId: round._id,
+          betType,
+          betValue,
+          amount: betAmount
+        },
         newBalance: user.balance
       }
     });
   } catch (err) {
+    console.error('=== ERROR PLACING BET ===');
+    console.error('Error details:', err);
+    console.error('Stack trace:', err.stack);
+    console.error('Request body:', req.body);
+    console.error('Request user:', req.user);
     res.status(500).json({ success: false, message: err.message });
   }
 };

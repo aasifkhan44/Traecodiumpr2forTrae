@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
 // @route   POST api/auth/register
 // @desc    Register user
@@ -103,13 +104,48 @@ router.post('/login', async (req, res) => {
 // @route   GET api/auth/me
 // @desc    Get current user
 // @access  Private
-router.get('/me', async (req, res) => {
+router.get('/me', auth, async (req, res) => {
   try {
-    // For now, simply return a placeholder - we'll add auth middleware later
-    res.json({ msg: 'Authentication route - me endpoint (protected)' });
+    console.log('GET /api/auth/me - Request received');
+    console.log('User ID from auth middleware:', req.user._id);
+    
+    // Get user data from the database
+    const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      console.log('User not found in database for ID:', req.user._id);
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    console.log('User found:', user.name);
+    console.log('User balance (raw):', user.balance);
+    console.log('User balance type:', typeof user.balance);
+    
+    // Ensure balance is a number
+    const balance = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
+    console.log('User balance (parsed):', balance);
+    
+    // Return user data
+    const userData = {
+      id: user._id,
+      name: user.name,
+      countryCode: user.countryCode,
+      mobile: user.mobile,
+      role: user.role,
+      balance: balance, // Use the parsed balance
+      referralCode: user.referralCode,
+      email: user.email
+    };
+    
+    console.log('Sending user data:', userData);
+    
+    res.json({ 
+      success: true, 
+      user: userData
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('Error fetching user data:', err.message);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

@@ -10,6 +10,7 @@ class WingoWebSocketServer {
     }
     return WingoWebSocketServer.instance;
   }
+
   constructor(port = 3001) {
     this.port = port;
     this.server = null;
@@ -17,6 +18,9 @@ class WingoWebSocketServer {
     this.updateInterval = null;
     this.isRunning = false;
     this.serverUrl = null;
+    this.basePort = port;
+    this.currentPort = this.basePort;
+    this.maxPortAttempts = 5; // Try up to 5 different ports
   }
 
   start(httpServer = null) {
@@ -62,40 +66,72 @@ class WingoWebSocketServer {
   }
 
   createStandaloneServer() {
-    // Try multiple ports if needed
-    const maxPortAttempts = 5;
-    const startingPort = this.port;
+    console.log(`Wingo WebSocket server initializing with base port ${this.currentPort}`);
+    this.tryConnect(this.currentPort);
+  }
+
+  tryConnect(port) {
+    if (!this.isRunning) {
+      console.log('Cannot start WebSocket server during shutdown');
+      return;
+    }
+
+    console.log(`Attempting to start WebSocket server on port ${port}...`);
     
-    for (let attempt = 0; attempt < maxPortAttempts; attempt++) {
-      const currentPort = startingPort + attempt;
-      try {
-        this.server = new WebSocket.Server({ port: currentPort });
-        this.port = currentPort;
-        
-        // Set the server URL for standalone server
-        this.serverUrl = `ws://localhost:${currentPort}`;
-        console.log(`Wingo WebSocket server running on port ${currentPort}`);
-        console.log(`WebSocket server URL: ${this.serverUrl}`);
-        
-        // Set up event handlers
-        this.setupEventHandlers();
-        
-        // Start broadcasting updates
-        this.startBroadcasting();
-        
-        this.isRunning = true;
-        return true;
-      } catch (err) {
-        console.error(`Failed to start WebSocket server on port ${currentPort}:`, err.message);
-        // Continue to next port attempt
+    // If we already have a server, close it first
+    if (this.server) {
+      console.log('Closing existing WebSocket server...');
+      this.server.close(() => {
+        console.log('Existing WebSocket server closed');
+        this.startServer(port);
+      });
+      return;
+    }
+
+    this.startServer(port);
+  }
+
+  startServer(port) {
+    // Try multiple ports if needed
+    try {
+      this.server = new WebSocket.Server({ port: port });
+      this.port = port;
+      
+      // Set the server URL for standalone server
+      this.serverUrl = `ws://localhost:${port}`;
+      console.log(`Wingo WebSocket server running on port ${port}`);
+      console.log(`WebSocket server URL: ${this.serverUrl}`);
+      
+      // Set up event handlers
+      this.setupEventHandlers();
+      
+      // Start broadcasting updates
+      this.startBroadcasting();
+      
+      this.isRunning = true;
+      return true;
+    } catch (err) {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`Port ${port} already in use, trying next port...`);
+        this.handlePortInUse(port);
+      } else {
+        console.error('WebSocket server error:', err);
       }
     }
-    
-    console.error(`Failed to start WebSocket server after ${maxPortAttempts} attempts`);
-    this.isRunning = false;
-    return false;
   }
-  
+
+  handlePortInUse(port) {
+    const nextPort = port + 1;
+    if (nextPort > this.basePort + this.maxPortAttempts) {
+      console.error(`Failed to find an available port after ${this.maxPortAttempts} attempts`);
+      return;
+    }
+    console.log(`Attempting to restart WebSocket server on port ${nextPort}`);
+    setTimeout(() => {
+      this.tryConnect(nextPort);
+    }, 1000); // Wait a second before trying the next port
+  }
+
   setupEventHandlers() {
     if (!this.server) return false;
     
