@@ -2,6 +2,8 @@ import React, { useState, useEffect, Fragment, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../../utils/api';
 import { useAuth } from '../../../contexts/AuthContext';
+import { Combobox } from '@headlessui/react';
+import { ChevronDownIcon, CheckIcon } from '@heroicons/react/20/solid';
 
 export default function WingoPlay() {
   const { user, setUser } = useAuth();
@@ -16,7 +18,6 @@ export default function WingoPlay() {
   const [betLoading, setBetLoading] = useState(false);
   const [betSuccess, setBetSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [testResult, setTestResult] = useState(null);
   const [error, setError] = useState(null);
 
   const colors = [
@@ -418,58 +419,6 @@ export default function WingoPlay() {
     }
   };
 
-  // Add a test function to verify server communication
-  const testServerConnection = async () => {
-    try {
-      setBetError(null);
-      setBetLoading(true);
-      setTestResult(null);
-      
-      console.log('Testing server connection...');
-      
-      // Send a test request to the server
-      const testData = {
-        testField: 'Test Value',
-        userId: userProfile?._id || user?.id || user?._id,
-        timestamp: new Date().toISOString()
-      };
-      
-      console.log('Sending test data:', testData);
-      
-      const response = await api.post('/wingo/test', testData);
-      
-      console.log('Test response:', response.data);
-      
-      if (response.data.success) {
-        setTestResult({
-          success: true,
-          message: 'Server communication successful!',
-          data: response.data
-        });
-        setSuccessMessage('Server communication successful!');
-        setBetSuccess(true);
-        
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setBetSuccess(false);
-          setSuccessMessage('');
-        }, 5000);
-      } else {
-        throw new Error(response.data.message || 'Test failed');
-      }
-    } catch (err) {
-      console.error('Test error:', err);
-      setTestResult({
-        success: false,
-        message: err.message || 'Server communication failed',
-        error: err
-      });
-      setBetError(err.message || 'Server communication failed');
-    } finally {
-      setBetLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -492,30 +441,54 @@ export default function WingoPlay() {
 
   return (
     <Fragment>
-      <div className="p-4">
+      <div className="p-2 md:p-4 mx-auto max-w-md">
         {/* Display user balance */}
-        <div className="mb-4 p-3 bg-blue-100 rounded-lg">
-          <div className="flex items-center mb-2">
-            <h3 className="text-lg font-semibold">Your Balance</h3>
+        <div className="mb-3 p-2 md:p-3 bg-blue-100 rounded-lg">
+          <div className="flex items-center mb-1">
+            <h3 className="text-base md:text-lg font-semibold">Your Balance</h3>
           </div>
           {userProfile || user ? (
-            <p className="text-2xl font-bold">🪙 {userBalance.toFixed(2)}</p>
+            <p className="text-xl md:text-2xl font-bold">🪙 {userBalance.toFixed(2)}</p>
           ) : (
-            <p className="text-red-500">Please log in to view your balance</p>
+            <p className="text-sm md:text-base text-red-500">Please log in to view your balance</p>
           )}
         </div>
 
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-4">Select Round Duration</h2>
-          <div className="flex space-x-4">
+        {/* Display current round information */}
+        {currentRound ? (
+          <div className="bg-white rounded-xl shadow-md p-3 md:p-6 mb-4">
+            <div className="grid grid-cols-2 gap-2 md:gap-4 mb-1 md:mb-2">
+              <div>
+                <h3 className="text-base md:text-lg font-semibold">Round Number</h3>
+                <p className="text-sm md:text-base text-gray-600">{currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}</p>
+              </div>
+              <div>
+                <h3 className="text-base md:text-lg font-semibold">Time Remaining</h3>
+                <p className="text-sm md:text-base text-gray-600">
+                  {currentRound.endTime
+                    ? Math.max(0, Math.floor((new Date(currentRound.endTime) - new Date()) / 1000))
+                    : 0}s
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-3 md:py-4 mb-4 bg-white rounded-xl shadow-md">
+            <p className="text-sm md:text-base text-gray-600">No active round for selected duration</p>
+          </div>
+        )}
+
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-bold mb-2 md:mb-4">Select Round Duration</h2>
+          <div className="flex flex-wrap gap-2 md:gap-3">
             {durations.map(({ value, label }) => (
               <button
                 key={value}
-                onClick={() => handleDurationChange(value)}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                onClick={() => setSelectedDuration(value)}
+                className={`flex-1 min-w-[80px] py-2 px-3 rounded-lg text-sm md:text-base font-medium transition-colors ${
                   selectedDuration === value
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-200 hover:bg-gray-300'
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
                 {label}
@@ -524,8 +497,8 @@ export default function WingoPlay() {
           </div>
         </div>
 
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-4">Place Your Bet</h3>
+        <div className="bg-white rounded-xl shadow-md p-3 md:p-6">
+          <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Place Your Bet</h3>
           
           {/* Success message */}
           {betSuccess && successMessage && (
@@ -556,14 +529,14 @@ export default function WingoPlay() {
           )}
           
           {/* Color Selection */}
-          <div className="mb-6">
-            <h4 className="text-md font-medium mb-2">Select Color</h4>
-            <div className="flex gap-4">
+          <div className="mb-4 md:mb-6">
+            <h4 className="text-sm md:text-md font-medium mb-2">Select Color</h4>
+            <div className="flex flex-wrap gap-2 md:gap-4">
               {colors.map(color => (
                 <button
                   key={color.value}
                   onClick={() => handleBetTypeSelect('color', color.value)}
-                  className={`${color.className} px-4 py-2 rounded-md text-white ${selectedBetType === 'color' && selectedBetValue === color.value ? 'ring-2 ring-white' : ''}`}
+                  className={`${color.className} px-2 py-1 md:px-4 md:py-2 text-sm md:text-base rounded-md text-white ${selectedBetType === 'color' && selectedBetValue === color.value ? 'ring-2 ring-white' : ''}`}
                 >
                   {color.value}
                 </button>
@@ -572,14 +545,14 @@ export default function WingoPlay() {
           </div>
 
           {/* Number Selection */}
-          <div className="mb-6">
-            <h4 className="text-md font-medium mb-2">Select Number</h4>
-            <div className="grid grid-cols-5 gap-2">
+          <div className="mb-4 md:mb-6">
+            <h4 className="text-sm md:text-md font-medium mb-2">Select Number</h4>
+            <div className="grid grid-cols-5 gap-1 md:gap-2">
               {numbers.map(number => (
                 <button
                   key={number}
                   onClick={() => handleBetTypeSelect('number', number.toString())}
-                  className={`px-4 py-2 rounded-md border ${selectedBetType === 'number' && selectedBetValue === number.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
+                  className={`px-2 py-1 md:px-4 md:py-2 text-sm md:text-base rounded-md border ${selectedBetType === 'number' && selectedBetValue === number.toString() ? 'bg-blue-500 text-white' : 'bg-gray-100'}`}
                 >
                   {number}
                 </button>
@@ -588,14 +561,14 @@ export default function WingoPlay() {
           </div>
 
           {/* Bet Amount Input */}
-          <div className="mb-6">
-            <h4 className="text-md font-medium mb-2">Bet Amount</h4>
+          <div className="mb-4 md:mb-6">
+            <h4 className="text-sm md:text-md font-medium mb-2">Bet Amount</h4>
             <input
               type="number"
               value={betAmount}
               onChange={(e) => setBetAmount(e.target.value)}
               placeholder="Enter bet amount"
-              className="w-full px-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 md:px-4 md:py-2 text-sm md:text-base rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -603,7 +576,7 @@ export default function WingoPlay() {
           <button
             onClick={handleBetSubmit}
             disabled={betLoading || !selectedBetType || !selectedBetValue || !betAmount}
-            className={`w-full py-3 rounded-lg font-semibold ${
+            className={`w-full py-2 md:py-3 text-sm md:text-base rounded-lg font-semibold ${
               betLoading || !selectedBetType || !selectedBetValue || !betAmount
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-primary text-white hover:bg-primary-dark'
@@ -611,50 +584,7 @@ export default function WingoPlay() {
           >
             {betLoading ? 'Processing...' : 'Place Bet'}
           </button>
-          
-          {/* Test Button */}
-          <button
-            onClick={testServerConnection}
-            className="mt-4 w-full py-2 rounded-lg font-semibold bg-blue-500 text-white hover:bg-blue-600"
-          >
-            Test Server Connection
-          </button>
-          
-          {/* Test Result */}
-          {testResult && (
-            <div className={`mt-4 p-3 rounded-lg ${testResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              <p className="font-medium">{testResult.message}</p>
-              {testResult.data && (
-                <pre className="mt-2 text-xs overflow-auto max-h-40 bg-gray-100 p-2 rounded">
-                  {JSON.stringify(testResult.data, null, 2)}
-                </pre>
-              )}
-            </div>
-          )}
         </div>
-
-        {currentRound ? (
-          <div className="bg-white rounded-xl shadow-md p-6 mt-6">
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <h3 className="text-lg font-semibold">Round Number</h3>
-                <p className="text-gray-600">{currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}</p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Time Remaining</h3>
-                <p className="text-gray-600">
-                  {currentRound.endTime
-                    ? Math.max(0, Math.floor((new Date(currentRound.endTime) - new Date()) / 1000))
-                    : 0}s
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-600">No active round for selected duration</p>
-          </div>
-        )}
       </div>
     </Fragment>
   );
