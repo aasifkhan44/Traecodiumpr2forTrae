@@ -1,14 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaShareAlt, FaCopy, FaUsers, FaDollarSign } from 'react-icons/fa';
+import { useContext } from 'react';
+import SiteSettingsContext from '../contexts/SiteSettingsContext.jsx';
 
 const Referrals = () => {
-  const [referralCode, setReferralCode] = useState('USER123');
+  const { siteSettings } = useContext(SiteSettingsContext);
+  const [referralCode, setReferralCode] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [referrals, setReferrals] = useState([
     { id: 1, name: 'John Doe', level: 1, joinDate: '2025-03-25', totalBets: 45, commission: 25 },
     { id: 2, name: 'Jane Smith', level: 1, joinDate: '2025-03-28', totalBets: 32, commission: 18 },
     { id: 3, name: 'Mike Johnson', level: 2, joinDate: '2025-04-01', totalBets: 12, commission: 5 }
   ]);
+  
+  // Fetch user profile to get referral code
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          setError('Authentication required');
+          setLoading(false);
+          return;
+        }
+        
+        const response = await fetch('http://localhost:5000/api/user/profile', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setReferralCode(data.data.referralCode || '');
+        } else {
+          setError(data.message || 'Failed to fetch profile data');
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+        setError('Server error while fetching profile data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
   
   const handleCopyReferralCode = () => {
     navigator.clipboard.writeText(referralCode);
@@ -31,16 +73,29 @@ const Referrals = () => {
           Share your referral code with friends and earn commissions when they play!
         </p>
         
-        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex items-center justify-between mb-4">
-          <div className="font-mono font-bold truncate">
-            https://colorprediction.game/register?ref={referralCode}
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+            <p>{error}</p>
           </div>
-          <button 
-            onClick={handleCopyReferralCode}
-            className="ml-2 btn btn-primary"
-          >
-            {copySuccess ? 'Copied!' : <><FaCopy className="mr-1" /> Copy</>}
-          </button>
+        )}
+        
+        <div className="p-4">
+          <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex items-center justify-between mb-4">
+            {loading ? (
+              <div className="font-mono font-bold truncate">Loading your referral code...</div>
+            ) : (
+              <div className="font-mono font-bold truncate">
+                {siteSettings?.domain ? `${siteSettings.domain}/register?ref=${referralCode}` : 'Loading domain...'}
+              </div>
+            )}
+            <button 
+              onClick={handleCopyReferralCode}
+              className="ml-2 btn btn-primary"
+              disabled={loading || !referralCode}
+            >
+              {copySuccess ? 'Copied!' : <><FaCopy className="mr-1" /> Copy</>}
+            </button>
+          </div>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4">

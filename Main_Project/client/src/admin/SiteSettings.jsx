@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FaSave, FaSpinner, FaImage, FaCog, FaFont } from 'react-icons/fa';
+import { FaSave, FaSpinner, FaImage, FaCog, FaFont, FaGlobe } from 'react-icons/fa';
 import { Card, Spinner } from 'react-bootstrap';
 
 const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
@@ -9,14 +9,22 @@ const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
 const SiteSettings = () => {
   const [settings, setSettings] = useState({
     siteName: '',
+    domain: '',
     logoUrl: '',
     faviconUrl: ''
   });
   
-  const [originalSettings, setOriginalSettings] = useState({});
+  const [originalSettings, setOriginalSettings] = useState({
+    siteName: '',
+    domain: '',
+    logoUrl: '',
+    faviconUrl: ''
+  });
+  
+  // Initialize preview with empty string to avoid undefined
+  const [previewLogo, setPreviewLogo] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [previewLogo, setPreviewLogo] = useState('');
   
   // Load site settings on component mount
   useEffect(() => {
@@ -35,9 +43,20 @@ const SiteSettings = () => {
       
       if (response.data.success) {
         const data = response.data.data;
-        setSettings(data);
-        setOriginalSettings(data);
-        setPreviewLogo(data.logoUrl);
+        // Ensure all fields are initialized with empty strings
+        setSettings({
+          siteName: data.siteName || '',
+          domain: data.domain || '',
+          logoUrl: data.logoUrl || '',
+          faviconUrl: data.faviconUrl || ''
+        });
+        setOriginalSettings({
+          siteName: data.siteName || '',
+          domain: data.domain || '',
+          logoUrl: data.logoUrl || '',
+          faviconUrl: data.faviconUrl || ''
+        });
+        setPreviewLogo(data.logoUrl || '');
       }
     } catch (error) {
       console.error('Error fetching site settings:', error);
@@ -77,10 +96,23 @@ const SiteSettings = () => {
       );
       
       if (response.data.success) {
+        const serverData = response.data.data;
         toast.success('Site settings updated successfully', {
           position: "top-center"
         });
-        setOriginalSettings(settings);
+        setSettings({
+          siteName: serverData.siteName || '',
+          domain: serverData.domain || '',
+          logoUrl: serverData.logoUrl || '',
+          faviconUrl: serverData.faviconUrl || ''
+        });
+        setOriginalSettings({
+          siteName: serverData.siteName || '',
+          domain: serverData.domain || '',
+          logoUrl: serverData.logoUrl || '',
+          faviconUrl: serverData.faviconUrl || ''
+        });
+        setPreviewLogo(serverData.logoUrl || '');
       } else {
         toast.error(response.data.message || 'Failed to update settings', {
           position: "top-center"
@@ -138,6 +170,25 @@ const SiteSettings = () => {
               />
               <small className="text-muted">
                 This will be displayed in the header and browser title
+              </small>
+            </div>
+            
+            {/* Domain */}
+            <div className="mb-3">
+              <label className="form-label d-flex align-items-center">
+                <FaGlobe className="mr-2" /> Domain
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                name="domain"
+                value={settings.domain}
+                onChange={handleChange}
+                placeholder="Enter site domain (e.g. example.com)"
+                required
+              />
+              <small className="text-muted">
+                This will be used for website URLs and referral links
               </small>
             </div>
             

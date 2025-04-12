@@ -157,7 +157,7 @@ const Dashboard = () => {
               <p className="text-2xl font-bold">🪙 {userStats.referralEarnings}</p>
             </div>
           </div>
-          <Link to="/user/referrals" className="text-primary hover:underline mt-2 inline-block">
+          <Link to="/referrals" className="text-primary hover:underline mt-2 inline-block">
             View referral program
           </Link>
         </div>
@@ -171,7 +171,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         
-        <Link to="/user/referrals" className="card bg-gradient-to-r from-accent to-purple-500 text-white p-6 transform transition-transform hover:scale-105">
+        <Link to="/referrals" className="card bg-gradient-to-r from-accent to-purple-500 text-white p-6 transform transition-transform hover:scale-105">
           <FaShareAlt className="text-4xl mb-4" />
           <h3 className="text-xl font-bold mb-2">Invite Friends</h3>
           <p>Earn commissions through our multi-level referral program!</p>

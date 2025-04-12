@@ -67,13 +67,14 @@ router.get('/site-settings', adminMiddleware, async (req, res) => {
 // @access  Private/Admin
 router.put('/site-settings', adminMiddleware, async (req, res) => {
   try {
-    const { siteName, logoUrl, faviconUrl } = req.body;
+    const { siteName, domain, logoUrl, faviconUrl } = req.body;
 
     // Get existing settings or create default settings if none exist
     let settings = await SiteSettings.getSiteSettings();
 
     // Update settings with new values if provided
     if (siteName !== undefined) settings.siteName = siteName;
+    if (domain !== undefined) settings.domain = domain;
     if (logoUrl !== undefined) settings.logoUrl = logoUrl;
     if (faviconUrl !== undefined) settings.faviconUrl = faviconUrl;
 

@@ -5,6 +5,16 @@ const SiteSettingsSchema = new mongoose.Schema({
     type: String,
     default: 'Color Prediction Game'
   },
+  domain: {
+    type: String,
+    default: '',
+    validate: {
+      validator: function(v) {
+        return /^(https?:\/\/)?([\da-zA-Z\.-]+\.[a-zA-Z\.]{2,})([\/\w \.-]*)*\/?$/i.test(v);
+      },
+      message: props => `${props.value} is not a valid domain!`
+    }
+  },
   logoUrl: {
     type: String,
     default: '/images/logo.png'

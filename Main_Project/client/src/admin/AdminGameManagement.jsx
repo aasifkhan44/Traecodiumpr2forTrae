@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { Tab } from '@headlessui/react';
 
 const AdminGameManagement = () => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingGame, setEditingGame] = useState(null);
+  const [results, setResults] = useState([]);
+  const [resultLoading, setResultLoading] = useState(false);
+  const [selectedGame, setSelectedGame] = useState(null);
 
   useEffect(() => {
     fetchGames();
@@ -253,8 +257,8 @@ const AdminGameManagement = () => {
                   alt={game.name}
                   className="object-cover w-full h-full"
                   onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/300x200?text=No+Image';
-                    e.target.className = 'object-contain p-4';
+                    e.target.src = game.thumbnailUrl ? game.thumbnailUrl : '/assets/no-image.svg';
+                    e.target.className = game.thumbnailUrl ? 'object-cover w-full h-full' : 'object-contain p-4';
                   }}
                 />
               ) : (
@@ -293,16 +297,188 @@ const AdminGameManagement = () => {
     );
   }
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">Game Management</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {games.map(game => (
-          <GameCard key={game.identifier} game={game} />
-        ))}
-      </div>
-    </div>
-  );
+  const fetchResults = async (gameIdentifier) => {
+  try {
+    setResultLoading(true);
+    const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error('Authentication token not found');
+      setResultLoading(false);
+      return;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
+    const response = await axios.get(
+      `${API_BASE_URL}/api/admin/games/${gameIdentifier}/results`, 
+      { headers }
+    );
+    
+    if (response.data?.success && Array.isArray(response.data.data)) {
+      setResults(response.data.data);
+    } else {
+      setResults([]);
+      toast.warning('No results data available');
+    }
+  } catch (error) {
+    console.error('Error fetching results:', error);
+    toast.error(error.response?.data?.message || 'Failed to fetch results');
+    setResults([]);
+  } finally {
+    setResultLoading(false);
+  }
+};
+
+const handleResultUpdate = async (resultId, updates) => {
+  try {
+    const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error('Authentication token not found');
+      return;
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+
+    const response = await axios.patch(
+      `${API_BASE_URL}/api/admin/results/${resultId}`,
+      updates,
+      { headers }
+    );
+
+    if (response.data?.success) {
+      setResults(prevResults => 
+        prevResults.map(result => 
+          result._id === resultId ? response.data.data : result
+        )
+      );
+      toast.success('Result updated successfully');
+    } else {
+      throw new Error(response.data?.message || 'Failed to update result');
+    }
+  } catch (error) {
+    console.error('Error updating result:', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to update result';
+    toast.error(errorMessage);
+  }
+};
+
+return (
+  <div className="container mx-auto px-4 py-8">
+    <Tab.Group>
+      <Tab.List className="flex space-x-1 rounded-xl bg-blue-900/20 p-1 mb-8">
+        <Tab
+          className={({ selected }) =>
+            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${selected ? 'bg-white shadow' : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'}`
+          }
+        >
+          Game Management
+        </Tab>
+        <Tab
+          className={({ selected }) =>
+            `w-full rounded-lg py-2.5 text-sm font-medium leading-5 text-blue-700 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${selected ? 'bg-white shadow' : 'text-blue-100 hover:bg-white/[0.12] hover:text-white'}`
+          }
+        >
+          Result Management
+        </Tab>
+      </Tab.List>
+      <Tab.Panels className="mt-2">
+        <Tab.Panel>
+          <h1 className="text-2xl font-bold text-gray-900 mb-8">Game Management</h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {games.map(game => (
+              <GameCard key={game.identifier} game={game} />
+            ))}
+          </div>
+        </Tab.Panel>
+        <Tab.Panel>
+          <h1 className="text-2xl font-bold text-gray-900 mb-8">Result Management</h1>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {games.map(game => (
+              <div 
+                key={game.identifier} 
+                className={`bg-white rounded-lg shadow-lg p-6 cursor-pointer transition-all ${selectedGame === game.identifier ? 'ring-2 ring-blue-500' : 'hover:shadow-md'}`}
+                onClick={() => {
+                  setSelectedGame(game.identifier);
+                  fetchResults(game.identifier);
+                }}
+              >
+                <h3 className="text-lg font-semibold mb-2">{game.name}</h3>
+                <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden mb-2">
+                  {game.thumbnailUrl ? (
+                    <img
+                      src={game.thumbnailUrl}
+                      alt={game.name}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      No thumbnail
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 truncate">{game.description || 'No description'}</p>
+              </div>
+            ))}
+          </div>
+          
+          {resultLoading ? (
+            <div className="flex items-center justify-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {results.length > 0 ? (
+                results.map(result => (
+                  <div key={result._id} className="bg-white rounded-lg shadow-lg p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">{result.user?.username || 'Unknown user'}</h3>
+                      <span className="text-sm text-gray-500">
+                        {new Date(result.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Score</p>
+                        <p className="text-xl font-bold">{result.score}</p>
+                      </div>
+                      <div className="flex items-center">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${result.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {result.verified ? 'Verified' : 'Pending'}
+                        </span>
+                        <button
+                          onClick={() => handleResultUpdate(result._id, { verified: !result.verified })}
+                          className="ml-auto px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          {result.verified ? 'Unverify' : 'Verify'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full flex items-center justify-center py-8">
+                  <p className="text-gray-500">
+                    {selectedGame ? 'No results found' : 'Select a game to view results'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </Tab.Panel>
+      </Tab.Panels>
+    </Tab.Group>
+  </div>
+);
 };
 
 export default AdminGameManagement;
