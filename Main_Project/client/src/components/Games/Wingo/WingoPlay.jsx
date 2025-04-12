@@ -4,6 +4,7 @@ import api from '../../../utils/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Combobox } from '@headlessui/react';
 import { ChevronDownIcon, CheckIcon } from '@heroicons/react/20/solid';
+import { toast } from 'react-hot-toast';
 
 export default function WingoPlay() {
   const { user, setUser } = useAuth();
@@ -13,11 +14,9 @@ export default function WingoPlay() {
   const [loading, setLoading] = useState(true);
   const [selectedBetType, setSelectedBetType] = useState(null);
   const [selectedBetValue, setSelectedBetValue] = useState(null);
-  const [betAmount, setBetAmount] = useState('');
+  const [betAmount, setBetAmount] = useState('10');
   const [betError, setBetError] = useState(null);
   const [betLoading, setBetLoading] = useState(false);
-  const [betSuccess, setBetSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState(null);
 
   const colors = [
@@ -257,7 +256,7 @@ export default function WingoPlay() {
             console.warn('No active rounds returned from server');
             // Don't show error if we're still loading via WebSocket
             if (Object.keys(activeRounds).length === 0) {
-              setError('Game rounds not found. The server may be initializing, please wait or refresh the page.');
+              toast.error('Game rounds not found. The server may be initializing, please wait or refresh the page.');
             }
             return;
           }
@@ -276,12 +275,12 @@ export default function WingoPlay() {
           setActiveRounds(roundsData);
           setError(null);
         } else if (Object.keys(activeRounds).length === 0) {
-          setError('No valid round data received from server');
+          toast.error('No valid round data received from server');
         }
       } else {
         // Only show error if we don't have any existing data
         if (Object.keys(activeRounds).length === 0) {
-          setError(`Failed to load active rounds: ${response.data.message || 'Unknown error'}`);
+          toast.error(`Failed to load active rounds: ${response.data.message || 'Unknown error'}`);
         }
       }
     } catch (err) {
@@ -291,14 +290,14 @@ export default function WingoPlay() {
       if (Object.keys(activeRounds).length === 0) {
         if (err.response) {
           if (err.response.status === 404) {
-            setError('Game rounds not found. The Wingo game may not be initialized on the server.');
+            toast.error('Game rounds not found. The Wingo game may not be initialized on the server.');
           } else {
-            setError(`Server error: ${err.response.status} - ${err.response.data.message || 'Unknown error'}`);
+            toast.error(`Server error: ${err.response.status} - ${err.response.data.message || 'Unknown error'}`);
           }
         } else if (err.request) {
-          setError('No response from server. Please check your connection.');
+          toast.error('No response from server. Please check your connection.');
         } else {
-          setError(`Error loading game data: ${err.message}`);
+          toast.error(`Error loading game data: ${err.message}`);
         }
       }
     } finally {
@@ -316,104 +315,43 @@ export default function WingoPlay() {
     setBetError(null);
   };
 
-  const handleBetSubmit = async () => {
+  const handlePlaceBet = async () => {
+    if (!selectedBetType || !selectedBetValue) {
+      toast.error('Please select a bet type and value');
+      return;
+    }
+
+    if (Number(betAmount) <= 0) {
+      toast.error('Please enter a valid bet amount');
+      return;
+    }
+
+    setBetLoading(true);
     try {
-      setBetError(null);
-      setBetLoading(true);
-
-      // Client-side validation - check if either user or userProfile exists
-      if (!user && !userProfile) {
-        throw new Error('Please log in to place a bet');
-      }
-
-      if (!selectedBetType || !selectedBetValue) {
-        throw new Error('Please select a color or number to bet on');
-      }
-
-      if (!betAmount || isNaN(betAmount) || betAmount <= 0) {
-        throw new Error('Please enter a valid bet amount');
-      }
-
-      // Get the bet amount as a number
-      const numericBetAmount = Number(betAmount);
-      
-      // Check if user has enough balance using the userBalance variable
-      // which safely gets the balance from either userProfile or user
-      console.log('Checking balance for bet:', userBalance, 'vs bet amount:', numericBetAmount);
-      
-      if (userBalance < numericBetAmount) {
-        throw new Error(`Insufficient balance (${userBalance}) to place this bet (${numericBetAmount})`);
-      }
-
-      // Additional validation
-      if (selectedBetType === 'color' && !['Red', 'Violet', 'Green'].includes(selectedBetValue)) {
-        throw new Error('Invalid color selection');
-      }
-
-      if (selectedBetType === 'number' && !/^[0-9]$/.test(selectedBetValue)) {
-        throw new Error('Invalid number selection');
-      }
-
-      console.log('Submitting bet:', {
-        duration: selectedDuration,
-        betType: selectedBetType,
-        betValue: selectedBetValue,
-        amount: numericBetAmount,
-        userId: userProfile?._id || user?.id || user?._id
-      });
-
       const response = await api.post('/wingo/bet', {
-        duration: selectedDuration,
         betType: selectedBetType,
         betValue: selectedBetValue,
-        amount: numericBetAmount,
-        userId: userProfile?._id || user?.id || user?._id // Include user ID explicitly
+        amount: Number(betAmount),
+        duration: selectedDuration,
       });
-
-      console.log('Bet response:', response.data);
 
       if (response.data.success) {
-        // Show success message
-        setSuccessMessage(`Bet placed successfully! Good luck!`);
-        setBetSuccess(true);
+        // Show success toast
+        toast.success('Bet placed successfully!');
+        
+        // Update user balance
+        fetchUserData();
         
         // Reset form
         setSelectedBetType(null);
         setSelectedBetValue(null);
-        setBetAmount('');
-        
-        // Update user's balance if provided in the response
-        if (response.data.data && response.data.data.newBalance !== undefined) {
-          console.log('Updating balance to:', response.data.data.newBalance);
-          setUserProfile(prevUserProfile => {
-            if (prevUserProfile) {
-              return { ...prevUserProfile, balance: response.data.data.newBalance };
-            }
-            return prevUserProfile;
-          });
-        }
-        
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setBetSuccess(false);
-          setSuccessMessage('');
-        }, 5000);
+        setBetAmount('10');
+        setError(null);
       } else {
-        throw new Error(response.data.message || 'Failed to place bet');
+        toast.error(response.data.message || 'Failed to place bet');
       }
-    } catch (err) {
-      console.error('Bet placement error:', err);
-      if (err.response) {
-        // Server returned an error response
-        const errorMessage = err.response.data?.message || 'Server error occurred while placing bet';
-        setBetError(errorMessage);
-      } else if (err.request) {
-        // Request was made but no response received
-        setBetError('Unable to connect to the server. Please check your connection.');
-      } else {
-        // Client-side error
-        setBetError(err.message || 'An error occurred while placing your bet');
-      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to place bet');
     } finally {
       setBetLoading(false);
     }
@@ -493,34 +431,6 @@ export default function WingoPlay() {
             )}
           </div>
           
-          {/* Success message */}
-          {betSuccess && successMessage && (
-            <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg">
-              <p className="font-medium">{successMessage}</p>
-            </div>
-          )}
-          
-          {/* Error message */}
-          {betError && (
-            <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg">
-              <p className="font-medium">{betError}</p>
-            </div>
-          )}
-          
-          {/* Error Display */}
-          {error && (
-            <div className="mt-4 p-3 rounded-lg bg-red-100 text-red-800">
-              <p className="font-medium">Error: {error}</p>
-            </div>
-          )}
-          
-          {/* Bet Error Display */}
-          {betError && (
-            <div className="mt-4 p-3 rounded-lg bg-red-100 text-red-800">
-              <p className="font-medium">Bet Error: {betError}</p>
-            </div>
-          )}
-          
           {/* Color Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
             <div>
@@ -590,27 +500,56 @@ export default function WingoPlay() {
           {/* Bet Amount Input */}
           <div className="mb-4 md:mb-6">
             <h4 className="text-sm md:text-md font-medium mb-2">Bet Amount</h4>
-            <input
-              type="number"
-              value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
-              placeholder="Enter bet amount"
-              className="w-full px-3 py-2 md:px-4 md:py-2 text-sm md:text-base rounded-md border focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                value={betAmount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || value === '0') {
+                    setBetAmount('10'); // Reset to default when cleared
+                  } else if (/^\d+$/.test(value)) {
+                    setBetAmount(value);
+                  }
+                }}
+                className="w-full px-4 py-3 md:py-4 text-center text-xl md:text-2xl font-medium bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-lg pr-12 pl-12"
+                placeholder="Enter amount"
+              />
+              <div className="absolute inset-y-0 left-0 flex items-center">
+                <button
+                  onClick={() => setBetAmount(prev => Math.max(0, prev ? Number(prev) - 10 : 10))}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
+                >
+                  <span className="text-xl">-</span>
+                </button>
+              </div>
+              <div className="absolute inset-y-0 right-0 flex items-center">
+                <button
+                  onClick={() => setBetAmount(prev => prev ? Number(prev) + 10 : 10)}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
+                >
+                  <span className="text-xl">+</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Submit Button */}
-          <button
-            onClick={handleBetSubmit}
-            disabled={betLoading || !selectedBetType || !selectedBetValue || !betAmount}
-            className={`w-full py-2 md:py-3 text-sm md:text-base rounded-lg font-semibold ${
-              betLoading || !selectedBetType || !selectedBetValue || !betAmount
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary-dark'
-            }`}
-          >
-            {betLoading ? 'Processing...' : 'Place Bet'}
-          </button>
+          <div className="mt-4 md:mt-6">
+            <button
+              onClick={handlePlaceBet}
+              className="w-full py-3 md:py-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-pink-500 to-pink-700 text-white hover:from-pink-600 hover:to-pink-800"
+            >
+              {betLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                  Placing Bet...
+                </div>
+              ) : (
+                'Place Bet'
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </Fragment>

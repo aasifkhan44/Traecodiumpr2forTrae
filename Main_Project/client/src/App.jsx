@@ -46,7 +46,7 @@ const LudoGame = lazy(() => import('./components/Games/Ludo/Ludo'));
 const ChessGame = lazy(() => import('./components/Games/Chess/Chess'));
 const NummaGame = lazy(() => import('./components/Games/Numma/Numma'));
 const FortuneWheelGame = lazy(() => import('./components/Games/FortuneWheel/FortuneWheel'));
-import { ToastProvider } from './components/ToastNotification';
+import { toast, Toaster } from 'react-hot-toast';
 
 import { AuthContext } from './contexts/AuthContext';
 
@@ -97,12 +97,12 @@ function App() {
   }
   
   return (
-    <AuthContext.Provider value={{ 
+    <div className="min-h-screen bg-gray-50">
+      <AuthContext.Provider value={{ 
   user: isAuthenticated ? { isAdmin: isAdmin } : null,
   loading: loading
 }}>
     <SiteSettingsProvider>
-      <ToastProvider>
         <Router>
           <Routes>
             {/* Public routes that don't require authentication */}
@@ -189,9 +189,39 @@ function App() {
             )}
           </Routes>
         </Router>
-      </ToastProvider>
       </SiteSettingsProvider>
+      <Toaster
+        position="top-center"
+        containerStyle={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)'
+        }}
+        toastOptions={{
+          style: {
+            background: '#fff',
+            color: '#333',
+            borderRadius: '8px',
+            padding: '16px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+          },
+          success: {
+            style: {
+              background: '#E6F4F1',
+              color: '#166534'
+            }
+          },
+          error: {
+            style: {
+              background: '#FEE2E2',
+              color: '#991B1B'
+            }
+          }
+        }}
+      />
     </AuthContext.Provider>
+    </div>
   );
 }
 
