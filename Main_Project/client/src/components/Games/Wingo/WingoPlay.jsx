@@ -454,32 +454,6 @@ export default function WingoPlay() {
           )}
         </div>
 
-        {/* Display current round information */}
-        {currentRound ? (
-          <div className="bg-white rounded-xl shadow-md p-3 md:p-6 mb-4">
-            <div className="grid grid-cols-2 gap-2 md:gap-4 mb-1 md:mb-2">
-              <div>
-                <h3 className="text-base md:text-lg font-semibold">Round Number</h3>
-                <p className="text-sm md:text-base text-gray-600">{currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}</p>
-              </div>
-              <div>
-                <h3 className="text-base md:text-lg font-semibold">Time Remaining</h3>
-                <div className="mt-1 flex items-center justify-center">
-                  <div className="flex items-center space-x-1 text-2xl md:text-3xl font-bold">
-                    <span className="text-blue-500">{currentRound.endTime ? Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString() : '00'}</span>
-                    <span className="text-gray-400">:</span>
-                    <span className="text-blue-500">{currentRound.endTime ? Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0') : '00'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-3 md:py-4 mb-4 bg-white rounded-xl shadow-md">
-            <p className="text-sm md:text-base text-gray-600">No active round for selected duration</p>
-          </div>
-        )}
-
         <div className="mb-4 md:mb-6">
           <h2 className="text-xl md:text-2xl font-bold mb-2 md:mb-4">Select Round Duration</h2>
           <div className="flex flex-wrap gap-2 md:gap-3">
@@ -504,16 +478,14 @@ export default function WingoPlay() {
             <div className="flex items-center space-x-1">
               <span className="text-sm md:text-base font-medium">Round</span>
               <span className="text-sm md:text-base font-medium text-blue-500">
-                {currentRound.roundNumber || `#${String(currentRound._id).slice(-4)}` || 'N/A'}
+                {currentRound?.roundNumber || `#${String(currentRound?._id?.slice(-4) || 'N/A')}` || 'N/A'}
               </span>
             </div>
             {currentRound && (
               <div className="flex items-center space-x-1">
-                <div className="flex items-center space-x-1 bg-blue-500 rounded-lg px-3 py-1 text-white">
-                  <span>{Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString()}</span>
-                  <span className="text-gray-200">:</span>
-                  <span>{Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0')}</span>
-                </div>
+                <span className="text-blue-500">{Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString()}</span>
+                <span className="text-gray-400">:</span>
+                <span className="text-blue-500">{Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0')}</span>
               </div>
             )}
           </div>
