@@ -585,6 +585,26 @@ export default function WingoPlay() {
                 </button>
               </div>
             </div>
+            <div className="flex justify-center space-x-2 mt-2">
+              <button
+                onClick={() => setBetAmount(prev => prev ? Number(prev) * 10 : 100)}
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200"
+              >
+                10X
+              </button>
+              <button
+                onClick={() => setBetAmount(prev => prev ? Number(prev) * 20 : 200)}
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200"
+              >
+                20X
+              </button>
+              <button
+                onClick={() => setBetAmount(prev => prev ? Number(prev) * 50 : 500)}
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200"
+              >
+                50X
+              </button>
+            </div>
           </div>
 
           {/* Submit Button */}
