@@ -463,14 +463,23 @@ export default function WingoPlay() {
             <div className="flex items-center space-x-1">
               <span className="text-sm md:text-base font-medium">Round</span>
               <span className="text-sm md:text-base font-medium text-blue-500">
-                {currentRound?.roundNumber || `#${String(currentRound?._id?.slice(-4) || 'N/A')}` || 'N/A'}
+                {currentRound?.roundNumber ? `#${currentRound.roundNumber}` : 'Waiting for Round'}
               </span>
             </div>
             {currentRound && (
-              <div className="flex items-center space-x-1">
-                <span className="text-blue-500">{Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString()}</span>
-                <span className="text-gray-400">:</span>
-                <span className="text-blue-500">{Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0')}</span>
+              <div className="space-y-2">
+                <div className="relative w-full max-w-sm h-2 rounded-full bg-gray-200 overflow-hidden">
+                  <div className="absolute inset-0 transition-all duration-1000 ease-linear" style={{ 
+                    width: `${Math.floor(((new Date(currentRound.endTime) - new Date()) / (new Date(currentRound.endTime) - new Date(currentRound.startTime))) * 100)}%`,
+                    backgroundColor: Math.floor(((new Date(currentRound.endTime) - new Date()) / (new Date(currentRound.endTime) - new Date(currentRound.startTime))) * 100) > 60 ? 'rgb(34 197 94)' : 
+                                   Math.floor(((new Date(currentRound.endTime) - new Date()) / (new Date(currentRound.endTime) - new Date(currentRound.startTime))) * 100) > 30 ? 'rgb(245 158 11)' : 'rgb(239 68 68)'
+                  }}></div>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-blue-500">{Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString()}</span>
+                  <span className="text-gray-400">:</span>
+                  <span className="text-blue-500">{Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0')}</span>
+                </div>
               </div>
             )}
           </div>
