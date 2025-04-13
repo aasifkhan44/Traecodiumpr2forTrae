@@ -149,4 +149,74 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+// FOR DEVELOPMENT PURPOSES ONLY - Creates a test admin account
+router.post('/create-test-admin', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Not available in production' });
+  }
+  
+  try {
+    // Check if admin already exists
+    let admin = await User.findOne({ 
+      $or: [
+        { mobile: '9999999999' },
+        { email: 'admin@test.com' }
+      ]
+    });
+
+    if (admin) {
+      console.log('Admin already exists, updating role');
+      // Ensure user has admin role
+      admin.role = 'admin';
+      await admin.save();
+      
+      // Generate a fresh token with admin role
+      const token = admin.getSignedJwtToken();
+      
+      return res.json({
+        success: true,
+        message: 'Admin account updated',
+        token,
+        user: {
+          id: admin._id,
+          name: admin.name,
+          mobile: admin.mobile,
+          role: admin.role
+        }
+      });
+    }
+
+    // Create new admin user
+    admin = new User({
+      name: 'Test Admin',
+      countryCode: '+1',
+      mobile: '9999999999',
+      email: 'admin@test.com',
+      password: 'admin123',
+      role: 'admin'
+    });
+
+    await admin.save();
+    console.log('Created new admin user');
+
+    // Generate token with admin role
+    const token = admin.getSignedJwtToken();
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin account created',
+      token,
+      user: {
+        id: admin._id,
+        name: admin.name,
+        mobile: admin.mobile,
+        role: admin.role
+      }
+    });
+  } catch (err) {
+    console.error('Error creating admin account:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;

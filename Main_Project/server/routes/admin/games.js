@@ -9,4 +9,9 @@ const wingoController = require('../../controllers/wingoController');
 // @access  Private/Admin
 router.get('/Wingo/rounds', [auth, admin], wingoController.getAdminWingoRounds);
 
+// @route   POST api/admin/games/Wingo/control-result
+// @desc    Control the result of a Wingo round
+// @access  Private/Admin
+router.post('/Wingo/control-result', [auth, admin], wingoController.controlRoundResult);
+
 module.exports = router;

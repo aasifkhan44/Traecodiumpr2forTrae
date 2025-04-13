@@ -16,7 +16,7 @@ module.exports = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find user
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id || decoded.user?.id).select('-password');
     
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found' });
@@ -24,11 +24,12 @@ module.exports = async (req, res, next) => {
     
     // Check if user is admin
     if (user.role !== 'admin') {
+      console.log('User role:', user.role, 'User ID:', user._id);
       return res.status(403).json({ success: false, message: 'Not authorized as an admin' });
     }
     
     // Add user from payload
-    req.user = { id: decoded.id };
+    req.user = user;
     next();
   } catch (err) {
     console.error('Admin middleware error:', err.message);

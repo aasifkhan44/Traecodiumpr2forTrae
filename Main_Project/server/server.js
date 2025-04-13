@@ -18,9 +18,9 @@ const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : ['http://localhost:5173', 'http://localhost:5175'],
+  origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : ['http://localhost:5173', 'http://localhost:5175', 'http://127.0.0.1:57867', 'http://localhost:3005'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'Upgrade', 'Connection', 'Sec-WebSocket-Key', 'Sec-WebSocket-Version', 'Sec-WebSocket-Extensions'],
   exposedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
   credentials: true,
   preflightContinue: false,
@@ -83,8 +83,26 @@ app.get('/api/site-settings', async (req, res) => {
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : ['http://localhost:5173', 'http://localhost:5175'],
-    methods: ['GET', 'POST']
+    origin: process.env.NODE_ENV === 'production' ? 
+      process.env.CLIENT_URL : 
+      ['http://localhost:5173', 'http://localhost:5175', 'http://127.0.0.1:57867', 'http://localhost:3005'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  },
+  allowEIO3: true, // Allow Engine.IO version 3 compatibility
+  path: '/socket.io/',
+  transports: ['websocket', 'polling'], // Allow both WebSocket and HTTP long-polling
+  // Handle upgrade properly
+  handlePreflightRequest: (req, res) => {
+    const headers = {
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-auth-token',
+      'Access-Control-Allow-Origin': req.headers.origin,
+      'Access-Control-Allow-Credentials': true,
+      'Access-Control-Max-Age': 86400,
+    };
+    res.writeHead(200, headers);
+    res.end();
   }
 });
 
@@ -171,17 +189,38 @@ connectDB()
     // Start Wingo WebSocket server
     const wingoWebSocketServer = WingoWebSocketServerClass.getInstance();
     try {
+      // Ensure the server is properly installed to handle WebSocket upgrade requests
       const started = wingoWebSocketServer.start(server);
       if (started) {
         const status = wingoWebSocketServer.getStatus();
         console.log(`Wingo WebSocket server started successfully on ${status.serverUrl}`);
         
+        // Handle WebSocket status endpoint with proper CORS headers
         app.get('/api/wingo/websocket-status', (req, res) => {
+          // Set proper headers for WebSocket protocol
+          res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+          res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+          res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Upgrade, Connection');
+          
           const status = wingoWebSocketServer.getStatus();
           res.json({
             success: true,
             data: status
           });
+        });
+        
+        // Add explicit handling for WebSocket protocol upgrade
+        server.on('upgrade', (request, socket, head) => {
+          console.log('Upgrade request received for WebSocket protocol');
+          // Let the WingoWebSocketServer handle the upgrade
+          if (wingoWebSocketServer.server) {
+            wingoWebSocketServer.server.handleUpgrade(request, socket, head, (ws) => {
+              wingoWebSocketServer.server.emit('connection', ws, request);
+            });
+          } else {
+            // Fallback to Socket.io handling
+            socket.destroy();
+          }
         });
       } else {
         console.error('Failed to start Wingo WebSocket server');

@@ -1,5 +1,8 @@
 const WebSocket = require('ws');
 const WingoRoundManager = require('./WingoRoundManager');
+const jwt = require('jsonwebtoken');
+const config = require('../config');
+const WingoBet = require('../models/WingoBet');
 
 class WingoWebSocketServer {
   static instance = null;
@@ -15,6 +18,7 @@ class WingoWebSocketServer {
     this.port = port;
     this.server = null;
     this.clients = new Set();
+    this.adminClients = new Set(); // Track admin clients separately
     this.updateInterval = null;
     this.isRunning = false;
     this.serverUrl = null;
@@ -142,33 +146,42 @@ class WingoWebSocketServer {
   }
 
   handleConnection(ws, req) {
-    console.log(`New WebSocket connection from ${req.socket.remoteAddress}`);
-    
-    // Add client to the set
-    this.clients.add(ws);
+    try {
+      console.log('New client connected to Wingo WebSocket');
+      
+      // Add the client to our set of connected clients
+      this.clients.add(ws);
+      
+      // Set up event handlers for this client
+      ws.on('message', (message) => {
+        this.handleMessage(ws, message);
+      });
+      
+      ws.on('close', () => {
+        console.log('Client disconnected from Wingo WebSocket');
+        this.clients.delete(ws);
+        this.adminClients.delete(ws); // Also remove from admin clients if present
+      });
+      
+      ws.on('error', (error) => {
+        console.error('WebSocket client error:', error);
+        this.clients.delete(ws);
+        this.adminClients.delete(ws); // Also remove from admin clients if present
+      });
+      
+      // Send current round info to the client
+      this.sendActiveRounds(ws);
 
-    // Send initial data immediately
-    this.sendActiveRounds(ws);
-
-    // Set up client event handlers
-    ws.on('message', (message) => this.handleMessage(ws, message));
-    
-    ws.on('close', () => {
-      console.log('WebSocket connection closed');
-      this.clients.delete(ws);
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket client error:', error);
-      this.clients.delete(ws);
-    });
-
-    // Send a welcome message
-    ws.send(JSON.stringify({
-      type: 'connection',
-      message: 'Connected to Wingo WebSocket server',
-      timestamp: new Date().toISOString()
-    }));
+      // Send welcome message to the client
+      ws.send(JSON.stringify({
+        type: 'connection',
+        success: true,
+        message: 'Connected to Wingo WebSocket server',
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('Error handling new WebSocket connection:', error);
+    }
   }
 
   handleMessage(ws, message) {
@@ -179,28 +192,232 @@ class WingoWebSocketServer {
       // Handle different message types
       if (data.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+      } else if (data.type === 'admin-auth') {
+        // Handle admin authentication
+        this.handleAdminAuth(ws, data.token);
       }
     } catch (err) {
       console.error('Error handling WebSocket message:', err);
     }
   }
-
-  handleServerError(error) {
-    console.error('WebSocket server error:', error);
-    
-    // Check if this is a port-in-use error
-    if (error && error.code === 'EADDRINUSE') {
-      console.log('Port already in use, attempting to restart on a different port');
-      // Try to restart the server on a different port
-      this.stop();
-      setTimeout(() => {
-        this.port += 1;
-        console.log(`Attempting to restart WebSocket server on port ${this.port}`);
-        this.createStandaloneServer();
-      }, 1000);
+  
+  // Handle admin authentication
+  handleAdminAuth(ws, token) {
+    try {
+      if (!token) {
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Authentication token missing',
+          code: 'AUTH_MISSING_TOKEN'
+        }));
+        return;
+      }
+      
+      // Fix: Remove "Bearer " prefix if present
+      if (typeof token === 'string' && token.startsWith('Bearer ')) {
+        token = token.slice(7);
+      }
+      
+      // Verify the token
+      jwt.verify(token, config.jwtSecret, async (err, decoded) => {
+        if (err) {
+          console.error('JWT verification error:', err.message);
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Invalid authentication token: ' + err.message,
+            code: 'AUTH_INVALID_TOKEN'
+          }));
+          return;
+        }
+        
+        console.log('Decoded JWT token:', decoded);
+        
+        // Enhanced admin check that handles both approaches
+        let isAdmin = false;
+        
+        // First check if role information is in the token
+        if (decoded?.role === 'admin' || decoded?.isAdmin === true || 
+            decoded?.userType === 'admin' || decoded?.admin === true) {
+          isAdmin = true;
+          console.log('Admin role found in token payload');
+        } 
+        // If no role in token, check the database for user role
+        else if (decoded?.id) {
+          try {
+            console.log('Looking up user role in database for ID:', decoded.id);
+            // Import User model
+            const User = require('../models/User');
+            const user = await User.findById(decoded.id);
+            
+            if (user && user.role === 'admin') {
+              isAdmin = true;
+              console.log('Admin role confirmed from database');
+            } else {
+              console.log('User found in database but not admin:', user?.role);
+            }
+          } catch (dbErr) {
+            console.error('Database lookup error:', dbErr);
+          }
+        }
+          
+        if (!isAdmin) {
+          console.log('User not admin:', decoded);
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Unauthorized: Admin access required',
+            code: 'AUTH_NOT_ADMIN'
+          }));
+          return;
+        }
+        
+        // Mark this connection as an admin
+        ws.isAdmin = true;
+        ws.userId = decoded?.id || decoded?._id || decoded?.userId || 'unknown';
+        this.adminClients.add(ws);
+        
+        console.log(`Admin authorized via WebSocket: ${ws.userId}`);
+        
+        // Send success message
+        ws.send(JSON.stringify({
+          type: 'admin-auth-success',
+          message: 'Admin authentication successful',
+          userId: ws.userId
+        }));
+        
+        // Send current rounds data for admin
+        this.sendAdminRoundsData(ws);
+      });
+    } catch (err) {
+      console.error('Error during admin authentication:', err);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Authentication error: ' + err.message,
+        code: 'AUTH_ERROR'
+      }));
     }
   }
-
+  
+  async getAdminRoundsData() {
+    try {
+      const rounds = await WingoRoundManager.getAllRounds();
+      
+      // For each round, get the betting statistics
+      const roundsWithStats = await Promise.all(
+        // Check if rounds is an array before mapping
+        Array.isArray(rounds) 
+          ? rounds.map(async (round) => {
+              const betStats = await this.getBettingStats(round._id);
+              return {
+                ...(round.toObject ? round.toObject() : round),
+                betStats
+              };
+            })
+          : []
+      );
+      
+      return roundsWithStats;
+    } catch (err) {
+      console.error('Error getting admin rounds data:', err);
+      return [];
+    }
+  }
+  
+  // Send detailed rounds data to admin clients
+  async sendAdminRoundsData(ws) {
+    try {
+      const roundsWithStats = await this.getAdminRoundsData();
+      
+      ws.send(JSON.stringify({
+        type: 'roundsUpdate',
+        rounds: roundsWithStats,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (err) {
+      console.error('Error sending admin rounds data:', err);
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Failed to get rounds data',
+        code: 'ROUNDS_DATA_ERROR'
+      }));
+    }
+  }
+  
+  // Get betting statistics for a specific round
+  async getBettingStats(roundId) {
+    try {
+      // Get all bets for this round
+      const bets = await WingoBet.find({ roundId });
+      
+      const betStats = {
+        colors: {
+          Red: { count: 0, amount: 0, potential: 0 },
+          Green: { count: 0, amount: 0, potential: 0 },
+          Violet: { count: 0, amount: 0, potential: 0 }
+        },
+        numbers: {}
+      };
+      
+      // Initialize numbers
+      for (let i = 0; i < 10; i++) {
+        betStats.numbers[i] = { count: 0, amount: 0, potential: 0 };
+      }
+      
+      // Calculate statistics
+      for (const bet of bets) {
+        if (bet.betType === 'color' && betStats.colors[bet.betValue]) {
+          betStats.colors[bet.betValue].count++;
+          betStats.colors[bet.betValue].amount += bet.amount;
+          
+          // Calculate potential payout (using standard multipliers: 2x for colors)
+          betStats.colors[bet.betValue].potential += bet.amount * 2;
+        } else if (bet.betType === 'number') {
+          const num = parseInt(bet.betValue);
+          if (!isNaN(num) && num >= 0 && num <= 9) {
+            if (!betStats.numbers[num]) {
+              betStats.numbers[num] = { count: 0, amount: 0, potential: 0 };
+            }
+            betStats.numbers[num].count++;
+            betStats.numbers[num].amount += bet.amount;
+            
+            // Calculate potential payout (using standard multipliers: 9x for numbers)
+            betStats.numbers[num].potential += bet.amount * 9;
+          }
+        }
+      }
+      
+      return betStats;
+    } catch (err) {
+      console.error('Error getting betting stats for round:', err);
+      return null;
+    }
+  }
+  
+  // Broadcast bet updates to admin clients
+  async broadcastBetUpdate(bet) {
+    try {
+      if (this.adminClients.size === 0) return;
+      
+      // Get updated betting stats for this round
+      const betStats = await this.getBettingStats(bet.roundId);
+      
+      const message = JSON.stringify({
+        type: 'betUpdate',
+        roundId: bet.roundId,
+        betStats,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Send update to all admin clients
+      for (const client of this.adminClients) {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      }
+    } catch (err) {
+      console.error('Error broadcasting bet update:', err);
+    }
+  }
+  
   async sendActiveRounds(ws) {
     try {
       const activeRounds = await WingoRoundManager.getActiveRounds();
@@ -253,6 +470,16 @@ class WingoWebSocketServer {
       for (const client of this.clients) {
         if (client.readyState === WebSocket.OPEN) {
           client.send(message);
+        }
+      }
+      
+      // If we have admin clients, send them detailed data including bet statistics
+      if (this.adminClients.size > 0) {
+        // For admin clients, we send more detailed information
+        for (const adminClient of this.adminClients) {
+          if (adminClient.readyState === WebSocket.OPEN) {
+            this.sendAdminRoundsData(adminClient);
+          }
         }
       }
     } catch (err) {
@@ -317,6 +544,28 @@ class WingoWebSocketServer {
   // Get the WebSocket server URL
   getServerUrl() {
     return this.serverUrl;
+  }
+  
+  // Broadcast a message to all connected clients
+  broadcastMessage(data) {
+    const message = JSON.stringify(data);
+    
+    for (const client of this.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
+  }
+  
+  // Broadcast a message only to admin clients
+  broadcastAdminMessage(data) {
+    const message = JSON.stringify(data);
+    
+    for (const client of this.adminClients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    }
   }
 }
 

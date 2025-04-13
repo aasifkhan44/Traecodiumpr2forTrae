@@ -114,64 +114,76 @@ exports.placeBet = async (req, res) => {
     // Ensure balance and amount are numbers
     const userBalance = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
     const betAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
-    console.log('User balance (raw):', user.balance);
-    console.log('User balance (parsed):', userBalance);
-    console.log('Bet amount (raw):', amount);
-    console.log('Bet amount (parsed):', betAmount);
 
     if (userBalance < betAmount) {
-      console.error('Insufficient balance:', userBalance, 'needed:', betAmount);
-      return res.status(400).json({ success: false, message: 'Insufficient balance to place this bet' });
+      console.error('Insufficient balance:', { userBalance, betAmount });
+      return res.status(400).json({ success: false, message: 'Insufficient balance' });
     }
 
-    // Create bet
+    // Calculate potential payout
+    let potentialMultiplier = 0;
+    if (betType === 'color') {
+      // Colors have a 2x multiplier
+      potentialMultiplier = 2;
+    } else if (betType === 'number') {
+      // Numbers have a 9x multiplier
+      potentialMultiplier = 9;
+    }
+
+    const potentialPayout = betAmount * potentialMultiplier;
+
+    // Create the bet
     const bet = new WingoBet({
       userId,
       roundId: round._id,
       duration,
       betType,
       betValue,
-      amount: betAmount // Use the parsed amount
+      amount: betAmount,
+      potential: potentialMultiplier,
+      status: 'pending',
+      winAmount: 0
     });
-    console.log('Bet created:', bet);
 
-    // Update user balance
+    // Save the bet
+    await bet.save();
+
+    // Update user balance (deduct bet amount)
     user.balance = userBalance - betAmount;
     await user.save();
-    console.log('Updated user balance:', user.balance);
 
-    // Save bet
-    await bet.save();
-    console.log('Bet saved successfully:', bet._id);
+    // Broadcast bet update to admin clients via WebSocket
+    const wsServer = WingoWebSocketServer.getInstance();
+    if (wsServer.adminClients.size > 0) {
+      // Only broadcast if there are admin clients connected
+      await wsServer.broadcastBetUpdate(bet);
+      console.log('Broadcasted bet update to admin clients');
+    }
 
-    // Update round statistics
-    round.totalBets += 1;
-    round.totalAmount += betAmount;
-    await round.save();
-    console.log('Round statistics updated');
-
-    console.log('=== BET PLACED SUCCESSFULLY ===');
-    res.json({
+    console.log('Bet placed successfully:', bet._id);
+    
+    // Return the created bet
+    return res.status(201).json({
       success: true,
+      message: 'Bet placed successfully',
       data: {
         bet: {
           _id: bet._id,
-          roundId: round._id,
-          betType,
-          betValue,
-          amount: betAmount
+          roundId: bet.roundId,
+          duration: bet.duration,
+          betType: bet.betType,
+          betValue: bet.betValue,
+          amount: bet.amount,
+          potential: bet.potential,
+          status: bet.status,
+          createdAt: bet.createdAt,
         },
-        newBalance: user.balance
+        userBalance: user.balance
       }
     });
   } catch (err) {
-    console.error('=== ERROR PLACING BET ===');
-    console.error('Error details:', err);
-    console.error('Stack trace:', err.stack);
-    console.error('Request body:', req.body);
-    console.error('Request user:', req.user);
-    res.status(500).json({ success: false, message: err.message });
+    console.error('Error placing bet:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -264,13 +276,197 @@ exports.getBetHistory = async (req, res) => {
   }
 };
 
+// Admin: Get Wingo rounds with bet statistics for admin panel
+exports.getAdminWingoRounds = async (req, res) => {
+  try {
+    console.log('Getting admin Wingo rounds with filters:', req.query);
+    
+    // Get filter parameters
+    const { period, status } = req.query;
+    const showOnlyRunning = status === 'open' || !status; // Default to showing only running/open rounds
+    const duration = period ? parseInt(period) : null;
+    
+    console.log(`Processing request with period: ${period}, duration: ${duration}, showOnlyRunning: ${showOnlyRunning}`);
+    
+    // Function to get the appropriate round model based on duration
+    const getRoundModel = (dur) => {
+      const models = {
+        1: WingoRound1m,
+        3: WingoRound3m,
+        5: WingoRound5m,
+        10: WingoRound10m
+      };
+      return models[dur];
+    };
+    
+    // Function to get bet statistics for a round
+    const getRoundWithBetStats = async (round, roundDuration) => {
+      // Find all bets for this round
+      const bets = await WingoBet.find({ roundId: round._id });
+      console.log(`Found ${bets.length} bets for round: ${round._id}, duration: ${roundDuration}`);
+      
+      // Calculate statistics
+      const betStats = {
+        colors: {
+          Red: { count: 0, amount: 0, payout: 0 },
+          Green: { count: 0, amount: 0, payout: 0 },
+          Violet: { count: 0, amount: 0, payout: 0 }
+        },
+        numbers: {
+          0: { count: 0, amount: 0, payout: 0 },
+          1: { count: 0, amount: 0, payout: 0 },
+          2: { count: 0, amount: 0, payout: 0 },
+          3: { count: 0, amount: 0, payout: 0 },
+          4: { count: 0, amount: 0, payout: 0 },
+          5: { count: 0, amount: 0, payout: 0 },
+          6: { count: 0, amount: 0, payout: 0 },
+          7: { count: 0, amount: 0, payout: 0 },
+          8: { count: 0, amount: 0, payout: 0 },
+          9: { count: 0, amount: 0, payout: 0 }
+        },
+        totalBets: 0,
+        totalAmount: 0,
+        potentialPayout: 0
+      };
+      
+      // Process each bet
+      for (const bet of bets) {
+        if (bet.betType === 'color') {
+          const color = bet.betValue;
+          betStats.colors[color].count++;
+          betStats.colors[color].amount += bet.amount;
+          // Color bet pays 2x
+          betStats.colors[color].payout += bet.amount * 2;
+        } else if (bet.betType === 'number') {
+          const number = bet.betValue;
+          betStats.numbers[number].count++;
+          betStats.numbers[number].amount += bet.amount;
+          // Number bet pays 9x
+          betStats.numbers[number].payout += bet.amount * 9;
+        }
+        
+        betStats.totalBets++;
+        betStats.totalAmount += bet.amount;
+      }
+      
+      // Calculate potential payout if color or number wins
+      const roundObj = round.toObject ? round.toObject() : { ...round };
+      
+      return {
+        ...roundObj,
+        duration: roundDuration,
+        betStats,
+        totalBets: bets.length,
+        totalAmount: bets.reduce((sum, bet) => sum + bet.amount, 0)
+      };
+    };
+    
+    // Handle the case where a specific period is requested
+    if (duration) {
+      console.log(`Fetching rounds for specific duration: ${duration}`);
+      const RoundModel = getRoundModel(duration);
+
+      if (!RoundModel) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid period. Valid values are 1, 3, 5, 10' 
+        });
+      }
+
+      // Build query based on filters
+      const query = {};
+      if (showOnlyRunning) {
+        query.status = 'open';
+      }
+
+      // Get rounds based on query
+      const rounds = await RoundModel.find(query)
+        .sort({ endTime: -1 })
+        .limit(1); // Only get the latest open round
+      
+      console.log(`Found ${rounds.length} rounds for period ${duration} with status filter: ${showOnlyRunning ? 'open only' : 'all'}`);
+      
+      if (rounds.length === 0) {
+        console.log(`No rounds found for period ${duration}, trying to create a fallback response`);
+        // Try to find if the model has any rounds at all (for debugging)
+        const anyRounds = await RoundModel.find().limit(1);
+        console.log(`Debug - Any rounds exist for this period: ${anyRounds.length > 0}`);
+      }
+        
+      // Add bet statistics to each round
+      const roundsWithStats = await Promise.all(
+        rounds.map(round => getRoundWithBetStats(round, Number(duration)))
+      );
+
+      // Final verification that we're only returning rounds for the requested duration
+      const verifiedRounds = roundsWithStats.filter(round => round.duration === Number(duration));
+      console.log(`After verification: ${verifiedRounds.length} rounds match the requested duration ${duration}`);
+
+      return res.json({ 
+        success: true, 
+        data: verifiedRounds
+      });
+    } else {
+      // If no specific period, get the current open round from each duration
+      console.log('No specific period selected, fetching all current open rounds');
+      const durations = [1, 3, 5, 10];
+      const allRoundsWithStats = [];
+      
+      for (const dur of durations) {
+        const RoundModel = getRoundModel(dur);
+        if (!RoundModel) continue;
+        
+        // Build query for open rounds only
+        const query = { status: 'open', duration: dur };
+        
+        // Get only the current open round for each duration
+        const rounds = await RoundModel.find(query)
+          .sort({ endTime: -1 })
+          .limit(1);
+          
+        if (rounds.length > 0) {
+          console.log(`Found open round for duration: ${dur}`);
+          // Add bet statistics to each round
+          const roundsWithStats = await Promise.all(
+            rounds.map(round => getRoundWithBetStats(round, dur))
+          );
+          
+          allRoundsWithStats.push(...roundsWithStats);
+        } else {
+          console.log(`No open round found for duration: ${dur}`);
+        }
+      }
+      
+      if (allRoundsWithStats.length === 0) {
+        console.log('No open rounds found across any duration');
+      } else {
+        console.log(`Found ${allRoundsWithStats.length} open rounds across all durations`);
+      }
+      
+      // Sort by duration for consistent display
+      allRoundsWithStats.sort((a, b) => a.duration - b.duration);
+      
+      res.json({ 
+        success: true, 
+        data: allRoundsWithStats
+      });
+    }
+  } catch (err) {
+    console.error('Error getting admin Wingo rounds:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};
+
 // Admin: Control round result
 exports.controlRoundResult = async (req, res) => {
   try {
     const { duration, roundId, color, number } = req.body;
 
     // Validate admin permission
-    if (!req.user.isAdmin) {
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Admin permission required' });
     }
 
@@ -290,6 +486,7 @@ exports.controlRoundResult = async (req, res) => {
       data: round
     });
   } catch (err) {
+    console.error('Error controlling round result:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -324,45 +521,6 @@ exports.getWingoRounds = async (req, res) => {
 
     const rounds = await RoundModel.find({ 
       status: { $in: ['completed', 'closed'] } 
-    }).sort({ endTime: -1 }).limit(50);
-
-    res.json({ 
-      success: true, 
-      data: rounds 
-    });
-  } catch (err) {
-    res.status(500).json({ 
-      success: false, 
-      message: err.message 
-    });
-  }
-};
-
-// Admin: Get Wingo rounds for admin panel
-exports.getAdminWingoRounds = async (req, res) => {
-  try {
-    // Validate admin permission
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ success: false, message: 'Admin permission required' });
-    }
-
-    const { duration } = req.query;
-    const RoundModel = {
-      1: WingoRound1m,
-      3: WingoRound3m,
-      5: WingoRound5m,
-      10: WingoRound10m
-    }[duration];
-
-    if (!RoundModel) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid duration. Valid values are 1, 3, 5, 10' 
-      });
-    }
-
-    const rounds = await RoundModel.find({ 
-      status: { $in: ['open', 'completed', 'closed'] } 
     }).sort({ endTime: -1 }).limit(50);
 
     res.json({ 
