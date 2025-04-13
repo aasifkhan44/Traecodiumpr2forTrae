@@ -565,42 +565,42 @@ export default function WingoPlay() {
                     setBetAmount(value);
                   }
                 }}
-                className="w-full px-4 py-3 md:py-4 text-center text-xl md:text-2xl font-medium bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-lg pr-12 pl-12"
+                className="w-full px-3 py-2.5 text-center text-lg md:text-xl font-medium bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-lg pr-10 pl-10"
                 placeholder="Enter amount"
               />
               <div className="absolute inset-y-0 left-0 flex items-center">
                 <button
                   onClick={() => setBetAmount(prev => Math.max(0, prev ? Number(prev) - 10 : 10))}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
                 >
-                  <span className="text-xl">-</span>
+                  <span className="text-lg">-</span>
                 </button>
               </div>
               <div className="absolute inset-y-0 right-0 flex items-center">
                 <button
                   onClick={() => setBetAmount(prev => prev ? Number(prev) + 10 : 10)}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
                 >
-                  <span className="text-xl">+</span>
+                  <span className="text-lg">+</span>
                 </button>
               </div>
             </div>
             <div className="flex justify-center space-x-2 mt-2">
               <button
                 onClick={() => setBetAmount(prev => prev ? Number(prev) * 10 : 100)}
-                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200"
+                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
               >
                 10X
               </button>
               <button
                 onClick={() => setBetAmount(prev => prev ? Number(prev) * 20 : 200)}
-                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200"
+                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
               >
                 20X
               </button>
               <button
                 onClick={() => setBetAmount(prev => prev ? Number(prev) * 50 : 500)}
-                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200"
+                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
               >
                 50X
               </button>
@@ -608,14 +608,14 @@ export default function WingoPlay() {
           </div>
 
           {/* Submit Button */}
-          <div className="mt-4 md:mt-6">
+          <div className="mt-3 md:mt-4.5">
             <button
               onClick={handlePlaceBet}
-              className="w-full py-3 md:py-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-pink-500 to-pink-700 text-white hover:from-pink-600 hover:to-pink-800"
+              className="w-full py-2.5 md:py-3.5 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-pink-500 to-pink-700 text-white hover:from-pink-600 hover:to-pink-800 text-sm md:text-base"
             >
               {betLoading ? (
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-1.5"></div>
                   Placing Bet...
                 </div>
               ) : (
