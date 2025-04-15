@@ -2,8 +2,6 @@ import React, { useState, useEffect, Fragment, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import api from '../../../utils/api';
 import { useAuth } from '../../../contexts/AuthContext';
-import { Combobox } from '@headlessui/react';
-import { ChevronDownIcon, CheckIcon } from '@heroicons/react/20/solid';
 import { toast } from 'react-hot-toast';
 
 export default function WingoPlay() {
@@ -18,8 +16,15 @@ export default function WingoPlay() {
   const [betError, setBetError] = useState(null);
   const [betLoading, setBetLoading] = useState(false);
   const [error, setError] = useState(null);
-  // State for recent bets
   const [recentBets, setRecentBets] = useState([]);
+  const [recentResults, setRecentResults] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [resultsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState('bets'); // 'bets' or 'results'
+  const [search, setSearch] = useState('');
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [results, setResults] = useState([]);
 
   const colors = [
     { value: 'Red', className: 'bg-red-500' },
@@ -37,28 +42,21 @@ export default function WingoPlay() {
   ];
 
   useEffect(() => {
-    // Immediately fetch rounds via HTTP to ensure we have data
     fetchActiveRounds();
-    
-    // Set up polling as a fallback mechanism
     const pollInterval = setInterval(fetchActiveRounds, 5000);
-    
-    // Set up WebSocket connection for real-time updates with enhanced retry logic
     let ws = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
-    const reconnectDelay = 2000; // 2 seconds
+    const reconnectDelay = 2000;
     let reconnectTimer = null;
-    
+
     const connectWebSocket = async () => {
       try {
-        // Clear any existing connection
         if (ws) {
-          ws.onclose = null; // Prevent the onclose handler from triggering during manual reconnection
+          ws.onclose = null;
           ws.close();
         }
-        
-        // Try to get the WebSocket server URL from the server
+
         let wsUrl = null;
         try {
           const response = await api.get('/wingo/websocket-status');
@@ -69,13 +67,10 @@ export default function WingoPlay() {
         } catch (err) {
           console.warn('Could not get WebSocket URL from server, using fallback methods');
         }
-        
-        // If we couldn't get the URL from the server, use fallback methods
+
         if (!wsUrl) {
           const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
           const hostname = window.location.hostname;
-          
-          // Use the first available URL from the fallback options
           const fallbackUrls = [
             import.meta.env.VITE_WS_URL,
             `${protocol}//${hostname}:3001`,
@@ -84,31 +79,28 @@ export default function WingoPlay() {
           ];
           wsUrl = fallbackUrls.find(url => url) || 'ws://localhost:3001';
         }
-        
+
         console.log(`Attempting WebSocket connection to ${wsUrl}`);
-        
         ws = new WebSocket(wsUrl);
-        
+
         ws.onopen = () => {
           console.log('WebSocket connected successfully');
-          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-          fetchActiveRounds(); // Fetch rounds immediately after connection
+          reconnectAttempts = 0;
+          fetchActiveRounds();
         };
-        
+
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
             console.log('WebSocket message received:', data);
-            
-            // Handle server-sent errors
+
             if (data.type === 'roundError') {
               console.error('Server error:', data.error, '-', data.details);
               setError(`${data.message}: ${data.details}`);
               setLoading(false);
               return;
             }
-            
-            // Handle round updates
+
             if (data.type === 'roundUpdate' && data.round && data.duration) {
               setActiveRounds(prevRounds => ({
                 ...prevRounds,
@@ -129,7 +121,7 @@ export default function WingoPlay() {
                   roundsObj[key] = data.rounds[key];
                 });
               }
-              
+
               if (Object.keys(roundsObj).length > 0) {
                 setActiveRounds(roundsObj);
                 setLoading(false);
@@ -142,15 +134,13 @@ export default function WingoPlay() {
             setLoading(false);
           }
         };
-        
+
         ws.onerror = (error) => {
           console.error('WebSocket error:', error);
-          // Rely on polling for data
         };
-        
+
         ws.onclose = (event) => {
           console.log('WebSocket connection closed:', event.code, event.reason);
-          
           if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`);
@@ -162,12 +152,12 @@ export default function WingoPlay() {
         };
       } catch (err) {
         console.error('Error creating WebSocket:', err);
-        fetchActiveRounds(); // Ensure we still have data via HTTP polling
+        fetchActiveRounds();
       }
     };
-    
+
     connectWebSocket();
-    
+
     return () => {
       clearInterval(pollInterval);
       if (reconnectTimer) {
@@ -180,29 +170,19 @@ export default function WingoPlay() {
     };
   }, []);
 
-  // Move fetchUserData outside useEffect so it can be called from other functions
   const fetchUserData = async () => {
     try {
       console.log('Current user state:', user);
-      
-      // Always fetch the latest user data from the profile endpoint
       console.log('Fetching user profile data...');
       const token = localStorage.getItem('token');
       if (token) {
-        // First try the profile endpoint which Dashboard uses
         try {
-          // Note: The correct endpoint is /api/user/profile
-          // But api.get already prepends /api/, so we just need /user/profile
           const profileResponse = await api.get('/user/profile');
           console.log('Profile response:', profileResponse.data);
-          
           if (profileResponse.data.success && profileResponse.data.data) {
             const userData = profileResponse.data.data;
             console.log('Setting userProfile with profile data:', userData);
-            
-            // Store the profile data in a separate state
             setUserProfile(userData);
-            
             console.log('UserProfile updated with balance:', userData.balance);
           }
         } catch (profileError) {
@@ -220,25 +200,19 @@ export default function WingoPlay() {
     fetchUserData();
   }, []);
 
-  // Add a userBalance variable to safely access user.balance
   const userBalance = useMemo(() => {
     console.log('Calculating userBalance, user:', user);
     console.log('UserProfile:', userProfile);
-    
-    // First try to get balance from userProfile
     if (userProfile && userProfile.balance !== undefined) {
       const profileBalance = typeof userProfile.balance === 'string' ? parseFloat(userProfile.balance) : userProfile.balance;
       console.log('Using profile balance:', profileBalance);
       return isNaN(profileBalance) ? 0 : profileBalance;
     }
-    
-    // Fall back to user object if userProfile is not available
     if (user && user.balance !== undefined) {
       const userBalanceValue = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
       console.log('Using user balance:', userBalanceValue);
       return isNaN(userBalanceValue) ? 0 : userBalanceValue;
     }
-    
     return 0;
   }, [user, userProfile]);
 
@@ -249,21 +223,16 @@ export default function WingoPlay() {
       console.log('Fetching active rounds...');
       const response = await api.get('/wingo/active-rounds');
       console.log('Active rounds response:', response.data);
-      
       if (response.data.success && response.data.data) {
-        // Handle both array and object response formats
         let roundsData = {};
-        
         if (Array.isArray(response.data.data)) {
           if (response.data.data.length === 0) {
             console.warn('No active rounds returned from server');
-            // Don't show error if we're still loading via WebSocket
             if (Object.keys(activeRounds).length === 0) {
               toast.error('Game rounds not found. The server may be initializing, please wait or refresh the page.');
             }
             return;
           }
-          
           roundsData = response.data.data.reduce((acc, round) => {
             if (round && round.duration) {
               acc[round.duration] = round;
@@ -273,7 +242,6 @@ export default function WingoPlay() {
         } else if (typeof response.data.data === 'object') {
           roundsData = response.data.data;
         }
-        
         if (Object.keys(roundsData).length > 0) {
           setActiveRounds(roundsData);
           setError(null);
@@ -281,15 +249,12 @@ export default function WingoPlay() {
           toast.error('No valid round data received from server');
         }
       } else {
-        // Only show error if we don't have any existing data
         if (Object.keys(activeRounds).length === 0) {
           toast.error(`Failed to load active rounds: ${response.data.message || 'Unknown error'}`);
         }
       }
     } catch (err) {
       console.error('Error loading rounds:', err);
-      
-      // Only show error if we don't have any existing data
       if (Object.keys(activeRounds).length === 0) {
         if (err.response) {
           if (err.response.status === 404) {
@@ -323,12 +288,10 @@ export default function WingoPlay() {
       toast.error('Please select a bet type and value');
       return;
     }
-
     if (Number(betAmount) <= 0) {
       toast.error('Please enter a valid bet amount');
       return;
     }
-
     setBetLoading(true);
     try {
       const response = await api.post('/wingo/bet', {
@@ -337,18 +300,10 @@ export default function WingoPlay() {
         amount: Number(betAmount),
         duration: selectedDuration,
       });
-
       if (response.data.success) {
-        // Show success toast
         toast.success('Bet placed successfully!');
-        
-        // Update user balance immediately
         await fetchUserData();
-        
-        // Fetch updated recent bets
         await fetchRecentBets();
-        
-        // Reset form
         setSelectedBetType(null);
         setSelectedBetValue(null);
         setBetAmount('10');
@@ -358,7 +313,6 @@ export default function WingoPlay() {
       }
     } catch (error) {
       console.error('Bet placement error:', error);
-      // Only show one error message
       const errorMessage = error.response?.data?.message || 'Failed to place bet';
       toast.error(errorMessage);
     } finally {
@@ -366,7 +320,6 @@ export default function WingoPlay() {
     }
   };
 
-  // Function to fetch recent bets
   const fetchRecentBets = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -374,7 +327,6 @@ export default function WingoPlay() {
         console.log('No authentication token found');
         return;
       }
-      
       const response = await api.get('/wingo/recent-bets');
       if (response.data.success && response.data.bets) {
         console.log('Recent bets fetched:', response.data.bets.length);
@@ -389,17 +341,32 @@ export default function WingoPlay() {
     }
   };
 
+  const fetchRecentResults = async () => {
+    try {
+      const response = await api.get('/wingo/recent-results', {
+        params: {
+          page: currentPage,
+          limit: resultsPerPage,
+          search: search
+        }
+      });
+      setResults(response.data.results);
+      setTotalPages(response.data.totalPages);
+      setTotalCount(response.data.totalCount);
+    } catch (error) {
+      console.error('Error fetching recent results:', error);
+      toast.error('Failed to fetch recent results');
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    fetchRecentResults();
+  };
+
   useEffect(() => {
-    // Fetch recent bets on component mount
-    fetchRecentBets();
-    
-    // Set up polling for recent bets
-    const pollInterval = setInterval(fetchRecentBets, 10000);
-    
-    return () => {
-      clearInterval(pollInterval);
-    };
-  }, []);
+    fetchRecentResults();
+  }, [currentPage, search]);
 
   if (loading) {
     return (
@@ -420,11 +387,11 @@ export default function WingoPlay() {
   }
 
   const currentRound = activeRounds[selectedDuration];
+  const currentResults = recentResults;
 
   return (
     <Fragment>
       <div className="p-2 md:p-4 mx-auto max-w-md">
-        {/* Display user balance */}
         <div className="bg-white rounded-xl shadow-md p-2 md:p-3 mb-2 md:mb-3">
           <div className="flex justify-between items-center">
             <h2 className="text-base md:text-lg font-bold">Your Balance</h2>
@@ -484,7 +451,6 @@ export default function WingoPlay() {
             )}
           </div>
           
-          {/* Color Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
             <div>
               <h4 className="text-sm md:text-md font-medium mb-2">Select Color</h4>
@@ -506,7 +472,6 @@ export default function WingoPlay() {
             </div>
           </div>
 
-          {/* Number Selection */}
           <div className="mb-4 md:mb-6">
             <h4 className="text-sm md:text-md font-medium mb-2">Select Number</h4>
             <div className="grid grid-cols-5 gap-2 md:gap-3">
@@ -550,7 +515,6 @@ export default function WingoPlay() {
             </div>
           </div>
 
-          {/* Bet Amount Input */}
           <div className="mb-4 md:mb-6">
             <h4 className="text-sm md:text-md font-medium mb-2">Bet Amount</h4>
             <div className="relative">
@@ -559,9 +523,9 @@ export default function WingoPlay() {
                 value={betAmount}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value === '' || value === '0') {
-                    setBetAmount('10'); // Reset to default when cleared
-                  } else if (/^\d+$/.test(value)) {
+                  if (value === '') {
+                    setBetAmount('10');
+                  } else if (/^\d+$/.test(value) && Number(value) > 0) {
                     setBetAmount(value);
                   }
                 }}
@@ -570,7 +534,7 @@ export default function WingoPlay() {
               />
               <div className="absolute inset-y-0 left-0 flex items-center">
                 <button
-                  onClick={() => setBetAmount(prev => Math.max(0, prev ? Number(prev) - 10 : 10))}
+                  onClick={() => setBetAmount(prev => Math.max(10, Number(prev) - 10))}
                   className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
                 >
                   <span className="text-lg">-</span>
@@ -578,7 +542,7 @@ export default function WingoPlay() {
               </div>
               <div className="absolute inset-y-0 right-0 flex items-center">
                 <button
-                  onClick={() => setBetAmount(prev => prev ? Number(prev) + 10 : 10)}
+                  onClick={() => setBetAmount(prev => Number(prev) + 10)}
                   className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
                 >
                   <span className="text-lg">+</span>
@@ -587,19 +551,19 @@ export default function WingoPlay() {
             </div>
             <div className="flex justify-center space-x-2 mt-2">
               <button
-                onClick={() => setBetAmount(prev => prev ? Number(prev) * 10 : 100)}
+                onClick={() => setBetAmount(prev => Number(prev) * 10)}
                 className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
               >
                 10X
               </button>
               <button
-                onClick={() => setBetAmount(prev => prev ? Number(prev) * 20 : 200)}
+                onClick={() => setBetAmount(prev => Number(prev) * 20)}
                 className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
               >
                 20X
               </button>
               <button
-                onClick={() => setBetAmount(prev => prev ? Number(prev) * 50 : 500)}
+                onClick={() => setBetAmount(prev => Number(prev) * 50)}
                 className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
               >
                 50X
@@ -607,7 +571,6 @@ export default function WingoPlay() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="mt-3 md:mt-4.5">
             <button
               onClick={handlePlaceBet}
@@ -626,118 +589,476 @@ export default function WingoPlay() {
         </div>
       </div>
       
-      {/* Recent Bets Section */}
-      <RecentBets bets={recentBets} />
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <RecentBets 
+          bets={recentBets} 
+          results={results}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          currentPage={currentPage}
+          resultsPerPage={resultsPerPage}
+          handlePageChange={handlePageChange}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          search={search}
+          setSearch={setSearch}
+        />
+      </div>
     </Fragment>
   );
 }
 
-// Add a new component for recent bets
-function RecentBets({ bets }) {
-  if (!bets || bets.length === 0) {
-    return (
-      <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg">
-        <h3 className="text-2xl font-bold text-gray-800 mb-4">Recent Bets</h3>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-red-500"></div>
-          <div className="w-4 h-4 rounded-full bg-violet-500"></div>
-          <div className="w-4 h-4 rounded-full bg-green-500"></div>
-        </div>
-        <p className="mt-4 text-gray-600">No recent bets found.</p>
-      </div>
-    );
-  }
-
+function RecentBets({ bets, results, viewMode, setViewMode, currentPage, resultsPerPage, handlePageChange, totalCount, totalPages, search, setSearch }) {
   return (
-    <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg">
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-2xl font-bold text-gray-800">Recent Bets</h3>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setViewMode('bets')}
+            className={`px-4 py-2 rounded-lg ${
+              viewMode === 'bets' 
+                ? 'bg-purple-50 text-purple-700 font-semibold'
+                : 'bg-gray-50 text-gray-600'
+            }`}
+          >
+            Recent Bets
+          </button>
+          <button
+            onClick={() => setViewMode('results')}
+            className={`px-4 py-2 rounded-lg ${
+              viewMode === 'results' 
+                ? 'bg-purple-50 text-purple-700 font-semibold'
+                : 'bg-gray-50 text-gray-600'
+            }`}
+          >
+            Recent Results
+          </button>
+        </div>
         <div className="flex items-center space-x-2">
           <div className="w-4 h-4 rounded-full bg-red-500"></div>
           <div className="w-4 h-4 rounded-full bg-violet-500"></div>
           <div className="w-4 h-4 rounded-full bg-green-500"></div>
         </div>
       </div>
-      
       <div className="overflow-x-auto rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Time</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Bet Value</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Amount</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Result</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Payout</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round ID</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {bets.map((bet) => (
-              <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {new Date(bet.createdAt).toLocaleTimeString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
-                    {bet.betType === 'color' ? (
-                      <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
-                        bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
-                        bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
-                        'bg-violet-100 text-violet-800'
-                      }`}>
-                        <div className={`w-2 h-2 rounded-full ${
-                          bet.betValue === 'Green' ? 'bg-green-500' :
-                          bet.betValue === 'Red' ? 'bg-red-500' :
-                          'bg-violet-500'
-                        }`} />
-                        <span className="ml-2">{bet.betValue}</span>
+        {viewMode === 'bets' ? (
+          bets && bets.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Bet Value</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Result</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Payout</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round ID</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {bets.map((bet) => (
+                  <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {new Date(bet.createdAt).toLocaleTimeString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        {bet.betType === 'color' ? (
+                          <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
+                            bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
+                            bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
+                            'bg-violet-100 text-violet-800'
+                          }`}>
+                            <div className={`w-2 h-2 rounded-full ${
+                              bet.betValue === 'Green' ? 'bg-green-500' :
+                              bet.betValue === 'Red' ? 'bg-red-500' :
+                              'bg-violet-500'
+                            }`} />
+                            <span className="ml-2">{bet.betValue}</span>
+                          </div>
+                        ) : (
+                          <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <div className="w-2 h-2 rounded-full bg-gray-600" />
+                            <span className="ml-2">{bet.betValue}</span>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
-                        <div className="w-2 h-2 rounded-full bg-gray-600" />
-                        <span className="ml-2">{bet.betValue}</span>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  ${bet.amount}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {bet.status === 'pending' ? (
-                    <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                      Pending
-                    </span>
-                  ) : bet.status === 'won' ? (
-                    <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
-                      Won
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
-                      Lost
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {bet.status === 'won' ? (
-                    <span className="text-green-600 font-medium">+${bet.payout}</span>
-                  ) : bet.status === 'lost' ? (
-                    <span className="text-red-600 font-medium">-${bet.amount}</span>
-                  ) : (
-                    <span className="text-gray-500">--</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {bet.roundId}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      ${bet.amount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {bet.status === 'pending' ? (
+                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          Pending
+                        </span>
+                      ) : bet.status === 'won' ? (
+                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
+                          Won
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
+                          Lost
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-4 text-gray-600">No recent bets found.</p>
+          )
+        ) : (
+          viewMode === 'results' && (
+            results && results.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Round ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Start Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Result
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {results.map((round) => (
+                    <tr key={round._id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {round.roundNumber}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {round.duration}m
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {new Date(round.startTime).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          {round.result.color ? (
+                            <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800`}>
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <span className="ml-2">{round.result.color}</span>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                              <div className="w-2 h-2 rounded-full bg-gray-600" />
+                              <span className="ml-2">{round.result.number}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {round.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="mt-4 text-gray-600">No recent results found.</p>
+            )
+          )
+        )}
       </div>
+
+      {viewMode === 'results' && (
+        <div className="flex flex-col gap-4 mt-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search results..."
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+            <div className="flex items-center">
+              <span className="text-gray-600">Total Results: {totalCount}</span>
+            </div>
+          </div>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === 1
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+              }`}
+            >
+              Previous
+            </button>
+            <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === totalPages
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setViewMode('bets')}
+            className={`px-4 py-2 rounded-lg ${
+              viewMode === 'bets' 
+                ? 'bg-purple-50 text-purple-700 font-semibold'
+                : 'bg-gray-50 text-gray-600'
+            }`}
+          >
+            Recent Bets
+          </button>
+          <button
+            onClick={() => setViewMode('results')}
+            className={`px-4 py-2 rounded-lg ${
+              viewMode === 'results' 
+                ? 'bg-purple-50 text-purple-700 font-semibold'
+                : 'bg-gray-50 text-gray-600'
+            }`}
+          >
+            Recent Results
+          </button>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 rounded-full bg-red-500"></div>
+          <div className="w-4 h-4 rounded-full bg-violet-500"></div>
+          <div className="w-4 h-4 rounded-full bg-green-500"></div>
+        </div>
+      </div>
+      <div className="overflow-x-auto rounded-lg">
+        {viewMode === 'bets' ? (
+          bets && bets.length > 0 ? (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Bet Value</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Result</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Payout</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round ID</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {bets.map((bet) => (
+                  <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {new Date(bet.createdAt).toLocaleTimeString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        {bet.betType === 'color' ? (
+                          <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
+                            bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
+                            bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
+                            'bg-violet-100 text-violet-800'
+                          }`}>
+                            <div className={`w-2 h-2 rounded-full ${
+                              bet.betValue === 'Green' ? 'bg-green-500' :
+                              bet.betValue === 'Red' ? 'bg-red-500' :
+                              'bg-violet-500'
+                            }`} />
+                            <span className="ml-2">{bet.betValue}</span>
+                          </div>
+                        ) : (
+                          <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <div className="w-2 h-2 rounded-full bg-gray-600" />
+                            <span className="ml-2">{bet.betValue}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      ${bet.amount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {bet.status === 'pending' ? (
+                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          Pending
+                        </span>
+                      ) : bet.status === 'won' ? (
+                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
+                          Won
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
+                          Lost
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="mt-4 text-gray-600">No recent bets found.</p>
+          )
+        ) : (
+          viewMode === 'results' && (
+            results && results.length > 0 ? (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Round ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Start Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Result
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {results.map((round) => (
+                    <tr key={round._id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {round.roundNumber}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {round.duration}m
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {new Date(round.startTime).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          {round.result.color ? (
+                            <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800`}>
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <span className="ml-2">{round.result.color}</span>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                              <div className="w-2 h-2 rounded-full bg-gray-600" />
+                              <span className="ml-2">{round.result.number}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {round.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="mt-4 text-gray-600">No recent results found.</p>
+            )
+          )
+        )}
+      </div>
+
+      {viewMode === 'results' && (
+        <div className="flex flex-col gap-4 mt-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search results..."
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+            <div className="flex items-center">
+              <span className="text-gray-600">Total Results: {totalCount}</span>
+            </div>
+          </div>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === 1
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+              }`}
+            >
+              Previous
+            </button>
+            <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-lg ${
+                currentPage === totalPages
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Remove unused prop if not needed
+RecentBets.propTypes = {
+  bets: PropTypes.arrayOf(
+    PropTypes.shape({
+      _id: PropTypes.string,
+      createdAt: PropTypes.string,
+      betType: PropTypes.string,
+      betValue: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      amount: PropTypes.number,
+      status: PropTypes.string,
+      payout: PropTypes.number,
+      roundId: PropTypes.string,
+    })
+  ),
+  results: PropTypes.arrayOf(
+    PropTypes.shape({
+      _id: PropTypes.string,
+      roundNumber: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      duration: PropTypes.number,
+      result: PropTypes.shape({
+        color: PropTypes.string,
+        number: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      }),
+      totalBets: PropTypes.number,
+      totalAmount: PropTypes.number,
+      endTime: PropTypes.string,
+    })
+  ),
+  viewMode: PropTypes.oneOf(['bets', 'results']).isRequired,
+  setViewMode: PropTypes.func.isRequired,
+  currentPage: PropTypes.number.isRequired,
+  resultsPerPage: PropTypes.number.isRequired,
+  handlePageChange: PropTypes.func.isRequired,
+};
+
 WingoPlay.propTypes = {};

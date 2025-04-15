@@ -4,6 +4,72 @@ const WingoRoundManager = require('../services/WingoRoundManager');
 const WingoWebSocketServer = require('../services/wingoWebSocketServer');
 const User = require('../models/User');
 
+// Get recent results
+exports.getRecentResults = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, search } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Create search query
+    const searchQuery = search ? {
+      $or: [
+        { roundNumber: { $regex: search, $options: 'i' } },
+        { duration: { $regex: search, $options: 'i' } },
+        { status: { $regex: search, $options: 'i' } }
+      ]
+    } : {};
+
+    // Base query for all rounds
+    const baseQuery = { 
+      status: { $in: ['closed', 'completed'] },
+      ...searchQuery
+    };
+
+    // Fetch results with pagination
+    const [results, total] = await Promise.all([
+      Promise.all([
+        WingoRound1m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit),
+        WingoRound3m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit),
+        WingoRound5m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit),
+        WingoRound10m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit)
+      ]),
+      Promise.all([
+        WingoRound1m.countDocuments(baseQuery),
+        WingoRound3m.countDocuments(baseQuery),
+        WingoRound5m.countDocuments(baseQuery),
+        WingoRound10m.countDocuments(baseQuery)
+      ])
+    ]);
+
+    // Combine and sort all results
+    const allResults = results.flat().sort((a, b) => b.endTime - a.endTime);
+
+    // Calculate total count
+    const totalCount = total.reduce((sum, count) => sum + count, 0);
+
+    // Remove controlled result field and simplify response
+    const formattedResults = allResults.map(result => ({
+      _id: result._id,
+      roundNumber: result.roundNumber,
+      duration: result.duration,
+      startTime: result.startTime,
+      endTime: result.endTime,
+      result: result.result,
+      status: result.status
+    }));
+
+    res.status(200).json({
+      results: formattedResults,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: parseInt(page),
+      totalCount
+    });
+  } catch (error) {
+    console.error('Error fetching recent results:', error);
+    res.status(500).json({ error: 'Failed to fetch recent results' });
+  }
+};
+
 // Get WebSocket server status
 exports.getWebSocketStatus = async (req, res) => {
   try {

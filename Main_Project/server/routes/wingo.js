@@ -8,6 +8,7 @@ const admin = require('../middleware/admin');
 router.get('/active-rounds', wingoController.getActiveRounds);
 router.get('/websocket-status', wingoController.getWebSocketStatus);
 router.get('/recent-bets', auth, wingoController.getRecentBets);
+router.get('/recent-results', wingoController.getRecentResults);
 router.post('/test', async (req, res) => {
   try {
     console.log('=== TEST ENDPOINT CALLED ===');
