@@ -200,6 +200,15 @@ export default function WingoPlay() {
     fetchUserData();
   }, []);
 
+  useEffect(() => {
+    fetchRecentBets();
+    const interval = setInterval(() => {
+      fetchRecentBets();
+    }, 30000); // Refresh bets every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const userBalance = useMemo(() => {
     console.log('Calculating userBalance, user:', user);
     console.log('UserProfile:', userProfile);
@@ -322,40 +331,68 @@ export default function WingoPlay() {
 
   const fetchRecentBets = async () => {
     try {
+      console.log('Fetching recent bets...');
       const token = localStorage.getItem('token');
       if (!token) {
         console.log('No authentication token found');
         return;
       }
+      
       const response = await api.get('/wingo/recent-bets');
+      console.log('Recent bets response:', response.data);
+      
       if (response.data.success && response.data.bets) {
         console.log('Recent bets fetched:', response.data.bets.length);
         setRecentBets(response.data.bets);
       } else {
-        console.log('No bets returned from server');
+        console.log('No bets returned from server or unsuccessful response');
         setRecentBets([]);
+        toast.error('Failed to load recent bets');
       }
     } catch (error) {
       console.error('Error fetching recent bets:', error);
       setRecentBets([]);
+      toast.error('Error loading recent bets: ' + (error.message || 'Unknown error'));
     }
   };
 
   const fetchRecentResults = async () => {
     try {
+      console.log('Fetching recent results...');
+      setError(null); // Clear any previous errors
+      
       const response = await api.get('/wingo/recent-results', {
         params: {
           page: currentPage,
           limit: resultsPerPage,
-          search: search
+          search: search.trim() // Trim whitespace from search
         }
       });
-      setResults(response.data.results);
-      setTotalPages(response.data.totalPages);
-      setTotalCount(response.data.totalCount);
+      
+      console.log('Recent results response:', response.data);
+      
+      if (response.data && response.data.results) {
+        setResults(response.data.results);
+        setTotalPages(response.data.totalPages || 1);
+        setTotalCount(response.data.totalCount || 0);
+      } else {
+        setResults([]);
+        setTotalPages(1);
+        setTotalCount(0);
+        console.error('No results data in response');
+      }
     } catch (error) {
       console.error('Error fetching recent results:', error);
-      toast.error('Failed to fetch recent results');
+      setResults([]);
+      setTotalPages(1);
+      setTotalCount(0);
+      
+      // Show a more user-friendly error message
+      if (error.response && error.response.status === 500) {
+        toast.error('Server error while fetching results. Please try again later.');
+      } else {
+        toast.error('Failed to fetch recent results: ' + (error.message || 'Unknown error'));
+      }
     }
   };
 
@@ -701,6 +738,12 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                         </span>
                       )}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {bet.payout ? `$${bet.payout}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {bet.roundId || '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -709,317 +752,151 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
             <p className="mt-4 text-gray-600">No recent bets found.</p>
           )
         ) : (
-          viewMode === 'results' && (
-            results && results.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Round ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Start Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Result
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {results.map((round) => (
-                    <tr key={round._id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {round.roundNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {round.duration}m
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(round.startTime).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          {round.result.color ? (
-                            <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800`}>
-                              <div className="w-2 h-2 rounded-full bg-green-500" />
-                              <span className="ml-2">{round.result.color}</span>
-                            </div>
-                          ) : (
-                            <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
-                              <div className="w-2 h-2 rounded-full bg-gray-600" />
-                              <span className="ml-2">{round.result.number}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {round.status}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="mt-4 text-gray-600">No recent results found.</p>
-            )
-          )
-        )}
-      </div>
-
-      {viewMode === 'results' && (
-        <div className="flex flex-col gap-4 mt-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search results..."
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              />
-            </div>
-            <div className="flex items-center">
-              <span className="text-gray-600">Total Results: {totalCount}</span>
-            </div>
-          </div>
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg ${
-                currentPage === 1
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              Previous
-            </button>
-            <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg ${
-                currentPage === totalPages
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => setViewMode('bets')}
-            className={`px-4 py-2 rounded-lg ${
-              viewMode === 'bets' 
-                ? 'bg-purple-50 text-purple-700 font-semibold'
-                : 'bg-gray-50 text-gray-600'
-            }`}
-          >
-            Recent Bets
-          </button>
-          <button
-            onClick={() => setViewMode('results')}
-            className={`px-4 py-2 rounded-lg ${
-              viewMode === 'results' 
-                ? 'bg-purple-50 text-purple-700 font-semibold'
-                : 'bg-gray-50 text-gray-600'
-            }`}
-          >
-            Recent Results
-          </button>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-red-500"></div>
-          <div className="w-4 h-4 rounded-full bg-violet-500"></div>
-          <div className="w-4 h-4 rounded-full bg-green-500"></div>
-        </div>
-      </div>
-      <div className="overflow-x-auto rounded-lg">
-        {viewMode === 'bets' ? (
-          bets && bets.length > 0 ? (
+          results && results.length > 0 ? (
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Bet Value</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Result</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Payout</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Round ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Duration
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Start Time
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Result
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {bets.map((bet) => (
-                  <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
+                {results.map((round) => (
+                  <tr key={round._id} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(bet.createdAt).toLocaleTimeString()}
+                      {round.roundNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {round.duration}m
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {new Date(round.startTime).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
-                        {bet.betType === 'color' ? (
+                        {round.result?.color ? (
                           <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
-                            bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
-                            bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
+                            round.result.color === 'Green' ? 'bg-green-100 text-green-800' :
+                            round.result.color === 'Red' ? 'bg-red-100 text-red-800' :
                             'bg-violet-100 text-violet-800'
                           }`}>
                             <div className={`w-2 h-2 rounded-full ${
-                              bet.betValue === 'Green' ? 'bg-green-500' :
-                              bet.betValue === 'Red' ? 'bg-red-500' :
+                              round.result.color === 'Green' ? 'bg-green-500' :
+                              round.result.color === 'Red' ? 'bg-red-500' :
                               'bg-violet-500'
                             }`} />
-                            <span className="ml-2">{bet.betValue}</span>
+                            <span className="ml-2">{round.result.color}</span>
+                          </div>
+                        ) : round.result?.number !== null && round.result?.number !== undefined ? (
+                          <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                            <div className="w-2 h-2 rounded-full bg-gray-600" />
+                            <span className="ml-2">{round.result.number}</span>
                           </div>
                         ) : (
                           <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
                             <div className="w-2 h-2 rounded-full bg-gray-600" />
-                            <span className="ml-2">{bet.betValue}</span>
+                            <span className="ml-2">-</span>
                           </div>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      ${bet.amount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {bet.status === 'pending' ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          Pending
-                        </span>
-                      ) : bet.status === 'won' ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
-                          Won
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
-                          Lost
-                        </span>
-                      )}
+                      {round.status}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <p className="mt-4 text-gray-600">No recent bets found.</p>
-          )
-        ) : (
-          viewMode === 'results' && (
-            results && results.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Round ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Duration
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Start Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Result
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {results.map((round) => (
-                    <tr key={round._id} className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {round.roundNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {round.duration}m
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {new Date(round.startTime).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          {round.result.color ? (
-                            <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800`}>
-                              <div className="w-2 h-2 rounded-full bg-green-500" />
-                              <span className="ml-2">{round.result.color}</span>
-                            </div>
-                          ) : (
-                            <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
-                              <div className="w-2 h-2 rounded-full bg-gray-600" />
-                              <span className="ml-2">{round.result.number}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {round.status}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="mt-4 text-gray-600">No recent results found.</p>
-            )
+            <p className="mt-4 text-gray-600">No recent results found.</p>
           )
         )}
       </div>
 
       {viewMode === 'results' && (
         <div className="flex flex-col gap-4 mt-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search results..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePageChange(1); // Reset to page 1 when searching
+                  }
+                }}
+                placeholder="Search by round number, ID, or status..."
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                You can search by round number, full round ID (e.g., 67feca30353ed45a275bcadc), or status.
+              </p>
             </div>
             <div className="flex items-center">
-              <span className="text-gray-600">Total Results: {totalCount}</span>
+              <button
+                onClick={() => {
+                  if (search.trim()) {
+                    handlePageChange(1); // Reset to page 1 when searching
+                  }
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Search
+              </button>
+              {search.trim() && (
+                <button
+                  onClick={() => {
+                    setSearch('');
+                    handlePageChange(1);
+                  }}
+                  className="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`px-4 py-2 rounded-lg ${
-                currentPage === 1
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              Previous
-            </button>
-            <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`px-4 py-2 rounded-lg ${
-                currentPage === totalPages
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
-              }`}
-            >
-              Next
-            </button>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Total Results: {totalCount}</span>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`px-4 py-2 rounded-lg ${
+                  currentPage === 1
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                }`}
+              >
+                Previous
+              </button>
+              <span className="text-gray-600">Page {currentPage} of {totalPages || 1}</span>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className={`px-4 py-2 rounded-lg ${
+                  currentPage === totalPages || totalPages === 0
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                }`}
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       )}

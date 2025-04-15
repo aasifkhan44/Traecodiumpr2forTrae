@@ -7,31 +7,66 @@ const User = require('../models/User');
 // Get recent results
 exports.getRecentResults = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    console.log('Fetching recent results with query params:', req.query);
+    const { page = 1, limit = 10, search = '' } = req.query;
     const skip = (page - 1) * limit;
 
-    // Create search query
-    const searchQuery = search ? {
-      $or: [
-        { roundNumber: { $regex: search, $options: 'i' } },
-        { duration: { $regex: search, $options: 'i' } },
-        { status: { $regex: search, $options: 'i' } }
-      ]
-    } : {};
+    // Create search query - fix the regex search to avoid 500 errors
+    let searchQuery = {};
+    if (search && search.trim() !== '') {
+      const trimmedSearch = search.trim();
+      
+      // Check if search is a valid MongoDB ObjectId (24 hex chars)
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(trimmedSearch);
+      
+      // Check if search is a number
+      const isNumeric = /^\d+$/.test(trimmedSearch);
+      
+      if (isObjectId) {
+        // If it looks like an ObjectId, search by _id
+        try {
+          const mongoose = require('mongoose');
+          const ObjectId = mongoose.Types.ObjectId;
+          searchQuery = { _id: new ObjectId(trimmedSearch) };
+          console.log('Searching by ObjectId:', trimmedSearch);
+        } catch (err) {
+          console.error('Invalid ObjectId format:', err);
+          // Fallback to text search if ObjectId creation fails
+          searchQuery = { status: { $regex: trimmedSearch, $options: 'i' } };
+        }
+      } else if (isNumeric) {
+        // If search is numeric, search in roundNumber as a number
+        searchQuery = {
+          $or: [
+            { roundNumber: parseInt(trimmedSearch) },
+            { duration: parseInt(trimmedSearch) }
+          ]
+        };
+      } else {
+        // If search is text, search in status
+        searchQuery = {
+          status: { $regex: trimmedSearch, $options: 'i' }
+        };
+      }
+    }
+
+    console.log('Search query:', JSON.stringify(searchQuery));
 
     // Base query for all rounds
     const baseQuery = { 
       status: { $in: ['closed', 'completed'] },
-      ...searchQuery
+      ...(Object.keys(searchQuery).length > 0 ? searchQuery : {})
     };
+
+    console.log('Base query:', JSON.stringify(baseQuery));
 
     // Fetch results with pagination
     const [results, total] = await Promise.all([
       Promise.all([
-        WingoRound1m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit),
-        WingoRound3m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit),
-        WingoRound5m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit),
-        WingoRound10m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(limit)
+        WingoRound1m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(parseInt(limit)),
+        WingoRound3m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(parseInt(limit)),
+        WingoRound5m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(parseInt(limit)),
+        WingoRound10m.find(baseQuery).sort({ endTime: -1 }).skip(skip).limit(parseInt(limit))
       ]),
       Promise.all([
         WingoRound1m.countDocuments(baseQuery),
@@ -43,20 +78,25 @@ exports.getRecentResults = async (req, res) => {
 
     // Combine and sort all results
     const allResults = results.flat().sort((a, b) => b.endTime - a.endTime);
+    
+    // Take only the requested number of results after sorting
+    const paginatedResults = allResults.slice(0, parseInt(limit));
 
     // Calculate total count
     const totalCount = total.reduce((sum, count) => sum + count, 0);
 
     // Remove controlled result field and simplify response
-    const formattedResults = allResults.map(result => ({
+    const formattedResults = paginatedResults.map(result => ({
       _id: result._id,
       roundNumber: result.roundNumber,
       duration: result.duration,
       startTime: result.startTime,
       endTime: result.endTime,
-      result: result.result,
+      result: result.result || { color: null, number: null },
       status: result.status
     }));
+
+    console.log(`Returning ${formattedResults.length} results, total count: ${totalCount}`);
 
     res.status(200).json({
       results: formattedResults,
@@ -66,7 +106,7 @@ exports.getRecentResults = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching recent results:', error);
-    res.status(500).json({ error: 'Failed to fetch recent results' });
+    res.status(500).json({ error: 'Failed to fetch recent results', message: error.message });
   }
 };
 
