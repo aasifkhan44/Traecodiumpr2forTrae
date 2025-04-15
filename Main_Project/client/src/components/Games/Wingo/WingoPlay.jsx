@@ -636,60 +636,89 @@ export default function WingoPlay() {
 function RecentBets({ bets }) {
   if (!bets || bets.length === 0) {
     return (
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-lg font-medium text-gray-700 mb-2">Recent Bets</h3>
-        <p className="text-gray-500">No recent bets found.</p>
+      <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg">
+        <h3 className="text-2xl font-bold text-gray-800 mb-4">Recent Bets</h3>
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 rounded-full bg-red-500"></div>
+          <div className="w-4 h-4 rounded-full bg-violet-500"></div>
+          <div className="w-4 h-4 rounded-full bg-green-500"></div>
+        </div>
+        <p className="mt-4 text-gray-600">No recent bets found.</p>
       </div>
     );
   }
 
   return (
-    <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-      <h3 className="text-lg font-medium text-gray-700 mb-4">Recent Bets</h3>
-      <div className="overflow-x-auto">
+    <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl shadow-lg">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold text-gray-800">Recent Bets</h3>
+        <div className="flex items-center space-x-2">
+          <div className="w-4 h-4 rounded-full bg-red-500"></div>
+          <div className="w-4 h-4 rounded-full bg-violet-500"></div>
+          <div className="w-4 h-4 rounded-full bg-green-500"></div>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-100">
+          <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bet Type</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bet Value</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Result</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payout</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Round ID</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Time</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Bet Value</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Amount</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Result</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Payout</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round ID</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {bets.map((bet) => (
-              <tr key={bet._id}>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+              <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {new Date(bet.createdAt).toLocaleTimeString()}
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 capitalize">
-                  {bet.betType}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
+                    {bet.betType === 'color' ? (
+                      <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
+                        bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
+                        bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
+                        'bg-violet-100 text-violet-800'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          bet.betValue === 'Green' ? 'bg-green-500' :
+                          bet.betValue === 'Red' ? 'bg-red-500' :
+                          'bg-violet-500'
+                        }`} />
+                        <span className="ml-2">{bet.betValue}</span>
+                      </div>
+                    ) : (
+                      <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                        <div className="w-2 h-2 rounded-full bg-gray-600" />
+                        <span className="ml-2">{bet.betValue}</span>
+                      </div>
+                    )}
+                  </div>
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                  {bet.betValue}
-                </td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   ${bet.amount}
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap">
                   {bet.status === 'pending' ? (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                    <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                       Pending
                     </span>
                   ) : bet.status === 'won' ? (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                    <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
                       Won
                     </span>
                   ) : (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                    <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
                       Lost
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm">
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {bet.status === 'won' ? (
                     <span className="text-green-600 font-medium">+${bet.payout}</span>
                   ) : bet.status === 'lost' ? (
@@ -698,7 +727,7 @@ function RecentBets({ bets }) {
                     <span className="text-gray-500">--</span>
                   )}
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {bet.roundId}
                 </td>
               </tr>

@@ -166,18 +166,17 @@ class WingoRoundManager {
   }
 
   generateRandomResult() {
-    const number = Math.floor(Math.random() * 10);
-    let color;
-    if (number === 0) {
-      color = 'Red';
-    } else if (number === 5) {
-      color = 'Violet';
-    } else if (number % 2 === 0) {
-      color = 'Red';
+    // Randomly decide whether to generate a color or a number result
+    const generateColor = Math.random() < 0.5;
+    
+    if (generateColor) {
+      const colors = ['Red', 'Violet', 'Green'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      return { color, number: null };
     } else {
-      color = 'Green';
+      const number = Math.floor(Math.random() * 10);
+      return { color: null, number };
     }
-    return { color, number };
   }
 
   async processBets(round) {
@@ -187,12 +186,17 @@ class WingoRoundManager {
       let won = false;
       if (bet.betType === 'color') {
         won = bet.betValue === round.result.color;
+        if (won) {
+          bet.winAmount = bet.amount * 2; // 2x payout for color bet
+        }
       } else { // number
         won = parseInt(bet.betValue) === round.result.number;
+        if (won) {
+          bet.winAmount = bet.amount * 10; // 10x payout for number bet
+        }
       }
 
       bet.status = won ? 'won' : 'lost';
-      bet.winAmount = won ? bet.amount * bet.potential : 0;
       await bet.save();
     }
 
