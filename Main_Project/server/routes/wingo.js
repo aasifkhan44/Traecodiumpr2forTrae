@@ -32,5 +32,6 @@ router.get('/history', auth, wingoController.getBetHistory);
 
 // Admin routes (require admin permission)
 router.post('/control-result', [auth, admin], wingoController.controlRoundResult);
+router.get('/admin-round-stats', [auth, admin], wingoController.getAdminRoundStats);
 
 module.exports = router;

@@ -569,31 +569,248 @@ exports.getAdminWingoRounds = async (req, res) => {
 // Admin: Control round result
 exports.controlRoundResult = async (req, res) => {
   try {
-    const { duration, roundId, color, number } = req.body;
-
-    // Validate admin permission
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Admin permission required' });
+    console.log('Admin controlling round result:', req.body);
+    const { roundId, resultType, resultValue, duration } = req.body;
+    
+    if (!roundId || !resultType || !resultValue || !duration) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required parameters: roundId, resultType, resultValue, duration' 
+      });
     }
-
-    // Validate input
-    if (!['Red', 'Violet', 'Green'].includes(color)) {
-      return res.status(400).json({ success: false, message: 'Invalid color' });
+    
+    // Validate result type
+    if (!['color', 'number'].includes(resultType)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid resultType. Must be "color" or "number"' 
+      });
     }
-
-    if (number < 0 || number > 9) {
-      return res.status(400).json({ success: false, message: 'Number must be between 0 and 9' });
+    
+    // Validate color values
+    if (resultType === 'color' && !['Red', 'Green', 'Violet'].includes(resultValue)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid color value. Must be "Red", "Green", or "Violet"' 
+      });
     }
-
-    const round = await WingoRoundManager.setControlledResult(duration, roundId, color, number);
-
+    
+    // Validate number values
+    if (resultType === 'number' && (isNaN(parseInt(resultValue)) || parseInt(resultValue) < 0 || parseInt(resultValue) > 9)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid number value. Must be a number between 0 and 9' 
+      });
+    }
+    
+    // Get the appropriate round model based on duration
+    let RoundModel;
+    switch (parseInt(duration)) {
+      case 1:
+        RoundModel = WingoRound1m;
+        break;
+      case 3:
+        RoundModel = WingoRound3m;
+        break;
+      case 5:
+        RoundModel = WingoRound5m;
+        break;
+      case 10:
+        RoundModel = WingoRound10m;
+        break;
+      default:
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid duration. Must be 1, 3, 5, or 10' 
+        });
+    }
+    
+    // Find the round
+    const round = await RoundModel.findById(roundId);
+    if (!round) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `Round with ID ${roundId} not found for duration ${duration}` 
+      });
+    }
+    
+    // Check if round is still open
+    if (round.status !== 'open') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Round is not open. Current status: ${round.status}` 
+      });
+    }
+    
+    // Set the controlled result
+    round.controlledResult = {
+      type: resultType,
+      value: resultType === 'number' ? parseInt(resultValue) : resultValue
+    };
+    
+    // Save the round
+    await round.save();
+    
+    console.log(`Admin set controlled result for round ${roundId}: ${resultType} = ${resultValue}`);
+    
     res.json({
       success: true,
-      data: round
+      message: 'Round result controlled successfully',
+      round: {
+        _id: round._id,
+        roundNumber: round.roundNumber,
+        duration: round.duration,
+        startTime: round.startTime,
+        endTime: round.endTime,
+        status: round.status,
+        controlledResult: round.controlledResult
+      }
     });
-  } catch (err) {
-    console.error('Error controlling round result:', err);
-    res.status(500).json({ success: false, message: err.message });
+  } catch (error) {
+    console.error('Error controlling round result:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to control round result',
+      error: error.message
+    });
+  }
+};
+
+// Admin: Get round statistics for admin dashboard
+exports.getAdminRoundStats = async (req, res) => {
+  try {
+    const { duration } = req.query;
+    
+    if (!duration) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Duration parameter is required' 
+      });
+    }
+    
+    // Get the appropriate round model based on duration
+    let RoundModel;
+    switch (parseInt(duration)) {
+      case 1:
+        RoundModel = WingoRound1m;
+        break;
+      case 3:
+        RoundModel = WingoRound3m;
+        break;
+      case 5:
+        RoundModel = WingoRound5m;
+        break;
+      case 10:
+        RoundModel = WingoRound10m;
+        break;
+      default:
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Invalid duration. Must be 1, 3, 5, or 10' 
+        });
+    }
+    
+    // Find the current open round
+    const round = await RoundModel.findOne({ status: 'open' }).sort({ endTime: -1 });
+    if (!round) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `No open round found for duration ${duration}` 
+      });
+    }
+    
+    // Find all bets for this round
+    const bets = await WingoBet.find({ roundId: round._id });
+    
+    // Calculate statistics
+    const betStats = {
+      colors: {
+        Red: { count: 0, amount: 0, payout: 0 },
+        Green: { count: 0, amount: 0, payout: 0 },
+        Violet: { count: 0, amount: 0, payout: 0 }
+      },
+      numbers: {
+        0: { count: 0, amount: 0, payout: 0 },
+        1: { count: 0, amount: 0, payout: 0 },
+        2: { count: 0, amount: 0, payout: 0 },
+        3: { count: 0, amount: 0, payout: 0 },
+        4: { count: 0, amount: 0, payout: 0 },
+        5: { count: 0, amount: 0, payout: 0 },
+        6: { count: 0, amount: 0, payout: 0 },
+        7: { count: 0, amount: 0, payout: 0 },
+        8: { count: 0, amount: 0, payout: 0 },
+        9: { count: 0, amount: 0, payout: 0 }
+      },
+      totalBets: 0,
+      totalAmount: 0
+    };
+    
+    // Process each bet
+    for (const bet of bets) {
+      if (bet.betType === 'color') {
+        const color = bet.betValue;
+        betStats.colors[color].count++;
+        betStats.colors[color].amount += bet.amount;
+        // Color bet pays 2x
+        betStats.colors[color].payout += bet.amount * 2;
+      } else if (bet.betType === 'number') {
+        const number = bet.betValue;
+        betStats.numbers[number].count++;
+        betStats.numbers[number].amount += bet.amount;
+        // Number bet pays 9x
+        betStats.numbers[number].payout += bet.amount * 9;
+      }
+      
+      betStats.totalBets++;
+      betStats.totalAmount += bet.amount;
+    }
+    
+    // Calculate which options have the lowest payout potential
+    let lowestColorPayout = { color: null, payout: Infinity };
+    let lowestNumberPayout = { number: null, payout: Infinity };
+    
+    // Find color with lowest payout
+    for (const [color, stats] of Object.entries(betStats.colors)) {
+      if (stats.payout < lowestColorPayout.payout) {
+        lowestColorPayout = { color, payout: stats.payout };
+      }
+    }
+    
+    // Find number with lowest payout
+    for (const [number, stats] of Object.entries(betStats.numbers)) {
+      if (stats.payout < lowestNumberPayout.payout) {
+        lowestNumberPayout = { number, payout: stats.payout };
+      }
+    }
+    
+    // Determine overall suggestion
+    const suggestion = lowestColorPayout.payout <= lowestNumberPayout.payout
+      ? { type: 'color', value: lowestColorPayout.color, payout: lowestColorPayout.payout }
+      : { type: 'number', value: lowestNumberPayout.number, payout: lowestNumberPayout.payout };
+    
+    res.json({
+      success: true,
+      data: {
+        round: {
+          _id: round._id,
+          roundNumber: round.roundNumber,
+          duration: round.duration,
+          startTime: round.startTime,
+          endTime: round.endTime,
+          status: round.status,
+          timeRemaining: new Date(round.endTime) - new Date()
+        },
+        betStats,
+        suggestion
+      }
+    });
+  } catch (error) {
+    console.error('Error getting admin round stats:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get admin round stats',
+      error: error.message
+    });
   }
 };
 

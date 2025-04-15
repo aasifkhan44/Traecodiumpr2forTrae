@@ -21,7 +21,8 @@ import {
   FaMoneyBillWave,
   FaUserFriends,
   FaGlobe,
-  FaMoneyBill
+  FaMoneyBill,
+  FaDice
 } from 'react-icons/fa';
 
 const AdminLayout = ({ onLogout }) => {
@@ -155,6 +156,17 @@ const AdminLayout = ({ onLogout }) => {
                   onClick={toggleMobileMenu}
                 >
                   <FaGamepad className="mr-2" /> Games
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
+                  to="/admin/wingo-result-management" 
+                  className={({isActive}) => 
+                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
+                  }
+                  onClick={toggleMobileMenu}
+                >
+                  <FaDice className="mr-2" /> Wingo Results
                 </NavLink>
               </li>
               <li>

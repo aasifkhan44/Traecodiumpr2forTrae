@@ -36,6 +36,7 @@ import SmtpSettings from './admin/SmtpSettings';
 import EmailTemplates from './admin/EmailTemplates';
 import SiteSettings from './admin/SiteSettings';
 import DepositRequests from './admin/DepositRequests';
+import WingoResultManagement from './components/Admin/WingoResultManagement';
 
 // Lazy-loaded game components
 const WingoGame = lazy(() => import('./components/Games/Wingo/Wingo'));
@@ -117,6 +118,7 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/games" element={<AdminGameManagement />} />
+                <Route path="/admin/wingo-result-management" element={<WingoResultManagement />} />
                 <Route path="/admin/settings" element={<Settings />} />
                 <Route path="/admin/transactions" element={<AdminTransactions />} />
                 <Route path="/admin/referral-commission-settings" element={<ReferralCommissionSettings />} />
