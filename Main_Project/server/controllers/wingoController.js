@@ -339,7 +339,7 @@ exports.getRecentBets = async (req, res) => {
       amount: bet.amount,
       createdAt: bet.createdAt,
       status: bet.status || 'pending',
-      payout: bet.status === 'won' ? bet.amount * 2 : 0,
+      payout: bet.status === 'won' ? bet.winAmount : 0,
       roundId: bet.roundId ? bet.roundId.toString() : null
     }));
     
