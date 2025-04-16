@@ -3,6 +3,7 @@ const { WingoRound1m, WingoRound3m, WingoRound5m, WingoRound10m } = require('../
 const WingoRoundManager = require('../services/WingoRoundManager');
 const WingoWebSocketServer = require('../services/wingoWebSocketServer');
 const User = require('../models/User');
+const WingoAdminResult = require('../models/WingoAdminResult');
 
 // Get recent results
 exports.getRecentResults = async (req, res) => {
@@ -566,106 +567,20 @@ exports.getAdminWingoRounds = async (req, res) => {
   }
 };
 
-// Admin: Control round result
+// Admin: Set result for a round (override mechanism)
 exports.controlRoundResult = async (req, res) => {
   try {
-    console.log('Admin controlling round result:', req.body);
-    const { roundId, resultType, resultValue, duration } = req.body;
-    
-    if (!roundId || !resultType || !resultValue || !duration) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required parameters: roundId, resultType, resultValue, duration' 
-      });
+    const { duration, roundId, color, number } = req.body;
+    if (!duration || !roundId || (!color && number === undefined)) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
-    
-    // Validate result type
-    if (!['color', 'number'].includes(resultType)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid resultType. Must be "color" or "number"' 
-      });
-    }
-    
-    // Validate color values
-    if (resultType === 'color' && !['Red', 'Green', 'Violet'].includes(resultValue)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid color value. Must be "Red", "Green", or "Violet"' 
-      });
-    }
-    
-    // Validate number values
-    if (resultType === 'number' && (isNaN(parseInt(resultValue)) || parseInt(resultValue) < 0 || parseInt(resultValue) > 9)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid number value. Must be a number between 0 and 9' 
-      });
-    }
-    
-    // Get the appropriate round model based on duration
-    let RoundModel;
-    switch (parseInt(duration)) {
-      case 1:
-        RoundModel = WingoRound1m;
-        break;
-      case 3:
-        RoundModel = WingoRound3m;
-        break;
-      case 5:
-        RoundModel = WingoRound5m;
-        break;
-      case 10:
-        RoundModel = WingoRound10m;
-        break;
-      default:
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid duration. Must be 1, 3, 5, or 10' 
-        });
-    }
-    
-    // Find the round
-    const round = await RoundModel.findById(roundId);
-    if (!round) {
-      return res.status(404).json({ 
-        success: false, 
-        message: `Round with ID ${roundId} not found for duration ${duration}` 
-      });
-    }
-    
-    // Check if round is still open
-    if (round.status !== 'open') {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Round is not open. Current status: ${round.status}` 
-      });
-    }
-    
-    // Set the controlled result
-    round.controlledResult = {
-      type: resultType,
-      value: resultType === 'number' ? parseInt(resultValue) : resultValue
-    };
-    
-    // Save the round
-    await round.save();
-    
-    console.log(`Admin set controlled result for round ${roundId}: ${resultType} = ${resultValue}`);
-    
-    res.json({
-      success: true,
-      message: 'Round result controlled successfully',
-      round: {
-        _id: round._id,
-        roundNumber: round.roundNumber,
-        duration: round.duration,
-        startTime: round.startTime,
-        endTime: round.endTime,
-        status: round.status,
-        controlledResult: round.controlledResult
-      }
-    });
+    // Save admin result in a separate collection
+    await WingoAdminResult.findOneAndUpdate(
+      { roundId, duration },
+      { color: color || null, number: number !== undefined ? number : null, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, message: 'Result set successfully' });
   } catch (error) {
     console.error('Error controlling round result:', error);
     res.status(500).json({ 
@@ -680,14 +595,13 @@ exports.controlRoundResult = async (req, res) => {
 exports.getAdminRoundStats = async (req, res) => {
   try {
     const { duration } = req.query;
-    
     if (!duration) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Duration parameter is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Duration parameter is required'
       });
     }
-    
+
     // Get the appropriate round model based on duration
     let RoundModel;
     switch (parseInt(duration)) {
@@ -704,90 +618,51 @@ exports.getAdminRoundStats = async (req, res) => {
         RoundModel = WingoRound10m;
         break;
       default:
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Invalid duration. Must be 1, 3, 5, or 10' 
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid duration. Valid values are 1, 3, 5, 10'
         });
     }
-    
-    // Find the current open round
-    const round = await RoundModel.findOne({ status: 'open' }).sort({ endTime: -1 });
+
+    // Find the currently active round for the selected duration
+    const round = await RoundModel.findOne({ status: { $in: ['open', 'running'] } }).sort({ startTime: -1 });
     if (!round) {
-      return res.status(404).json({ 
-        success: false, 
-        message: `No open round found for duration ${duration}` 
-      });
+      return res.status(404).json({ success: false, message: 'No active round found for this duration' });
     }
-    
-    // Find all bets for this round
+
+    // Gather bet statistics for the round
     const bets = await WingoBet.find({ roundId: round._id });
-    
-    // Calculate statistics
     const betStats = {
-      colors: {
-        Red: { count: 0, amount: 0, payout: 0 },
-        Green: { count: 0, amount: 0, payout: 0 },
-        Violet: { count: 0, amount: 0, payout: 0 }
-      },
-      numbers: {
-        0: { count: 0, amount: 0, payout: 0 },
-        1: { count: 0, amount: 0, payout: 0 },
-        2: { count: 0, amount: 0, payout: 0 },
-        3: { count: 0, amount: 0, payout: 0 },
-        4: { count: 0, amount: 0, payout: 0 },
-        5: { count: 0, amount: 0, payout: 0 },
-        6: { count: 0, amount: 0, payout: 0 },
-        7: { count: 0, amount: 0, payout: 0 },
-        8: { count: 0, amount: 0, payout: 0 },
-        9: { count: 0, amount: 0, payout: 0 }
-      },
+      colors: { Red: { count: 0, amount: 0, payout: 0 }, Green: { count: 0, amount: 0, payout: 0 }, Violet: { count: 0, amount: 0, payout: 0 } },
+      numbers: {},
       totalBets: 0,
       totalAmount: 0
     };
-    
-    // Process each bet
-    for (const bet of bets) {
-      if (bet.betType === 'color') {
-        const color = bet.betValue;
-        betStats.colors[color].count++;
-        betStats.colors[color].amount += bet.amount;
-        // Color bet pays 2x
-        betStats.colors[color].payout += bet.amount * 2;
-      } else if (bet.betType === 'number') {
-        const number = bet.betValue;
-        betStats.numbers[number].count++;
-        betStats.numbers[number].amount += bet.amount;
-        // Number bet pays 9x
-        betStats.numbers[number].payout += bet.amount * 9;
+    for (let i = 0; i <= 9; i++) {
+      betStats.numbers[i] = { count: 0, amount: 0, payout: 0 };
+    }
+    bets.forEach(bet => {
+      if (bet.betType === 'color' && betStats.colors[bet.betValue]) {
+        betStats.colors[bet.betValue].count++;
+        betStats.colors[bet.betValue].amount += bet.amount;
+        // Color bet pays 2x (example)
+        betStats.colors[bet.betValue].payout += bet.amount * 2;
+      } else if (bet.betType === 'number' && betStats.numbers[bet.betValue] !== undefined) {
+        betStats.numbers[bet.betValue].count++;
+        betStats.numbers[bet.betValue].amount += bet.amount;
+        // Number bet pays 9x (example)
+        betStats.numbers[bet.betValue].payout += bet.amount * 9;
       }
-      
       betStats.totalBets++;
       betStats.totalAmount += bet.amount;
+    });
+
+    // Suggestion logic (example: suggest a random color/number)
+    let suggestion = null;
+    if (round.status === 'open') {
+      suggestion = { type: 'color', value: 'Green', payout: 2 };
     }
-    
-    // Calculate which options have the lowest payout potential
-    let lowestColorPayout = { color: null, payout: Infinity };
-    let lowestNumberPayout = { number: null, payout: Infinity };
-    
-    // Find color with lowest payout
-    for (const [color, stats] of Object.entries(betStats.colors)) {
-      if (stats.payout < lowestColorPayout.payout) {
-        lowestColorPayout = { color, payout: stats.payout };
-      }
-    }
-    
-    // Find number with lowest payout
-    for (const [number, stats] of Object.entries(betStats.numbers)) {
-      if (stats.payout < lowestNumberPayout.payout) {
-        lowestNumberPayout = { number, payout: stats.payout };
-      }
-    }
-    
-    // Determine overall suggestion
-    const suggestion = lowestColorPayout.payout <= lowestNumberPayout.payout
-      ? { type: 'color', value: lowestColorPayout.color, payout: lowestColorPayout.payout }
-      : { type: 'number', value: lowestNumberPayout.number, payout: lowestNumberPayout.payout };
-    
+
     res.json({
       success: true,
       data: {
@@ -806,8 +681,8 @@ exports.getAdminRoundStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting admin round stats:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to get admin round stats',
       error: error.message
     });

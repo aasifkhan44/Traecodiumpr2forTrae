@@ -25,6 +25,8 @@ export default function WingoPlay() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [results, setResults] = useState([]);
+  const [localTimeRemaining, setLocalTimeRemaining] = useState(null);
+  const timerRef = React.useRef(null);
 
   const colors = [
     { value: 'Red', className: 'bg-red-500' },
@@ -170,32 +172,6 @@ export default function WingoPlay() {
     };
   }, []);
 
-  const fetchUserData = async () => {
-    try {
-      console.log('Current user state:', user);
-      console.log('Fetching user profile data...');
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const profileResponse = await api.get('/user/profile');
-          console.log('Profile response:', profileResponse.data);
-          if (profileResponse.data.success && profileResponse.data.data) {
-            const userData = profileResponse.data.data;
-            console.log('Setting userProfile with profile data:', userData);
-            setUserProfile(userData);
-            console.log('UserProfile updated with balance:', userData.balance);
-          }
-        } catch (profileError) {
-          console.error('Error fetching profile data:', profileError);
-        }
-      } else {
-        console.log('No token found, cannot fetch user data');
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
-
   useEffect(() => {
     fetchUserData();
   }, []);
@@ -208,6 +184,10 @@ export default function WingoPlay() {
     
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    fetchRecentResults();
+  }, [currentPage, search]);
 
   const userBalance = useMemo(() => {
     console.log('Calculating userBalance, user:', user);
@@ -401,9 +381,72 @@ export default function WingoPlay() {
     fetchRecentResults();
   };
 
+  // Restore fetchUserData function
+  const fetchUserData = async () => {
+    try {
+      console.log('Current user state:', user);
+      console.log('Fetching user profile data...');
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const profileResponse = await api.get('/user/profile');
+          console.log('Profile response:', profileResponse.data);
+          if (profileResponse.data.success && profileResponse.data.data) {
+            const userData = profileResponse.data.data;
+            console.log('Setting userProfile with profile data:', userData);
+            setUserProfile(userData);
+            console.log('UserProfile updated with balance:', userData.balance);
+          }
+        } catch (profileError) {
+          console.error('Error fetching profile data:', profileError);
+        }
+      } else {
+        console.log('No token found, cannot fetch user data');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  // Sync local time remaining with active round for selected duration
   useEffect(() => {
-    fetchRecentResults();
-  }, [currentPage, search]);
+    const round = activeRounds[selectedDuration];
+    if (round && typeof round.timeRemaining === 'number' && round.timeRemaining > 0) {
+      setLocalTimeRemaining(round.timeRemaining);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setLocalTimeRemaining(prev => {
+          if (prev === null || prev <= 1000) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+    } else {
+      // If round is missing or timeRemaining is not valid, log for debugging
+      console.warn('No valid round or timeRemaining for duration:', selectedDuration, round);
+      setLocalTimeRemaining(null);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [activeRounds, selectedDuration]);
+
+  // Also clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const formatTime = (time) => {
+    if (typeof time !== 'number' || time < 0) return '00:00';
+    const minutes = Math.floor(time / 60000);
+    const seconds = Math.floor((time % 60000) / 1000);
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   if (loading) {
     return (
@@ -480,9 +523,9 @@ export default function WingoPlay() {
                   }}></div>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <span className="text-blue-500">{Math.floor((new Date(currentRound.endTime) - new Date()) / 60000).toString()}</span>
-                  <span className="text-gray-400">:</span>
-                  <span className="text-blue-500">{Math.floor(((new Date(currentRound.endTime) - new Date()) % 60000) / 1000).toString().padStart(2, '0')}</span>
+                  <span className="text-base md:text-lg font-semibold text-green-700">
+                    {formatTime(localTimeRemaining !== null ? localTimeRemaining : activeRounds[selectedDuration]?.timeRemaining ?? 0)}
+                  </span>
                 </div>
               </div>
             )}

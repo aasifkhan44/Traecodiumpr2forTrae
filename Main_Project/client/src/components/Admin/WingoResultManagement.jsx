@@ -10,7 +10,8 @@ export default function WingoResultManagement() {
   const [selectedResultType, setSelectedResultType] = useState(null);
   const [selectedResultValue, setSelectedResultValue] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState(null);
+  const [localTimeRemaining, setLocalTimeRemaining] = useState(null);
+  const timerRef = React.useRef(null);
 
   const durations = [
     { value: 1, label: '1 Min' },
@@ -27,20 +28,115 @@ export default function WingoResultManagement() {
 
   const numbers = Array.from({ length: 10 }, (_, i) => i);
 
+  // Fetch only the selected duration's round stats
   useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setRoundStats(null);
+    setSelectedResultType(null);
+    setSelectedResultValue(null);
+    setLocalTimeRemaining(null);
     fetchRoundStats();
-    
-    // Set up auto-refresh every 5 seconds
-    const interval = setInterval(() => {
-      fetchRoundStats();
-    }, 5000);
-    
-    setRefreshInterval(interval);
-    
+    // eslint-disable-next-line
+  }, [selectedDuration]);
+
+  // Sync local time remaining with fetched roundStats
+  useEffect(() => {
+    if (roundStats && roundStats.round && typeof roundStats.round.timeRemaining === 'number') {
+      setLocalTimeRemaining(roundStats.round.timeRemaining);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setLocalTimeRemaining(prev => {
+          if (prev === null || prev <= 1000) {
+            clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+    } else {
+      setLocalTimeRemaining(null);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
     return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [roundStats]);
+
+  // Also clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // Listen for WebSocket round updates and refresh round info
+  useEffect(() => {
+    let ws;
+    let reconnectTimeout;
+    let shouldReconnect = true;
+
+    function cleanupWS() {
+      if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        ws.close();
+        ws = null;
       }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+    }
+
+    function setupWS() {
+      cleanupWS();
+      ws = new window.WebSocket('ws://localhost:5000'); // Changed port to match backend
+      ws.onopen = () => {
+        // Optionally authenticate if your backend requires it
+      };
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'roundUpdate' && Array.isArray(data.rounds)) {
+            // Only trigger fetch if the update is for the selected duration
+            const updated = data.rounds.find(r => r.duration === selectedDuration);
+            if (!updated) return; // Ignore updates for other durations
+            // Only fetch if round has truly changed (id or status), not every tick
+            if (
+              !roundStats ||
+              !roundStats.round ||
+              roundStats.round._id !== updated._id ||
+              roundStats.round.status !== updated.status ||
+              roundStats.round.timeRemaining !== updated.timeRemaining // Prevents refresh if only timer ticks
+            ) {
+              setRoundStats({
+                round: updated,
+                betStats: roundStats && roundStats.betStats ? roundStats.betStats : { totalBets: 0, totalAmount: 0 },
+                suggestion: roundStats && roundStats.suggestion ? roundStats.suggestion : null
+              }); // Update only for selected round, no fetch
+            }
+          }
+        } catch {}
+      };
+      ws.onclose = () => {
+        if (shouldReconnect) {
+          reconnectTimeout = setTimeout(setupWS, 3000); // Minimum 3s delay
+        }
+      };
+      ws.onerror = () => {
+        // Only close if not already closed
+        if (ws && ws.readyState !== ws.CLOSED) {
+          ws.close();
+        }
+      };
+    }
+    setupWS();
+    return () => {
+      shouldReconnect = false;
+      cleanupWS();
     };
   }, [selectedDuration]);
 
@@ -48,15 +144,11 @@ export default function WingoResultManagement() {
     try {
       setLoading(true);
       setError(null);
-      
       const response = await api.get('/wingo/admin-round-stats', {
         params: { duration: selectedDuration }
       });
-      
       if (response.data.success) {
         setRoundStats(response.data.data);
-        
-        // Auto-select the suggested result
         if (response.data.data.suggestion) {
           const { type, value } = response.data.data.suggestion;
           setSelectedResultType(type);
@@ -67,7 +159,6 @@ export default function WingoResultManagement() {
         setRoundStats(null);
       }
     } catch (error) {
-      console.error('Error fetching round statistics:', error);
       setError(error.response?.data?.message || 'Failed to fetch round statistics');
       setRoundStats(null);
     } finally {
@@ -77,8 +168,6 @@ export default function WingoResultManagement() {
 
   const handleDurationChange = (duration) => {
     setSelectedDuration(duration);
-    setSelectedResultType(null);
-    setSelectedResultValue(null);
   };
 
   const handleResultTypeSelect = (type, value) => {
@@ -87,29 +176,41 @@ export default function WingoResultManagement() {
   };
 
   const handleSubmitResult = async () => {
-    if (!selectedResultType || !selectedResultValue || !roundStats?.round?._id) {
+    if (!selectedResultType || selectedResultValue === null || !roundStats?.round?._id) {
       toast.error('Please select a result type and value');
       return;
     }
-    
     try {
       setSubmitting(true);
-      
+      // Map frontend fields to backend expected fields
+      let color = null, number = undefined;
+      if (selectedResultType === 'color') {
+        color = selectedResultValue;
+      } else if (selectedResultType === 'number') {
+        number = parseInt(selectedResultValue);
+      }
       const response = await api.post('/wingo/control-result', {
         roundId: roundStats.round._id,
-        resultType: selectedResultType,
-        resultValue: selectedResultValue,
-        duration: selectedDuration
+        duration: selectedDuration,
+        color,
+        number
       });
-      
       if (response.data.success) {
         toast.success('Result submitted successfully!');
+        // Immediately update roundStats to reflect the submitted result
+        setRoundStats(prev => prev && prev.round ? {
+          ...prev,
+          round: {
+            ...prev.round,
+            controlledResult: response.data.controlledResult,
+            isControlled: true
+          }
+        } : prev);
         fetchRoundStats();
       } else {
         toast.error(response.data.message || 'Failed to submit result');
       }
     } catch (error) {
-      console.error('Error submitting result:', error);
       toast.error(error.response?.data?.message || 'Failed to submit result');
     } finally {
       setSubmitting(false);
@@ -127,28 +228,9 @@ export default function WingoResultManagement() {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  if (loading && !roundStats) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error && !roundStats) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <span className="block sm:inline">{error}</span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Wingo Result Management</h1>
-      
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Select Round Duration</h2>
         <div className="flex flex-wrap gap-3 mb-6">
@@ -166,8 +248,20 @@ export default function WingoResultManagement() {
             </button>
           ))}
         </div>
-        
-        {roundStats && (
+        {/* Only show the selected duration's round info */}
+        {loading && (
+          <div className="flex items-center justify-center min-h-[150px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        )}
+        {error && !loading && (
+          <div className="flex items-center justify-center min-h-[150px]">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          </div>
+        )}
+        {roundStats && !loading && !error && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-gray-50 rounded-lg p-4">
@@ -175,120 +269,33 @@ export default function WingoResultManagement() {
                 <div className="space-y-2">
                   <p><span className="font-medium">Round Number:</span> {roundStats.round.roundNumber}</p>
                   <p><span className="font-medium">Status:</span> {roundStats.round.status}</p>
-                  <p><span className="font-medium">Time Remaining:</span> {formatTime(roundStats.round.timeRemaining)}</p>
-                  <p><span className="font-medium">Total Bets:</span> {roundStats.betStats.totalBets}</p>
-                  <p><span className="font-medium">Total Amount:</span> {formatCurrency(roundStats.betStats.totalAmount)}</p>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-semibold mb-3">Suggested Result</h3>
-                {roundStats.suggestion ? (
-                  <div className="flex flex-col items-start">
-                    <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Type:</span>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                        {roundStats.suggestion.type}
-                      </span>
-                    </div>
-                    <div className="flex items-center mb-2">
-                      <span className="font-medium mr-2">Value:</span>
-                      {roundStats.suggestion.type === 'color' ? (
-                        <span className={`px-3 py-1 inline-flex items-center text-sm leading-4 font-semibold rounded-full ${
-                          roundStats.suggestion.value === 'Green' ? 'bg-green-100 text-green-800' :
-                          roundStats.suggestion.value === 'Red' ? 'bg-red-100 text-red-800' :
-                          'bg-purple-100 text-purple-800'
-                        }`}>
-                          <div className={`w-2 h-2 rounded-full ${
-                            roundStats.suggestion.value === 'Green' ? 'bg-green-500' :
-                            roundStats.suggestion.value === 'Red' ? 'bg-red-500' :
-                            'bg-purple-500'
-                          }`} />
-                          <span className="ml-2">{roundStats.suggestion.value}</span>
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
-                          {roundStats.suggestion.value}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">Potential Payout:</span>
-                      <span className="text-green-600 font-medium">{formatCurrency(roundStats.suggestion.payout)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p>No suggestion available</p>
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Color Bets</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Potential Payout</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {Object.entries(roundStats.betStats.colors).map(([color, stats]) => (
-                        <tr key={color} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className={`w-4 h-4 rounded-full ${
-                                color === 'Green' ? 'bg-green-500' :
-                                color === 'Red' ? 'bg-red-500' :
-                                'bg-purple-500'
-                              }`}></div>
-                              <span className="ml-2">{color}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">{stats.count}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(stats.amount)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(stats.payout)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Number Bets</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Potential Payout</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {Object.entries(roundStats.betStats.numbers).map(([number, stats]) => (
-                        <tr key={number} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">{number}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{stats.count}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(stats.amount)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(stats.payout)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <p><span className="font-medium">Time Remaining:</span> {formatTime(localTimeRemaining ?? roundStats.round.timeRemaining)}</p>
+                  <p><span className="font-medium">Total Bets:</span> {roundStats.betStats ? roundStats.betStats.totalBets : 0}</p>
+                  <p><span className="font-medium">Total Amount:</span> {formatCurrency(roundStats.betStats ? roundStats.betStats.totalAmount : 0)}</p>
                 </div>
               </div>
             </div>
-            
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <h3 className="text-lg font-semibold mb-2">Admin Submitted Result</h3>
+              {roundStats?.round?.controlledResult && (roundStats.round.controlledResult.color || roundStats.round.controlledResult.number !== undefined) ? (
+                <div className="flex items-center space-x-4">
+                  {roundStats.round.controlledResult.color && (
+                    <span className={`px-3 py-1 rounded-full text-white ${roundStats.round.controlledResult.color === 'Green' ? 'bg-green-600' : roundStats.round.controlledResult.color === 'Red' ? 'bg-red-600' : 'bg-purple-600'}`}>
+                      {roundStats.round.controlledResult.color}
+                    </span>
+                  )}
+                  {roundStats.round.controlledResult.number !== undefined && roundStats.round.controlledResult.number !== null && (
+                    <span className="px-3 py-1 rounded-full bg-blue-600 text-white">
+                      {roundStats.round.controlledResult.number}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-gray-500">Not submitted yet</span>
+              )}
+            </div>
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">Set Round Result</h3>
-              
               <div className="mb-6">
                 <h4 className="text-md font-medium mb-2">Select Color</h4>
                 <div className="flex gap-3">
@@ -307,7 +314,6 @@ export default function WingoResultManagement() {
                   ))}
                 </div>
               </div>
-              
               <div className="mb-6">
                 <h4 className="text-md font-medium mb-2">Select Number</h4>
                 <div className="grid grid-cols-5 gap-2">
@@ -326,13 +332,12 @@ export default function WingoResultManagement() {
                   ))}
                 </div>
               </div>
-              
               <div className="flex justify-end">
                 <button
                   onClick={handleSubmitResult}
-                  disabled={submitting || !selectedResultType || !selectedResultValue}
+                  disabled={submitting || !selectedResultType || selectedResultValue === null}
                   className={`px-6 py-2 rounded-lg font-medium ${
-                    submitting || !selectedResultType || !selectedResultValue
+                    submitting || !selectedResultType || selectedResultValue === null
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-purple-600 text-white hover:bg-purple-700'
                   }`}

@@ -1,5 +1,16 @@
 const { WingoRound1m, WingoRound3m, WingoRound5m, WingoRound10m } = require('../models/WingoRound');
 const WingoBet = require('../models/WingoBet');
+const WingoAdminResult = require('../models/WingoAdminResult');
+const User = require('../models/User');
+const Transaction = require('../models/Transaction');
+
+// Helper to extract only color/number for round.result
+function toRoundResult(adminResult) {
+  return {
+    color: adminResult.color || null,
+    number: adminResult.number !== undefined ? adminResult.number : null
+  };
+}
 
 class WingoRoundManager {
   constructor() {
@@ -151,10 +162,12 @@ class WingoRoundManager {
     }
 
     round.status = 'closed';
-    if (!round.isControlled) {
-      round.result = this.generateRandomResult();
+    // Check for admin result in WingoAdminResult collection
+    const adminResult = await WingoAdminResult.findOne({ roundId: round._id, duration: round.duration });
+    if (adminResult && ((adminResult.color && adminResult.color !== '') || (typeof adminResult.number === 'number' && adminResult.number >= 0 && adminResult.number <= 9))) {
+      round.result = toRoundResult(adminResult);
     } else {
-      round.result = round.controlledResult;
+      round.result = this.generateRandomResult();
     }
     await round.save();
 
@@ -187,17 +200,39 @@ class WingoRoundManager {
       if (bet.betType === 'color') {
         won = bet.betValue === round.result.color;
         if (won) {
-          bet.winAmount = bet.amount * 2; // 2x payout for color bet
+          bet.winAmount = bet.amount * 2;
         }
       } else { // number
         won = parseInt(bet.betValue) === round.result.number;
         if (won) {
-          bet.winAmount = bet.amount * 10; // 10x payout for number bet
+          bet.winAmount = bet.amount * 10;
         }
       }
 
       bet.status = won ? 'won' : 'lost';
       await bet.save();
+
+      // Payout to user if won
+      if (won && bet.winAmount > 0) {
+        const user = await User.findById(bet.userId);
+        if (user) {
+          const balanceBefore = user.balance;
+          user.balance += bet.winAmount;
+          await user.save();
+
+          // Log transaction
+          await Transaction.create({
+            user: user._id,
+            amount: bet.winAmount,
+            type: 'credit',
+            reference: `WingoBet:${bet._id}`,
+            status: 'completed',
+            balanceBefore,
+            balanceAfter: user.balance,
+            description: `Wingo bet win payout for round ${round.roundNumber}`
+          });
+        }
+      }
     }
 
     round.status = 'completed';
@@ -220,10 +255,15 @@ class WingoRoundManager {
 
   async getActiveRounds() {
     const activeRounds = {};
+    const now = new Date();
     for (const duration of Object.keys(this.roundModels)) {
       const round = await this.roundModels[duration].findOne({ status: 'open' });
       if (round) {
-        activeRounds[duration] = round;
+        // Use .toObject() only if available, else use round as-is
+        const roundObj = (typeof round.toObject === 'function') ? round.toObject() : round;
+        roundObj.endTime = round.endTime;
+        roundObj.timeRemaining = Math.max(0, new Date(round.endTime).getTime() - now.getTime());
+        activeRounds[duration] = roundObj;
       }
     }
     return activeRounds;

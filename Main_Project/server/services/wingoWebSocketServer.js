@@ -139,6 +139,16 @@ class WingoWebSocketServer {
   setupEventHandlers() {
     if (!this.server) return false;
     
+    // Fix: Ensure handleConnection and handleServerError are defined and bound correctly
+    if (typeof this.handleConnection !== 'function') {
+      throw new Error('handleConnection is not defined on WingoWebSocketServer');
+    }
+    if (typeof this.handleServerError !== 'function') {
+      // Provide a default handler if missing
+      this.handleServerError = (err) => {
+        console.error('WebSocket server error:', err);
+      };
+    }
     this.server.on('connection', this.handleConnection.bind(this));
     this.server.on('error', this.handleServerError.bind(this));
     
@@ -424,9 +434,11 @@ class WingoWebSocketServer {
       
       // Convert to array format for easier client processing
       const roundsArray = Object.entries(activeRounds).map(([duration, round]) => {
-        return { 
-          duration: parseInt(duration), 
-          ...round.toObject() 
+        // Use .toObject() only if available, else use round as-is
+        const roundObj = (typeof round.toObject === 'function') ? round.toObject() : round;
+        return {
+          duration: parseInt(duration),
+          ...roundObj
         };
       });
 
@@ -454,9 +466,11 @@ class WingoWebSocketServer {
       
       // Convert to array format for easier client processing
       const roundsArray = Object.entries(activeRounds).map(([duration, round]) => {
-        return { 
-          duration: parseInt(duration), 
-          ...round.toObject() 
+        // Use .toObject() only if available, else use round as-is
+        const roundObj = (typeof round.toObject === 'function') ? round.toObject() : round;
+        return {
+          duration: parseInt(duration),
+          ...roundObj
         };
       });
 
