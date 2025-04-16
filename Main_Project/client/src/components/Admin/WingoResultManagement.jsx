@@ -11,6 +11,8 @@ export default function WingoResultManagement() {
   const [selectedResultValue, setSelectedResultValue] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [localTimeRemaining, setLocalTimeRemaining] = useState(null);
+  const [showSubmissionSummary, setShowSubmissionSummary] = useState(false);
+  const [submissionDetails, setSubmissionDetails] = useState(null);
   const timerRef = React.useRef(null);
 
   const durations = [
@@ -206,6 +208,18 @@ export default function WingoResultManagement() {
             isControlled: true
           }
         } : prev);
+        
+        // Set submission details for the summary
+        setSubmissionDetails({
+          roundNumber: roundStats.round.roundNumber,
+          duration: selectedDuration,
+          color: color,
+          number: number
+        });
+        
+        // Show the submission summary
+        setShowSubmissionSummary(true);
+        
         fetchRoundStats();
       } else {
         toast.error(response.data.message || 'Failed to submit result');
@@ -222,10 +236,33 @@ export default function WingoResultManagement() {
   };
 
   const formatTime = (ms) => {
-    if (ms <= 0) return '00:00';
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / 1000 / 60) % 60);
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    if (!ms) return '0:00';
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleCopyDetails = () => {
+    if (!submissionDetails) return;
+    
+    const resultText = submissionDetails.color ? 
+      `Color: ${submissionDetails.color}` : 
+      `Number: ${submissionDetails.number}`;
+    
+    const textToCopy = 
+      `Round Number: ${submissionDetails.roundNumber}\n` +
+      `Duration: ${submissionDetails.duration} minutes\n` +
+      `Our Prediction: ${resultText}`;
+    
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        toast.success('Details copied to clipboard!');
+      })
+      .catch((err) => {
+        console.error('Failed to copy: ', err);
+        toast.error('Failed to copy details');
+      });
   };
 
   return (
@@ -275,25 +312,45 @@ export default function WingoResultManagement() {
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h3 className="text-lg font-semibold mb-2">Admin Submitted Result</h3>
-              {roundStats?.round?.controlledResult && (roundStats.round.controlledResult.color || roundStats.round.controlledResult.number !== undefined) ? (
-                <div className="flex items-center space-x-4">
-                  {roundStats.round.controlledResult.color && (
-                    <span className={`px-3 py-1 rounded-full text-white ${roundStats.round.controlledResult.color === 'Green' ? 'bg-green-600' : roundStats.round.controlledResult.color === 'Red' ? 'bg-red-600' : 'bg-purple-600'}`}>
-                      {roundStats.round.controlledResult.color}
-                    </span>
-                  )}
-                  {roundStats.round.controlledResult.number !== undefined && roundStats.round.controlledResult.number !== null && (
-                    <span className="px-3 py-1 rounded-full bg-blue-600 text-white">
-                      {roundStats.round.controlledResult.number}
-                    </span>
-                  )}
+            
+            {/* Submission Summary */}
+            {showSubmissionSummary && submissionDetails && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-semibold text-green-800">Submission Summary</h3>
+                  <button 
+                    onClick={handleCopyDetails}
+                    className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                    Copy
+                  </button>
                 </div>
-              ) : (
-                <span className="text-gray-500">Not submitted yet</span>
-              )}
-            </div>
+                <div className="bg-white rounded-md p-3 space-y-2 text-gray-700">
+                  <p><span className="font-medium">Round Number:</span> {submissionDetails.roundNumber}</p>
+                  <p><span className="font-medium">Duration:</span> {submissionDetails.duration} minutes</p>
+                  <p><span className="font-medium">Our Prediction:</span> {' '}
+                    {submissionDetails.color && (
+                      <span className={`px-2 py-1 rounded-full text-white text-sm ${
+                        submissionDetails.color === 'Green' ? 'bg-green-600' : 
+                        submissionDetails.color === 'Red' ? 'bg-red-600' : 'bg-purple-600'
+                      }`}>
+                        {submissionDetails.color}
+                      </span>
+                    )}
+                    {submissionDetails.number !== undefined && submissionDetails.number !== null && (
+                      <span className="px-2 py-1 rounded-full bg-blue-600 text-white text-sm">
+                        {submissionDetails.number}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Set Round Result */}
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">Set Round Result</h3>
               <div className="mb-6">
