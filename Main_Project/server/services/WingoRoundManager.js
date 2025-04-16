@@ -1,6 +1,7 @@
 const { WingoRound1m, WingoRound3m, WingoRound5m, WingoRound10m } = require('../models/WingoRound');
 const WingoBet = require('../models/WingoBet');
 const WingoAdminResult = require('../models/WingoAdminResult');
+const WingoPotentialWin = require('../models/WingoPotentialWin'); // Fix import path
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 
@@ -179,9 +180,33 @@ class WingoRoundManager {
     // Check for admin result in WingoAdminResult collection
     const adminResult = await WingoAdminResult.findOne({ roundId: round._id, duration: round.duration });
     if (adminResult && ((adminResult.color && adminResult.color !== '') || (typeof adminResult.number === 'number' && adminResult.number >= 0 && adminResult.number <= 9))) {
+      console.log(`Using admin result for round ${round._id}: ${JSON.stringify(adminResult)}`);
       round.result = toRoundResult(adminResult);
     } else {
-      round.result = this.generateRandomResult();
+      // Find the option with the lowest potential win amount
+      try {
+        const potentialWins = await WingoPotentialWin.find({ roundId: round._id }).sort({ potentialWin: 1 });
+        console.log(`Found ${potentialWins.length} potential win records for round ${round._id}`);
+        
+        if (potentialWins.length === 0) {
+          // If no bets were placed, return random result
+          console.log(`No bets placed for round ${round._id}, using random result`);
+          round.result = this.generateRandomResult();
+        } else {
+          // Use the first result (lowest potential win)
+          const lowestWin = potentialWins[0];
+          console.log(`Lowest potential win for round ${round._id}: ${JSON.stringify(lowestWin)}`);
+          
+          round.result = {
+            color: lowestWin.color,
+            number: lowestWin.number
+          };
+          console.log(`Declared result for round ${round._id}: ${JSON.stringify(round.result)}`);
+        }
+      } catch (error) {
+        console.error(`Error finding potential wins for round ${round._id}:`, error);
+        round.result = this.generateRandomResult();
+      }
     }
     await round.save();
 
@@ -212,10 +237,40 @@ class WingoRoundManager {
     }
   }
 
+  async updatePotentialWin(roundId, bet) {
+    try {
+      // Calculate potential win amount based on bet type
+      const multiplier = bet.betType === 'color' ? 2 : 10;
+      const potentialWinAmount = bet.amount * multiplier;
+      
+      console.log(`Updating potential win for ${bet.betType} ${bet.betValue} with amount ${bet.amount}, potential win: ${potentialWinAmount}`);
+      
+      // Find or create potential win record
+      const result = await WingoPotentialWin.findOneAndUpdate(
+        {
+          roundId: roundId,
+          duration: bet.duration,
+          color: bet.betType === 'color' ? bet.betValue : null,
+          number: bet.betType === 'number' ? parseInt(bet.betValue) : null
+        },
+        {
+          $inc: { potentialWin: potentialWinAmount }
+        },
+        { upsert: true, new: true }
+      );
+      
+      console.log(`Updated potential win record: ${result.color || result.number}, new total: ${result.potentialWin}`);
+    } catch (error) {
+      console.error('Error updating potential win:', error);
+    }
+  }
+
   async processBets(round) {
     const bets = await WingoBet.find({ roundId: round._id, status: 'pending' });
 
     for (const bet of bets) {
+      await this.updatePotentialWin(round._id, bet);
+
       let won = false;
       if (bet.betType === 'color') {
         won = bet.betValue === round.result.color;

@@ -233,8 +233,8 @@ exports.placeBet = async (req, res) => {
       // Colors have a 2x multiplier
       potentialMultiplier = 2;
     } else if (betType === 'number') {
-      // Numbers have a 9x multiplier
-      potentialMultiplier = 9;
+      // Numbers have a 10x multiplier
+      potentialMultiplier = 10;
     }
 
     const potentialPayout = betAmount * potentialMultiplier;
@@ -254,6 +254,9 @@ exports.placeBet = async (req, res) => {
 
     // Save the bet
     await bet.save();
+
+    // Update potential win table for result calculation
+    await WingoRoundManager.updatePotentialWin(round._id, bet);
 
     // Update user balance (deduct bet amount)
     user.balance = userBalance - betAmount;
