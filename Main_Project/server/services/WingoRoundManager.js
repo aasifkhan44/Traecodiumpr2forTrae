@@ -318,6 +318,23 @@ class WingoRoundManager {
 
     round.status = 'completed';
     await round.save();
+    
+    // Clean up potential win data for this round
+    await this.cleanupPotentialWinData(round._id);
+  }
+
+  /**
+   * Clean up potential win data for a completed round to keep the database light
+   * @param {ObjectId} roundId - The ID of the completed round
+   */
+  async cleanupPotentialWinData(roundId) {
+    try {
+      console.log(`Cleaning up potential win data for round ${roundId}`);
+      const result = await WingoPotentialWin.deleteMany({ roundId });
+      console.log(`Deleted ${result.deletedCount} potential win records for round ${roundId}`);
+    } catch (error) {
+      console.error(`Error cleaning up potential win data for round ${roundId}:`, error);
+    }
   }
 
   async setControlledResult(duration, roundId, color, number) {
