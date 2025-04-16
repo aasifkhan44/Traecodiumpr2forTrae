@@ -657,24 +657,36 @@ export default function WingoPlay() {
             )}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6">
-            <div>
-              <h4 className="text-sm md:text-md font-medium mb-2">Select Color</h4>
-              <div className="flex justify-between space-x-2">
-                {colors.map((color) => (
-                  <button
-                    key={color.value}
-                    onClick={() => handleBetTypeSelect('color', color.value)}
-                    className={`relative flex-1 min-w-[72px] py-0.5 px-2 rounded-md transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md ${
-                      selectedBetType === 'color' && selectedBetValue === color.value
-                        ? `${color.className} text-white shadow-lg hover:shadow-xl relative after:absolute after:inset-1 after:rounded-md after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100`
-                        : `${color.className} text-white hover:shadow-sm`
-                    }`}
-                  >
-                    <span className="relative z-10">{color.value}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="mb-4 md:mb-6">
+            <h4 className="text-sm md:text-md font-medium mb-2">Select Color</h4>
+            <div className="grid grid-cols-3 gap-2 md:gap-3">
+              {colors.map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => handleBetTypeSelect('color', color.value)}
+                  className={`relative flex-1 py-1 px-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md ${
+                    color.value === 'Red'
+                      ? `bg-red-500 text-white hover:shadow-xl hover:from-red-600 hover:to-red-800 ${
+                        selectedBetType === 'color' && selectedBetValue === color.value
+                          ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
+                          : ''
+                      }`
+                      : color.value === 'Violet'
+                        ? `bg-purple-500 text-white hover:shadow-xl hover:from-purple-600 hover:to-purple-800 ${
+                          selectedBetType === 'color' && selectedBetValue === color.value
+                            ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
+                            : ''
+                        }`
+                        : `bg-green-500 text-white hover:shadow-xl hover:from-green-600 hover:to-green-800 ${
+                          selectedBetType === 'color' && selectedBetValue === color.value
+                            ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
+                            : ''
+                        }`
+                  }`}
+                >
+                  <span className="relative z-10">{color.value}</span>
+                </button>
+              ))}
             </div>
           </div>
 
