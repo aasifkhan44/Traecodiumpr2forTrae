@@ -57,30 +57,38 @@ const Profile = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProfile = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        
         if (!token) {
           setError('Authentication required');
           return;
         }
-        
         const response = await axios.get(`${API_BASE_URL}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
         const userData = response.data.data;
-        if (userData) {
-          // Store the complete user data
-          console.log('Loaded user profile:', userData);
-          setProfile({
-            name: userData.name || '',
-            countryCode: userData.countryCode || '',
-            mobile: userData.mobile || '',
-            email: userData.email || '',
-            balance: userData.balance || 0
+        if (userData && isMounted) {
+          setProfile(prev => {
+            // Only update if something actually changed
+            if (
+              prev.name !== (userData.name || '') ||
+              prev.countryCode !== (userData.countryCode || '') ||
+              prev.mobile !== (userData.mobile || '') ||
+              prev.email !== (userData.email || '') ||
+              prev.balance !== (userData.balance || 0)
+            ) {
+              return {
+                name: userData.name || '',
+                countryCode: userData.countryCode || '',
+                mobile: userData.mobile || '',
+                email: userData.email || '',
+                balance: userData.balance || 0
+              };
+            }
+            return prev;
           });
         }
       } catch (error) {
@@ -91,8 +99,8 @@ const Profile = () => {
         setLoading(false);
       }
     };
-
     fetchProfile();
+    return () => { isMounted = false; };
   }, []);
 
   const handleProfileChange = (e) => {

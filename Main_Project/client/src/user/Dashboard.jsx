@@ -96,8 +96,20 @@ const Dashboard = () => {
             updatedStats.referralEarnings = referralData.totalCommission || 0;
             updatedStats.totalEarnings = (userData.balance || 0) + (referralData.totalCommission || 0);
           }
-          
-          setUserStats(updatedStats);
+          // Only update if something actually changed
+          setUserStats(prev => {
+            if (
+              prev.balance !== updatedStats.balance ||
+              prev.totalGames !== updatedStats.totalGames ||
+              prev.winRate !== updatedStats.winRate ||
+              prev.referrals !== updatedStats.referrals ||
+              prev.referralEarnings !== updatedStats.referralEarnings ||
+              prev.totalEarnings !== updatedStats.totalEarnings
+            ) {
+              return updatedStats;
+            }
+            return prev;
+          });
         }
       } catch (err) {
         console.error('Error fetching user profile:', err);
@@ -119,6 +131,35 @@ const Dashboard = () => {
     // In a complete implementation, we would also fetch recent games here
   }, []);
   
+  useEffect(() => {
+    // WebSocket live balance update
+    let ws;
+    let cleanup = () => {};
+    if (window.userSocket) {
+      ws = window.userSocket;
+      const handleMessage = (event) => {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        if (data.type === 'balanceUpdate') {
+          // Only update if balance is different
+          setUserStats((prev) => {
+            if (prev.balance !== data.balance) {
+              return { ...prev, balance: data.balance };
+            }
+            return prev;
+          });
+        }
+      };
+      ws.addEventListener('message', handleMessage);
+      cleanup = () => ws.removeEventListener('message', handleMessage);
+    }
+    return cleanup;
+  }, []);
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
@@ -147,7 +188,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold">🪙 {userStats.balance.toFixed(2)}</p>
+              <p className="text-3xl font-bold"> {userStats.balance.toFixed(2)}</p>
               <Link to="/profile" className="text-primary hover:underline mt-2 inline-block">
                 Add funds
               </Link>
@@ -169,7 +210,7 @@ const Dashboard = () => {
             </div>
             <div>
               <p className="text-gray-600">Earnings</p>
-              <p className="text-2xl font-bold">🪙 {userStats.referralEarnings}</p>
+              <p className="text-2xl font-bold"> {userStats.referralEarnings}</p>
             </div>
           </div>
           <Link to="/referrals" className="text-primary hover:underline mt-2 inline-block">

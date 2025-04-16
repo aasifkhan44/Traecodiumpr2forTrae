@@ -103,11 +103,113 @@ export default function WingoPlay() {
               return;
             }
 
+            // Check for bet result to show win/loss notification with updated balance
+            if (data.type === 'betResult') {
+              // Refresh user balance when bet results are received
+              fetchUserData();
+              
+              // Display win/loss notification with updated balance
+              if (data.win) {
+                const winAmount = data.payout || data.amount || 0;
+                toast.success(
+                  <div>
+                    <strong>You won!</strong>
+                    <div>Amount: +🪙{winAmount.toFixed(2)}</div>
+                    <div className="mt-1">Refreshing balance...</div>
+                  </div>,
+                  { duration: 5000 }
+                );
+                
+                // After a short delay, show the updated balance
+                setTimeout(() => {
+                  if (userProfile && userProfile.balance) {
+                    toast.success(
+                      <div>
+                        <strong>Balance Updated</strong>
+                        <div>New Balance: 🪙{userProfile.balance.toFixed(2)}</div>
+                      </div>,
+                      { duration: 3000 }
+                    );
+                  }
+                }, 2000);
+              } else if (data.loss) {
+                toast.error(
+                  <div>
+                    <strong>Better luck next time!</strong>
+                    <div>Amount: -🪙{data.amount?.toFixed(2) || '0.00'}</div>
+                  </div>,
+                  { duration: 3000 }
+                );
+              }
+              
+              // Also fetch recent bets to show updated results
+              fetchRecentBets();
+            }
+
+            // Check for round completion to refresh balance
+            if (data.type === 'roundComplete' || data.type === 'roundResult') {
+              // Refresh user balance when a round completes
+              fetchUserData();
+              
+              // If there's a result with color/number, show it
+              if (data.result) {
+                const { color, number } = data.result;
+                toast.info(
+                  <div>
+                    <strong>Round Complete!</strong>
+                    <div>Result: {color} {number}</div>
+                  </div>,
+                  { duration: 3000 }
+                );
+              }
+              
+              // Also fetch recent bets to show updated results
+              fetchRecentBets();
+            }
+
+            // Handle balance update message directly
+            if (data.type === 'balanceUpdate' && data.balance !== undefined) {
+              const prevBalance = userProfile?.balance || 0;
+              const newBalance = data.balance;
+              const difference = newBalance - prevBalance;
+              
+              // Update the user profile with new balance
+              setUserProfile(prevProfile => {
+                if (!prevProfile || prevProfile.balance !== data.balance) {
+                  // If balance increased significantly, show a win notification
+                  if (difference > 0 && difference > 1) {
+                    toast.success(
+                      <div>
+                        <strong>Balance Updated</strong>
+                        <div>New Balance: 🪙{newBalance.toFixed(2)}</div>
+                        <div className="text-green-500">+🪙{difference.toFixed(2)}</div>
+                      </div>,
+                      { duration: 3000 }
+                    );
+                  }
+                  return { ...prevProfile, balance: data.balance };
+                }
+                return prevProfile;
+              });
+            }
+            
+            // Check for round update to refresh balance
             if (data.type === 'roundUpdate' && data.round && data.duration) {
-              setActiveRounds(prevRounds => ({
-                ...prevRounds,
-                [data.duration]: data.round
-              }));
+              setActiveRounds(prevRounds => {
+                // Check if this is a new round (different round number)
+                const isNewRound = !prevRounds[data.duration] || 
+                                  prevRounds[data.duration].roundNumber !== data.round.roundNumber;
+                
+                // If it's a new round, refresh the user balance
+                if (isNewRound) {
+                  fetchUserData();
+                }
+                
+                return {
+                  ...prevRounds,
+                  [data.duration]: data.round
+                };
+              });
               setLoading(false);
               setError(null);
             } else if (data.rounds) {
@@ -125,7 +227,29 @@ export default function WingoPlay() {
               }
 
               if (Object.keys(roundsObj).length > 0) {
-                setActiveRounds(roundsObj);
+                // Only update if rounds have changed
+                setActiveRounds(prevRounds => {
+                  // Check if the rounds are different
+                  const hasChanged = Object.keys(roundsObj).some(duration => {
+                    return !prevRounds[duration] || 
+                           prevRounds[duration].roundNumber !== roundsObj[duration].roundNumber ||
+                           prevRounds[duration].timeRemaining !== roundsObj[duration].timeRemaining;
+                  });
+                  
+                  // If a new round has started, refresh the user balance
+                  if (hasChanged) {
+                    const hasNewRound = Object.keys(roundsObj).some(duration => {
+                      return !prevRounds[duration] || 
+                             prevRounds[duration].roundNumber !== roundsObj[duration].roundNumber;
+                    });
+                    
+                    if (hasNewRound) {
+                      fetchUserData();
+                    }
+                  }
+                  
+                  return hasChanged ? roundsObj : prevRounds;
+                });
                 setLoading(false);
                 setError(null);
               }
@@ -190,28 +314,20 @@ export default function WingoPlay() {
   }, [currentPage, search]);
 
   const userBalance = useMemo(() => {
-    console.log('Calculating userBalance, user:', user);
-    console.log('UserProfile:', userProfile);
     if (userProfile && userProfile.balance !== undefined) {
       const profileBalance = typeof userProfile.balance === 'string' ? parseFloat(userProfile.balance) : userProfile.balance;
-      console.log('Using profile balance:', profileBalance);
       return isNaN(profileBalance) ? 0 : profileBalance;
     }
     if (user && user.balance !== undefined) {
       const userBalanceValue = typeof user.balance === 'string' ? parseFloat(user.balance) : user.balance;
-      console.log('Using user balance:', userBalanceValue);
       return isNaN(userBalanceValue) ? 0 : userBalanceValue;
     }
     return 0;
   }, [user, userProfile]);
 
-  console.log('Rendered userBalance:', userBalance);
-
   const fetchActiveRounds = async () => {
     try {
-      console.log('Fetching active rounds...');
       const response = await api.get('/wingo/active-rounds');
-      console.log('Active rounds response:', response.data);
       if (response.data.success && response.data.data) {
         let roundsData = {};
         if (Array.isArray(response.data.data)) {
@@ -231,8 +347,19 @@ export default function WingoPlay() {
         } else if (typeof response.data.data === 'object') {
           roundsData = response.data.data;
         }
+        
         if (Object.keys(roundsData).length > 0) {
-          setActiveRounds(roundsData);
+          // Only update if rounds have changed
+          setActiveRounds(prevRounds => {
+            // Check if the rounds are different
+            const hasChanged = Object.keys(roundsData).some(duration => {
+              return !prevRounds[duration] || 
+                     prevRounds[duration].roundNumber !== roundsData[duration].roundNumber ||
+                     prevRounds[duration].timeRemaining !== roundsData[duration].timeRemaining;
+            });
+            
+            return hasChanged ? roundsData : prevRounds;
+          });
           setError(null);
         } else if (Object.keys(activeRounds).length === 0) {
           toast.error('No valid round data received from server');
@@ -384,24 +511,23 @@ export default function WingoPlay() {
   // Restore fetchUserData function
   const fetchUserData = async () => {
     try {
-      console.log('Current user state:', user);
-      console.log('Fetching user profile data...');
       const token = localStorage.getItem('token');
       if (token) {
         try {
           const profileResponse = await api.get('/user/profile');
-          console.log('Profile response:', profileResponse.data);
           if (profileResponse.data.success && profileResponse.data.data) {
             const userData = profileResponse.data.data;
-            console.log('Setting userProfile with profile data:', userData);
-            setUserProfile(userData);
-            console.log('UserProfile updated with balance:', userData.balance);
+            // Only update if the balance actually changed
+            setUserProfile(prevProfile => {
+              if (!prevProfile || prevProfile.balance !== userData.balance) {
+                return userData;
+              }
+              return prevProfile;
+            });
           }
         } catch (profileError) {
           console.error('Error fetching profile data:', profileError);
         }
-      } else {
-        console.log('No token found, cannot fetch user data');
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -764,7 +890,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      ${bet.amount}
+                      🪙{bet.amount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {bet.status === 'pending' ? (
@@ -782,7 +908,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {bet.payout ? `$${bet.payout}` : '-'}
+                      {bet.payout ? `🪙${bet.payout}` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {bet.roundId || '-'}

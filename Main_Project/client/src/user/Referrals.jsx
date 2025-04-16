@@ -17,6 +17,7 @@ const Referrals = () => {
   
   // Fetch user profile to get referral code
   useEffect(() => {
+    let isMounted = true;
     const fetchUserProfile = async () => {
       try {
         setLoading(true);
@@ -36,20 +37,28 @@ const Referrals = () => {
         
         const data = await response.json();
         
-        if (data.success && data.data) {
-          setReferralCode(data.data.referralCode || '');
-        } else {
+        if (data.success && data.data && isMounted) {
+          setReferralCode(prev => {
+            if (prev !== (data.data.referralCode || '')) {
+              return data.data.referralCode || '';
+            }
+            return prev;
+          });
+        } else if (!data.success && isMounted) {
           setError(data.message || 'Failed to fetch profile data');
         }
       } catch (err) {
-        console.error('Error fetching user profile:', err);
-        setError('Server error while fetching profile data');
+        if (isMounted) {
+          console.error('Error fetching user profile:', err);
+          setError('Server error while fetching profile data');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchUserProfile();
+    return () => { isMounted = false; };
   }, []);
   
   const handleCopyReferralCode = () => {

@@ -162,6 +162,30 @@ class WingoWebSocketServer {
       // Add the client to our set of connected clients
       this.clients.add(ws);
       
+      // Attach userId if available from query or headers
+      let userId = null;
+      // Try to extract userId from query string (e.g., ws://host:port?userId=xxx)
+      if (req && req.url) {
+        const url = require('url');
+        const parsedUrl = url.parse(req.url, true);
+        if (parsedUrl.query && parsedUrl.query.userId) {
+          userId = parsedUrl.query.userId;
+        }
+      }
+      // Or from headers (if sent by the client)
+      if (!userId && req && req.headers && req.headers['x-user-id']) {
+        userId = req.headers['x-user-id'];
+      }
+      // Or from cookies (if sent by the client)
+      if (!userId && req && req.headers && req.headers.cookie) {
+        const cookie = require('cookie');
+        const cookies = cookie.parse(req.headers.cookie);
+        if (cookies.userId) userId = cookies.userId;
+      }
+      if (userId) {
+        ws.userId = userId;
+      }
+      
       // Set up event handlers for this client
       ws.on('message', (message) => {
         this.handleMessage(ws, message);
@@ -508,15 +532,12 @@ class WingoWebSocketServer {
   }
 
   startBroadcasting() {
-    // Clear any existing interval
+    // Optimization: Remove interval-based broadcasting to reduce server load
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
+      this.updateInterval = null;
     }
-
-    // Set up interval to broadcast updates every second
-    this.updateInterval = setInterval(() => {
-      this.broadcastActiveRounds();
-    }, 1000);
+    // No interval set here; updates will be triggered by game events only
   }
 
   stop() {
@@ -578,6 +599,18 @@ class WingoWebSocketServer {
     for (const client of this.adminClients) {
       if (client.readyState === WebSocket.OPEN) {
         client.send(message);
+      }
+    }
+  }
+
+  // Send a balance update to a specific user
+  sendUserBalanceUpdate(userId, balance) {
+    for (const client of this.clients) {
+      if (client.userId && client.userId.toString() === userId.toString() && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({
+          type: 'balanceUpdate',
+          balance
+        }));
       }
     }
   }

@@ -95,6 +95,13 @@ class WingoRoundManager {
 
       console.log(`Created or found round for duration ${duration}, round number ${round.roundNumber}`);
       this.scheduleRoundEnd(round);
+      
+      // Broadcast round update to all clients after new round is created
+      const wsServer = require('./wingoWebSocketServer').getInstance();
+      if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
+        wsServer.broadcastActiveRounds();
+      }
+      
       return round;
     } catch (err) {
       console.error(`Error creating new round for duration ${duration}:`, err.message);
@@ -133,6 +140,13 @@ class WingoRoundManager {
         await newRound.save();
         console.log(`Created new round for duration ${duration} after recovery, round number ${roundNumber}`);
         this.scheduleRoundEnd(newRound);
+        
+        // Broadcast round update to all clients after new round is created
+        const wsServer = require('./wingoWebSocketServer').getInstance();
+        if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
+          wsServer.broadcastActiveRounds();
+        }
+        
         return newRound;
       } catch (recoveryErr) {
         console.error(`Failed to recover from error for duration ${duration}:`, recoveryErr.message);
@@ -170,6 +184,12 @@ class WingoRoundManager {
       round.result = this.generateRandomResult();
     }
     await round.save();
+
+    // Broadcast round update to all clients after round ends
+    const wsServer = require('./wingoWebSocketServer').getInstance();
+    if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
+      wsServer.broadcastActiveRounds();
+    }
 
     // Process bets
     await this.processBets(round);
@@ -231,6 +251,12 @@ class WingoRoundManager {
             balanceAfter: user.balance,
             description: `Wingo bet win payout for round ${round.roundNumber}`
           });
+
+          // Send balance update to user via WebSocket after payout
+          const wsServer = require('./wingoWebSocketServer').getInstance();
+          if (wsServer && typeof wsServer.sendUserBalanceUpdate === 'function') {
+            wsServer.sendUserBalanceUpdate(user._id, user.balance);
+          }
         }
       }
     }

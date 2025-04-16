@@ -259,8 +259,13 @@ exports.placeBet = async (req, res) => {
     user.balance = userBalance - betAmount;
     await user.save();
 
-    // Broadcast bet update to admin clients via WebSocket
+    // Send balance update to user via WebSocket
     const wsServer = WingoWebSocketServer.getInstance();
+    if (wsServer && typeof wsServer.sendUserBalanceUpdate === 'function') {
+      wsServer.sendUserBalanceUpdate(userId, user.balance);
+    }
+
+    // Broadcast bet update to admin clients via WebSocket
     if (wsServer.adminClients.size > 0) {
       // Only broadcast if there are admin clients connected
       await wsServer.broadcastBetUpdate(bet);

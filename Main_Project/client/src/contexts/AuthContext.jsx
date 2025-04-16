@@ -44,6 +44,34 @@ export function AuthProvider({ children }) {
     validateToken();
   }, []);
 
+  useEffect(() => {
+    // Listen for WebSocket balanceUpdate globally (if socket is set on window)
+    let ws;
+    let cleanup = () => {};
+    if (window.userSocket) {
+      ws = window.userSocket;
+      const handleMessage = (event) => {
+        let data;
+        try {
+          data = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+        if (data.type === 'balanceUpdate') {
+          setUser(prevUser => {
+            if (prevUser && prevUser.balance !== data.balance) {
+              return { ...prevUser, balance: data.balance };
+            }
+            return prevUser;
+          });
+        }
+      };
+      ws.addEventListener('message', handleMessage);
+      cleanup = () => ws.removeEventListener('message', handleMessage);
+    }
+    return cleanup;
+  }, []);
+
   // Function to update user balance
   const updateUserBalance = (newBalance) => {
     console.log('AuthContext: Updating user balance to', newBalance);
