@@ -7,6 +7,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const WingoWebSocketServerClass = require('./services/wingoWebSocketServer');
+const nummaWebSocketServer = require('./services/nummaWebSocketServer');
+const NummaRoundManager = require('./services/NummaRoundManager');
 
 const app = express();
 
@@ -15,6 +17,9 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Create HTTP server
 const server = http.createServer(app);
+
+// Initialize Numma WebSocket server
+const nummaWebSocketServerInstance = nummaWebSocketServer.init(server);
 
 // Middleware
 app.use(cors({
@@ -49,6 +54,7 @@ const depositRoutes = require('./routes/deposit');
 const commissionSettingsRoutes = require('./routes/commissionSettings');
 const wingoRoutes = require('./routes/wingo');
 const adminGamesRoutes = require('./routes/admin/games');
+const nummaRoutes = require('./routes/numma');
 const SiteSettings = require('./models/SiteSettings');
 const wingoController = require('./controllers/wingoController');
 
@@ -65,6 +71,7 @@ app.use('/api/withdrawal', require('./routes/withdrawal'));
 app.use('/api/commission-settings', commissionSettingsRoutes);
 console.log('Mounting wingo routes at /api/wingo');
 app.use('/api/wingo', wingoRoutes);
+app.use('/api/numma', nummaRoutes);
 
 // Public route for site settings
 app.get('/api/site-settings', async (req, res) => {
@@ -244,3 +251,13 @@ process.on('uncaughtException', (err) => {
 const db = mongoose.connection;
 db.on('error', (err) => console.error('MongoDB connection error:', err));
 db.on('disconnected', () => console.log('MongoDB disconnected'));
+db.once('open', async () => {
+  console.log('MongoDB connected');
+  // Start Numma rounds automatically on server start
+  if (NummaRoundManager && typeof NummaRoundManager.start === 'function') {
+    await NummaRoundManager.start();
+    console.log('Numma round manager started.');
+  } else {
+    console.error('Numma round manager not found or start method not available');
+  }
+});

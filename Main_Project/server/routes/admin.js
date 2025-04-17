@@ -1594,4 +1594,75 @@ router.put('/withdrawal-requests/:id', adminMiddleware, async (req, res) => {
   }
 });
 
+// @route   GET api/admin/numma/current-round
+// @desc    Get current round number and time remaining for a given period
+// @access  Private/Admin
+router.get('/numma/current-round', adminMiddleware, async (req, res) => {
+  try {
+    const period = parseInt(req.query.period);
+    if (![1,3,5].includes(period)) {
+      return res.status(400).json({ error: 'Invalid period. Must be 1, 3, or 5.' });
+    }
+    
+    // Get the appropriate model based on period
+    const Model = period === 1 ? require('../models/NummaRound').NummaRound1m :
+                  period === 3 ? require('../models/NummaRound').NummaRound3m :
+                  require('../models/NummaRound').NummaRound5m;
+    
+    const round = await Model.findOne({ status: 'active' }).sort({ startTime: 1 });
+    if (!round) return res.status(404).json({ error: 'No active round found for this period.' });
+    
+    // Calculate time remaining (in ms)
+    const now = Date.now();
+    const endTime = new Date(round.endTime).getTime();
+    const timeRemaining = Math.max(endTime - now, 0);
+    
+    res.json({
+      roundNumber: round.roundNumber,
+      timeRemaining
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// @route   POST api/admin/numma/set-result
+// @desc    Set result for a specific round
+// @access  Private/Admin
+router.post('/numma/set-result', adminMiddleware, async (req, res) => {
+  try {
+    const { roundId, duration, number } = req.body;
+    
+    if (!roundId || !duration || number === undefined) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    if (![1, 3, 5].includes(parseInt(duration))) {
+      return res.status(400).json({ error: 'Invalid duration' });
+    }
+    
+    if (isNaN(number) || number < 0 || number > 9) {
+      return res.status(400).json({ error: 'Number must be between 0 and 9' });
+    }
+    
+    const nummaRoundManager = require('../services/NummaRoundManager');
+    const round = await nummaRoundManager.setManualResult(roundId, duration, parseInt(number));
+    
+    // Process bets for this round
+    await nummaRoundManager.processBets(round);
+    
+    // Broadcast result to clients
+    if (global.nummaWebSocketServer) {
+      global.nummaWebSocketServer.broadcastResult(round);
+    }
+    
+    res.json({
+      success: true,
+      data: round
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
