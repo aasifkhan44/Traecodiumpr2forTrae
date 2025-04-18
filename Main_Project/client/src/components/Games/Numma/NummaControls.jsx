@@ -78,6 +78,7 @@ export const NummaBetControls = ({
 }) => {
   const quickAmounts = [10, 50, 100, 500];
 
+  // Remove the bet amount input and Place Bet button since handled in popup
   return (
     <div className="flex flex-col items-center gap-4 mb-6">
       <div className="flex flex-wrap gap-2 justify-center">
@@ -90,39 +91,6 @@ export const NummaBetControls = ({
             ₹{amount}
           </button>
         ))}
-      </div>
-      
-      <div className="flex flex-wrap gap-2 items-center justify-center">
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
-          <input
-            type="number"
-            value={betAmount}
-            onChange={(e) => setBetAmount(e.target.value)}
-            placeholder="Enter amount"
-            className="pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-32 sm:w-auto"
-          />
-        </div>
-        
-        <button
-          className={`px-4 sm:px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors ${
-            betLoading ? 'opacity-70 cursor-not-allowed' : ''
-          }`}
-          onClick={handlePlaceBet}
-          disabled={betLoading}
-        >
-          {betLoading ? (
-            <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Placing...
-            </span>
-          ) : (
-            'Place Bet'
-          )}
-        </button>
       </div>
     </div>
   );
@@ -186,24 +154,33 @@ export const NummaBetPopup = ({
   const popupTotal = popupQuantity * getMultiplierValue(popupMultiplier);
 
   const handleSubmit = () => {
-    // Here you would handle the bet submission
     setShowPopup(false);
-    // Call the main bet handler with the popup values and multiplier
     handlePlaceBet(popupTotal, getMultiplierValue(popupMultiplier));
   };
 
   if (!showPopup) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-      <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 max-w-sm w-full relative animate-fade-in">
+    <div className="fixed inset-0 z-50">
+      {/* Overlay: 50% opacity, blocks pointer events */}
+      <div className="absolute inset-0 bg-black opacity-50 pointer-events-auto" />
+      <div className="fixed bottom-0 left-0 w-full max-w-md mx-auto bg-white rounded-t-2xl shadow-lg p-4 sm:p-6 animate-slide-up z-10"
+        style={{
+          borderTopLeftRadius: '1.5rem',
+          borderTopRightRadius: '1.5rem',
+          marginBottom: 0,
+          minHeight: '260px',
+          transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+        }}
+      >
         <button
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
           onClick={() => setShowPopup(false)}
         >
           ×
         </button>
-        
         {/* Selected round info and item */}
         <div className="mb-4 text-center">
           <div className="font-bold text-blue-700 text-base sm:text-lg">
@@ -214,7 +191,6 @@ export const NummaBetPopup = ({
             {popupData.betType} bet on <span className="text-blue-600">{popupData.betValue}</span>
           </div>
         </div>
-        
         {/* Balance and quick chips */}
         <div className="mb-4 text-center">
           <div className="text-gray-600 text-xs sm:text-sm mb-2">
@@ -236,7 +212,6 @@ export const NummaBetPopup = ({
             ))}
           </div>
         </div>
-        
         {/* Quantity and multipliers */}
         <div className="mb-4">
           <div className="flex items-center justify-center gap-2 mb-3">
@@ -265,7 +240,6 @@ export const NummaBetPopup = ({
             ))}
           </div>
         </div>
-        
         {/* I agree and rules link */}
         <div className="flex items-center mb-2">
           <input
@@ -285,7 +259,6 @@ export const NummaBetPopup = ({
             &lt;&lt;pre-sales-rules&gt;&gt;
           </a>
         </div>
-        
         {/* Cancel and total amount */}
         <div className="flex items-center justify-between mt-4">
           <button
