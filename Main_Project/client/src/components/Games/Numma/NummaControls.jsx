@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 
 export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
   const gameModes = [
-    { label: '1M', value: '1' },
-    { label: '3M', value: '3' },
-    { label: '5M', value: '5' }
+    { label: '1M', value: '1', selectedColor: 'from-purple-700 to-purple-400', text: 'text-white' },
+    { label: '3M', value: '3', selectedColor: 'from-green-600 to-green-400', text: 'text-white' },
+    { label: '5M', value: '5', selectedColor: 'from-yellow-500 to-yellow-300', text: 'text-gray-900' }
   ];
 
   return (
@@ -15,11 +15,11 @@ export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
         {gameModes.map(mode => (
           <button
             key={mode.value}
-            className={`px-4 py-1 sm:px-5 sm:py-1.5 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg border-none focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gradient-to-b from-black to-gray-800 text-white tracking-wide relative active:scale-95 ${
-              selectedMode === mode.value 
-                ? 'ring-2 ring-yellow-400 scale-105' 
-                : 'hover:brightness-110 opacity-90'
-            }`}
+            className={`px-4 py-1 sm:px-5 sm:py-1.5 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg border-none focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gradient-to-b ${
+              selectedMode === mode.value
+                ? `${mode.selectedColor} ${mode.text} ring-2 ring-yellow-400 scale-105`
+                : 'from-black to-gray-800 text-white hover:brightness-110 opacity-90'
+            } tracking-wide relative active:scale-95`}
             style={{ boxShadow: '0 4px 16px #000a', textShadow: '0 1px 2px #fff3' }}
             onClick={() => setSelectedMode(mode.value)}
           >
@@ -33,8 +33,8 @@ export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
 
 export const NummaRoundInfo = ({ activeRound, timer, formattedTime }) => {
   return (
-    <div className="w-full max-w-xs sm:max-w-sm bg-gradient-to-br from-blue-50 to-white shadow-lg p-2 sm:p-3 rounded-2xl mb-3 flex flex-col sm:flex-row items-center justify-between border border-blue-100 mx-auto">
-      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 mb-1 sm:mb-0">
+    <div className="w-full max-w-xs sm:max-w-sm bg-gradient-to-br from-blue-50 to-white shadow-lg p-2 sm:p-3 rounded-2xl mb-3 flex flex-row items-center justify-between border border-blue-100 mx-auto">
+      <div className="flex flex-row items-center gap-1 sm:gap-3 mb-1 sm:mb-0">
         <span className="font-bold text-blue-700 text-xs sm:text-base">Round:</span>
         <span className="font-mono text-blue-900 text-xs sm:text-base bg-blue-100 px-2 py-0.5 rounded">
           {activeRound ? activeRound.roundNumber : '--'}

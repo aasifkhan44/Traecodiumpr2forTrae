@@ -128,28 +128,40 @@ export const NummaBigSmall = ({
   handleShowPopup 
 }) => {
   return (
-    <div className="flex gap-4 sm:gap-6 justify-center mb-4 sm:mb-6">
+    <div className="flex gap-2 sm:gap-4 justify-center mb-4 sm:mb-6 w-full max-w-xs sm:max-w-sm">
       <button
-        className={`px-6 sm:px-8 py-2 rounded-full font-bold text-base sm:text-lg shadow ${
-          bigSmall === 'Big' ? 'bg-orange-500 text-white scale-110' : 'bg-orange-100 text-orange-600'
-        } transition-all`}
+        className={`flex-1 min-w-0 h-12 sm:h-14 max-w-[110px] rounded-full flex items-center justify-center font-bold text-base sm:text-lg shadow-lg border-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 bg-gradient-to-b from-orange-500 to-yellow-400 tracking-wide active:scale-95 relative ${
+          bigSmall === 'Big' ? 'ring-2 ring-orange-400 scale-105 shadow-2xl' : 'hover:brightness-110 opacity-90'
+        }`}
+        style={{
+          color: '#2d1600', // Deep brown for contrast
+          boxShadow: '0 4px 16px #f59e4299',
+          textShadow: '0 2px 8px #fff7',
+          fontWeight: 800
+        }}
         onClick={() => {
           setBigSmall('Big');
           handleShowPopup('Big/Small', 'Big');
         }}
       >
-        Big
+        <span className="w-full text-center truncate" style={{lineHeight: 1.1}}>Big</span>
       </button>
       <button
-        className={`px-6 sm:px-8 py-2 rounded-full font-bold text-base sm:text-lg shadow ${
-          bigSmall === 'Small' ? 'bg-blue-500 text-white scale-110' : 'bg-blue-100 text-blue-600'
-        } transition-all`}
+        className={`flex-1 min-w-0 h-12 sm:h-14 max-w-[110px] rounded-full flex items-center justify-center font-bold text-base sm:text-lg shadow-lg border-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gradient-to-b from-blue-500 to-cyan-400 tracking-wide active:scale-95 relative ${
+          bigSmall === 'Small' ? 'ring-2 ring-blue-400 scale-105 shadow-2xl' : 'hover:brightness-110 opacity-90'
+        }`}
+        style={{
+          color: '#f8fafc', // Near-white for strong contrast on blue
+          boxShadow: '0 4px 16px #38bdf899',
+          textShadow: '0 2px 8px #2228',
+          fontWeight: 800
+        }}
         onClick={() => {
           setBigSmall('Small');
           handleShowPopup('Big/Small', 'Small');
         }}
       >
-        Small
+        <span className="w-full text-center truncate" style={{lineHeight: 1.1}}>Small</span>
       </button>
     </div>
   );

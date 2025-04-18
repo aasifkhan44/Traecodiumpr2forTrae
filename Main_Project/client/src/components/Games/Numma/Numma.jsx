@@ -303,7 +303,17 @@ export default function Numma({ gameData }) {
             }} 
             handleShowPopup={numma.handleShowPopup} 
           />
-          {/* Number Grid - centered under color buttons */}
+          {/* Big/Small Toggles - moved before number grid */}
+          <NummaBigSmall 
+            bigSmall={numma.bigSmall} 
+            setBigSmall={(value) => {
+              numma.setBigSmall(value);
+              numma.setSelectedColor(null);
+              numma.setSelectedNumber(null);
+            }} 
+            handleShowPopup={numma.handleShowPopup} 
+          />
+          {/* Number Grid - centered under color and big/small buttons */}
           <div className="flex w-full justify-center">
             <NummaNumberGrid 
               selectedNumber={numma.selectedNumber} 
@@ -315,17 +325,6 @@ export default function Numma({ gameData }) {
               handleShowPopup={numma.handleShowPopup} 
             />
           </div>
-          
-          {/* Big/Small Toggles */}
-          <NummaBigSmall 
-            bigSmall={numma.bigSmall} 
-            setBigSmall={(value) => {
-              numma.setBigSmall(value);
-              numma.setSelectedColor(null);
-              numma.setSelectedNumber(null);
-            }} 
-            handleShowPopup={numma.handleShowPopup} 
-          />
           
           {/* Bet Controls */}
           <NummaBetControls 
