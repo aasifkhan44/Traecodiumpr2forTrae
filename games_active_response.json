@@ -1,0 +1,29 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"success":true,"data":[{"_id":"67f8852638c1a902090e6b3d
+                    ","name":"Wingo","identifier":"Wingo","isActive":true,"i
+                    sDefault":true,"settings":{"roundDurations":[30,60,180,3
+                    00],"colorMultiplier":2,"numberM...
+RawContent        : HTTP/1.1 200 OK
+                    Vary: Origin
+                    Access-Control-Allow-Credentials: true
+                    Access-Control-Expose-Headers: 
+                    Content-Type,Authorization,x-auth-token
+                    Connection: keep-alive
+                    Keep-Alive: timeout=5
+                    Content-Le...
+Forms             : {}
+Headers           : {[Vary, Origin], [Access-Control-Allow-Credentials, 
+                    true], [Access-Control-Expose-Headers, 
+                    Content-Type,Authorization,x-auth-token], [Connection, 
+                    keep-alive]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : System.__ComObject
+RawContentLength  : 3988
+
+
+

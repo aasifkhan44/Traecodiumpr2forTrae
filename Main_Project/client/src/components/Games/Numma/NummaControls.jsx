@@ -71,10 +71,16 @@ export const NummaWallet = ({ walletBalance, walletLoading }) => {
           <span className="mr-2">⚡{walletBalance.toLocaleString()}</span>
         )}
       </div>
-      <button className="w-24 h-8 sm:w-28 sm:h-9 bg-green-500 text-white rounded-full font-semibold shadow hover:bg-green-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0">
+      <button
+        className="w-24 h-8 sm:w-28 sm:h-9 bg-green-500 text-white rounded-full font-semibold shadow hover:bg-green-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0"
+        onClick={() => window.open('/wallet/recharge', '_self')}
+      >
         Deposit
       </button>
-      <button className="w-24 h-8 sm:w-28 sm:h-9 bg-red-500 text-white rounded-full font-semibold shadow hover:bg-red-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0">
+      <button
+        className="w-24 h-8 sm:w-28 sm:h-9 bg-red-500 text-white rounded-full font-semibold shadow hover:bg-red-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0"
+        onClick={() => window.open('/wallet/withdraw', '_self')}
+      >
         Withdraw
       </button>
     </div>

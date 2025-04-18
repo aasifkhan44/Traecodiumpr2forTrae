@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/active', async (req, res) => {
   try {
-    const games = await Game.find({ isActive: true });
+    const games = await Game.find({ isActive: true }).select('name identifier isActive isDefault settings description thumbnailUrl cardImageUrl');
     res.json({ success: true, data: games });
   } catch (err) {
     console.error('Error fetching active games:', err);

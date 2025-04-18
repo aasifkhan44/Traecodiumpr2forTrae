@@ -266,6 +266,23 @@ const NummaCore = () => {
   }, [selectedDuration, activeTab]);
 
   // --- Remainder of component unchanged ---
+  const fetchWalletBalance = useCallback(async () => {
+    if (!user) return;
+    setWalletLoading(true);
+    try {
+      const res = await api.get('/user/profile');
+      if (res.data.success) {
+        setWalletBalance(res.data.data.balance || 0);
+      } else {
+        setWalletBalance(user?.balance || 10000);
+      }
+    } catch (err) {
+      setWalletBalance(user?.balance || 10000);
+    } finally {
+      setWalletLoading(false);
+    }
+  }, [user]);
+
   return {
     user,
     rounds,
@@ -273,7 +290,6 @@ const NummaCore = () => {
     timer,
     loading,
     error,
-    formattedTime,
     selectedColor,
     setSelectedColor,
     selectedNumber,
@@ -291,12 +307,12 @@ const NummaCore = () => {
     walletBalance,
     setWalletBalance,
     walletLoading,
-    setWalletLoading,
     activeTab,
     setActiveTab,
     currentPage,
     setCurrentPage,
     completedRounds,
+    setCompletedRounds,
     userBets,
     setUserBets,
     winningBets,
@@ -305,8 +321,15 @@ const NummaCore = () => {
     setShowPopup,
     popupData,
     setPopupData,
+    historyRounds,
+    setHistoryRounds,
+    formattedTime,
     handleShowPopup,
-    historyRounds
+    fetchActiveRound,
+    connectWebSocket,
+    useMockData,
+    updateWalletBalance: setWalletBalance,
+    fetchWalletBalance
   };
 };
 

@@ -13,13 +13,19 @@ import {
 } from './NummaControls';
 import { toast } from 'react-hot-toast';
 import api from '../../../utils/api';
+import { useSiteSettings } from '../../../contexts/SiteSettingsContext';
 
 export default function Numma({ gameData }) {
+  const { siteSettings } = useSiteSettings();
+  
   // Initialize error state to avoid "setError is not defined" errors
   const [error, setError] = useState(null);
   
   // Get all core functionality from NummaCore
   const numma = NummaCore();
+  
+  // Get card image URL from gameData if available, fallback to site logo
+  const logoUrl = gameData?.cardImageUrl || siteSettings.logoUrl;
   
   // Handle bet placement with proper error handling
   const handlePlaceBet = async (amount, multiplier = 1) => {
@@ -189,6 +195,9 @@ export default function Numma({ gameData }) {
         if (response.data.success) {
           toast.success('Bet placed successfully!', { duration: 2000 });
           
+          // Refresh wallet balance from backend
+          await numma.fetchWalletBalance();
+          
           // Listen for bet result via WebSocket
           // In a real implementation, this would be handled by the WebSocket connection
         } else {
@@ -253,9 +262,18 @@ export default function Numma({ gameData }) {
       <div className="w-full max-w-xl mx-auto flex flex-col items-center px-2 sm:px-6 py-6 bg-white rounded-2xl shadow-lg">
         {/* Logo */}
         <div className="flex flex-col items-center mt-2 mb-4">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
-            <span className="text-3xl font-extrabold text-white">N</span>
-          </div>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={siteSettings.siteName || 'Logo'}
+              className="w-20 h-20 object-contain rounded-full shadow-lg bg-white"
+              style={{border: '2px solid #FFD700'}}
+            />
+          ) : (
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
+              <span className="text-3xl font-extrabold text-white">N</span>
+            </div>
+          )}
           <h1
             className="mt-3 text-xl sm:text-2xl md:text-3xl font-black tracking-wide text-center"
             style={{
