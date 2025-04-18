@@ -23,7 +23,7 @@ export const NummaColorSelection = ({
   ];
 
   return (
-    <div className="flex gap-2 sm:gap-4 mb-4">
+    <div className="flex gap-2 sm:gap-4 mb-4 w-full max-w-xs sm:max-w-sm justify-center">
       {colorOptions.map(opt => {
         let base, border, background;
         if (opt.value === 'Red') {
@@ -34,7 +34,7 @@ export const NummaColorSelection = ({
           base = '#22c55e';
           border = '#4ade80';
           background = 'linear-gradient(180deg, #22c55e 70%, #f3f4f6 100%)';
-        } else if (opt.value === 'Violet') {
+        } else {
           base = '#a21caf';
           border = '#c084fc';
           background = 'linear-gradient(180deg, #a21caf 70%, #f3f4f6 100%)';
@@ -43,13 +43,9 @@ export const NummaColorSelection = ({
         return (
           <button
             key={opt.value}
-            className={`flex-1 h-10 sm:h-12 rounded-lg flex items-center justify-center font-semibold text-xs sm:text-base cursor-pointer relative overflow-hidden border transition-all duration-200 ${
+            className={`flex-1 min-w-0 h-12 sm:h-14 max-w-[110px] rounded-lg flex items-center justify-center font-semibold text-base sm:text-lg cursor-pointer relative overflow-hidden border transition-all duration-200 px-2 sm:px-3 text-white select-none ${
               selectedColor === opt.value ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10' : ''
-            } text-white px-1 sm:px-2 text-center truncate`}
-            onClick={() => {
-              setSelectedColor(opt.value);
-              handleShowPopup('Color', opt.value);
-            }}
+            }`}
             style={{
               background,
               borderColor: border,
@@ -58,10 +54,14 @@ export const NummaColorSelection = ({
               fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
               letterSpacing: '0.5px',
             }}
+            onClick={() => {
+              setSelectedColor(opt.value);
+              handleShowPopup('Color', opt.value);
+            }}
           >
             {/* Minimal glass highlight */}
             <span className="absolute left-2 top-2 w-2/3 h-1/5 bg-white opacity-15 rounded-lg blur-[2px] pointer-events-none"></span>
-            <span className="relative z-10 select-none w-full truncate text-center">{opt.label}</span>
+            <span className="relative z-10 select-none w-full text-center truncate" style={{lineHeight: 1.1}}>{opt.label}</span>
           </button>
         );
       })}

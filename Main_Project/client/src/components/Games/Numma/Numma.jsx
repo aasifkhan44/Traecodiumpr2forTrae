@@ -292,7 +292,7 @@ export default function Numma({ gameData }) {
         )}
         
         {/* Color Selection + Number Grid Wrapper */}
-        <div className="w-full max-w-2xl mx-auto">
+        <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
           {/* Color Selection */}
           <NummaColorSelection 
             selectedColor={numma.selectedColor} 
@@ -303,17 +303,18 @@ export default function Numma({ gameData }) {
             }} 
             handleShowPopup={numma.handleShowPopup} 
           />
-          
-          {/* Number Grid */}
-          <NummaNumberGrid 
-            selectedNumber={numma.selectedNumber} 
-            setSelectedNumber={(number) => {
-              numma.setSelectedNumber(number);
-              numma.setSelectedColor(null);
-              numma.setBigSmall(null);
-            }} 
-            handleShowPopup={numma.handleShowPopup} 
-          />
+          {/* Number Grid - centered under color buttons */}
+          <div className="flex w-full justify-center">
+            <NummaNumberGrid 
+              selectedNumber={numma.selectedNumber} 
+              setSelectedNumber={(number) => {
+                numma.setSelectedNumber(number);
+                numma.setSelectedColor(null);
+                numma.setBigSmall(null);
+              }} 
+              handleShowPopup={numma.handleShowPopup} 
+            />
+          </div>
           
           {/* Big/Small Toggles */}
           <NummaBigSmall 
