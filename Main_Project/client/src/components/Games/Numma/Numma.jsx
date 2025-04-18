@@ -266,7 +266,7 @@ export default function Numma({ gameData }) {
         />
         
         {/* Game Modes */}
-        <div className="w-full max-w-2xl mx-auto mb-4">
+        <div className="w-full max-w-2xl mx-auto mb-2">
           <NummaGameModes 
             selectedMode={numma.selectedMode} 
             setSelectedMode={numma.setSelectedMode} 
