@@ -29,20 +29,19 @@ export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
 
 export const NummaRoundInfo = ({ activeRound, timer, formattedTime }) => {
   return (
-    <div className="w-full bg-white shadow-md p-3 sm:p-4 rounded-lg mb-4 flex flex-col sm:flex-row items-center justify-between border border-blue-200">
-      <div className="flex flex-col sm:flex-row items-center gap-2 mb-2 sm:mb-0">
-        <span className="font-bold text-blue-700 text-base sm:text-lg">Round:</span>
-        <span className="font-mono text-blue-900 text-sm sm:text-base bg-blue-50 px-2 py-1 rounded">
+    <div className="w-full max-w-xs sm:max-w-sm bg-gradient-to-br from-blue-50 to-white shadow-lg p-2 sm:p-3 rounded-2xl mb-3 flex flex-col sm:flex-row items-center justify-between border border-blue-100 mx-auto">
+      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 mb-1 sm:mb-0">
+        <span className="font-bold text-blue-700 text-xs sm:text-base">Round:</span>
+        <span className="font-mono text-blue-900 text-xs sm:text-base bg-blue-100 px-2 py-0.5 rounded">
           {activeRound ? activeRound.roundNumber : '--'}
         </span>
-        <span className="ml-0 sm:ml-4 font-bold text-gray-500 text-sm sm:text-base">Duration:</span>
-        <span className="font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded text-sm sm:text-base">
+        <span className="font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded text-xs sm:text-base">
           {activeRound ? activeRound.duration : '--'} min
         </span>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="font-semibold text-gray-600 text-sm sm:text-base">Ends in:</span>
-        <span className={`font-mono text-lg sm:text-xl ${timer <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span className={`font-mono text-base sm:text-lg ${timer <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}
+          style={{ minWidth: '60px', textAlign: 'center' }}>
           {formattedTime}
         </span>
       </div>
