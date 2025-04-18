@@ -476,18 +476,21 @@ class NummaRoundManager {
       const backendMultiplier = this.getNummaMultiplier(type, betValue);
       console.log('DEBUG backendMultiplier:', backendMultiplier, 'from getNummaMultiplier(', type, ',', betValue, ')');
       const outcomeValue = amount * backendMultiplier;
-      console.log('Storing outcome:', {
-        key: `${type}:${betValue}`,
-        amount,
-        backendMultiplier,
-        outcomeValue
+      const allNumbers = Array.from({ length: 10 }, (_, i) => `number:${i}`);
+      const allColors = ['color:Red', 'color:Green', 'color:Violet'];
+      const allBigSmall = ['bigsmall:Big', 'bigsmall:Small'];
+      const allKeys = [...allNumbers, ...allColors, ...allBigSmall];
+      allKeys.forEach(key => {
+        const prev = outcomeDoc.outcomeTotals.get(key) || 0;
+        if (key === `${type}:${betValue}`) {
+          outcomeDoc.outcomeTotals.set(key, prev + outcomeValue);
+        } else {
+          outcomeDoc.outcomeTotals.set(key, prev); // add 0, ensures key always exists
+        }
       });
-      
-      const prev = outcomeDoc.outcomeTotals.get(`${type}:${betValue}`) || 0;
-      outcomeDoc.outcomeTotals.set(`${type}:${betValue}`, prev + outcomeValue);
       outcomeDoc.updatedAt = new Date();
       await outcomeDoc.save();
-      console.log(`[DEBUG] Updated NummaBetOutcome: roundId=${roundId}, duration=${duration}, key=${type}:${betValue}, total=${prev + outcomeValue}`);
+      console.log(`[DEBUG] Updated NummaBetOutcome: roundId=${roundId}, duration=${duration}, key=${type}:${betValue}, total=${outcomeDoc.outcomeTotals.get(`${type}:${betValue}`)}`);
       
       // Update round stats
       round.totalBets += 1;
