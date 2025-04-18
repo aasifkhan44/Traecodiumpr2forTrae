@@ -3,26 +3,30 @@ import PropTypes from 'prop-types';
 
 export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
   const gameModes = [
-    { label: '1M', value: '1', color: 'bg-purple-600 text-white' },
-    { label: '3M', value: '3', color: 'bg-green-600 text-white' },
-    { label: '5M', value: '5', color: 'bg-gray-300 text-gray-800' }
+    { label: '1M', value: '1' },
+    { label: '3M', value: '3' },
+    { label: '5M', value: '5' }
   ];
 
   return (
-    <div className="flex flex-wrap gap-2 justify-center mb-4">
-      {gameModes.map(mode => (
-        <button
-          key={mode.value}
-          className={`px-4 py-2 rounded-lg font-bold transition-all duration-200 ${
-            selectedMode === mode.value 
-              ? `${mode.color} scale-110 shadow-lg border-2 border-yellow-400` 
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-          onClick={() => setSelectedMode(mode.value)}
-        >
-          {mode.label}
-        </button>
-      ))}
+    <div className="flex flex-col items-center mb-2">
+      <h3 className="text-xs sm:text-sm text-gray-500 font-semibold mb-1 tracking-wide uppercase">Select Game Duration</h3>
+      <div className="flex flex-wrap gap-2 justify-center">
+        {gameModes.map(mode => (
+          <button
+            key={mode.value}
+            className={`px-4 py-1 sm:px-5 sm:py-1.5 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg border-none focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gradient-to-b from-black to-gray-800 text-white tracking-wide relative active:scale-95 ${
+              selectedMode === mode.value 
+                ? 'ring-2 ring-yellow-400 scale-105' 
+                : 'hover:brightness-110 opacity-90'
+            }`}
+            style={{ boxShadow: '0 4px 16px #000a', textShadow: '0 1px 2px #fff3' }}
+            onClick={() => setSelectedMode(mode.value)}
+          >
+            {mode.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

@@ -267,7 +267,6 @@ export default function Numma({ gameData }) {
         
         {/* Game Modes */}
         <div className="w-full max-w-2xl mx-auto mb-4">
-          <h3 className="text-center text-gray-700 font-semibold mb-2">Select Game Duration</h3>
           <NummaGameModes 
             selectedMode={numma.selectedMode} 
             setSelectedMode={numma.setSelectedMode} 
