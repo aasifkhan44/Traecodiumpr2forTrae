@@ -250,7 +250,7 @@ export default function Numma({ gameData }) {
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center px-4 sm:px-6 py-6 max-w-6xl mx-auto">
+      <div className="w-full max-w-xl mx-auto flex flex-col items-center px-2 sm:px-6 py-6 bg-white rounded-2xl shadow-lg">
         {/* Logo */}
         <div className="flex flex-col items-center mt-2 mb-4">
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-20 h-20 flex items-center justify-center shadow-lg">

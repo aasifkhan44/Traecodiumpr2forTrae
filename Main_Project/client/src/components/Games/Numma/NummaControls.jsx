@@ -63,10 +63,10 @@ export const NummaWallet = ({ walletBalance, walletLoading }) => {
           <span className="mr-2">₹{walletBalance.toLocaleString()}</span>
         )}
       </div>
-      <button className="bg-green-500 text-white px-3 sm:px-4 py-2 rounded-full font-semibold shadow hover:bg-green-600 transition-colors text-sm sm:text-base">
+      <button className="w-24 h-8 sm:w-28 sm:h-9 bg-green-500 text-white rounded-full font-semibold shadow hover:bg-green-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0">
         Deposit
       </button>
-      <button className="bg-red-500 text-white px-3 sm:px-4 py-2 rounded-full font-semibold shadow hover:bg-red-600 transition-colors text-sm sm:text-base">
+      <button className="w-24 h-8 sm:w-28 sm:h-9 bg-red-500 text-white rounded-full font-semibold shadow hover:bg-red-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0">
         Withdraw
       </button>
     </div>
