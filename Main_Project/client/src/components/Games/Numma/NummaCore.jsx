@@ -197,7 +197,7 @@ const NummaCore = () => {
           toast.success(`Round ${data.round.roundNumber} result: ${data.round.resultNumber}`, { duration: 2000 });
           if (totalWinnings > 0) {
             setTimeout(() => {
-              toast.success(`You won ₹${totalWinnings}!`, { duration: 2000 });
+              toast.success(`You won ⚡${totalWinnings}!`, { duration: 2000 });
               setWalletBalance(prev => prev + totalWinnings);
             }, 1000);
           }

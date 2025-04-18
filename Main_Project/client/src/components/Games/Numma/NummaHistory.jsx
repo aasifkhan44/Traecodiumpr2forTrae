@@ -327,7 +327,7 @@ export const NummaUserHistory = ({
                       <td className="py-1 px-2 font-mono text-xs sm:text-sm">{bet.roundNumber}</td>
                       <td className="py-1 px-2 text-xs sm:text-sm capitalize">{bet.betType}</td>
                       <td className="py-1 px-2 text-xs sm:text-sm">{bet.betValue}</td>
-                      <td className="py-1 px-2 text-xs sm:text-sm">₹{bet.amount}</td>
+                      <td className="py-1 px-2 text-xs sm:text-sm">⚡{bet.amount}</td>
                       <td className="py-1 px-2 text-xs sm:text-sm">
                         <span className={`px-2 py-0.5 rounded-full text-xs ${
                           bet.status === 'won' 
@@ -341,7 +341,7 @@ export const NummaUserHistory = ({
                       </td>
                       <td className="py-1 px-2 text-xs sm:text-sm">
                         {bet.status === 'won' 
-                          ? <span className="text-green-600">+₹{bet.winAmount}</span> 
+                          ? <span className="text-green-600">⚡{bet.winAmount}</span> 
                           : bet.status === 'lost' 
                           ? <span className="text-red-600">0</span>
                           : '-'}

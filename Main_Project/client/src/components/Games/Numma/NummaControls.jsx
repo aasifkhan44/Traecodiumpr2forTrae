@@ -91,7 +91,7 @@ export const NummaBetControls = ({
             className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 font-medium transition-colors text-sm"
             onClick={() => setBetAmount(amount)}
           >
-            ₹{amount}
+            ⚡{amount}
           </button>
         ))}
       </div>
@@ -197,7 +197,7 @@ export const NummaBetPopup = ({
         {/* Balance and quick chips */}
         <div className="mb-4 text-center">
           <div className="text-gray-600 text-xs sm:text-sm mb-2">
-            Balance: <span className="font-bold text-green-600">₹{walletBalance.toLocaleString()}</span>
+            Balance: <span className="font-bold text-green-600">⚡{walletBalance.toLocaleString()}</span>
           </div>
           <div className="flex flex-wrap justify-center gap-2 mb-2">
             {balanceChips.map(b => (
@@ -277,7 +277,7 @@ export const NummaBetPopup = ({
             disabled={!popupAgree}
             onClick={handleSubmit}
           >
-            Submit &nbsp; <span className="font-bold text-xs sm:text-sm">Total: ₹{popupTotal.toLocaleString()}</span>
+            Submit &nbsp; <span className="font-bold text-xs sm:text-sm">Total: ⚡{popupTotal.toLocaleString()}</span>
           </button>
         </div>
       </div>

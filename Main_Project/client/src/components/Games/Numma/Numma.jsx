@@ -87,7 +87,7 @@ export default function Numma({ gameData }) {
         });
         
         // Show success message
-        toast.success(`Bet placed: ${betType} on ${betValue} for ₹${betAmount} (x${multiplier})`, { duration: 2000 });
+        toast.success(`Bet placed: ${betType} on ${betValue} for ⚡${betAmount} (x${multiplier})`, { duration: 2000 });
         
         // Simulate win/loss after a delay (for demo purposes)
         if (Math.random() > 0.5) { // 50% chance of winning
@@ -105,7 +105,7 @@ export default function Numma({ gameData }) {
           
           // Simulate a delay before showing the win
           setTimeout(() => {
-            toast.success(`You won ₹${winAmount}!`, { duration: 2000 });
+            toast.success(`You won ⚡${winAmount}!`, { duration: 2000 });
             numma.updateWalletBalance(winAmount);
           }, 5000 + Math.random() * 5000); // Random delay between 5-10 seconds
         }
