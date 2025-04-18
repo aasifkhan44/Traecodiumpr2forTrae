@@ -24,24 +24,24 @@ export default function Numma({ gameData }) {
   // Handle bet placement with proper error handling
   const handlePlaceBet = async (amount, multiplier = 1) => {
     if (!numma.user) {
-      toast.error('Please login to place a bet');
+      toast.error('Please login to place a bet', { duration: 2000 });
       return;
     }
     
     if (!numma.activeRound) {
-      toast.error('No active round available');
+      toast.error('No active round available', { duration: 2000 });
       return;
     }
     
     const betAmount = amount || numma.betAmount;
     if (!betAmount || isNaN(betAmount) || betAmount <= 0) {
-      toast.error('Please enter a valid bet amount');
+      toast.error('Please enter a valid bet amount', { duration: 2000 });
       return;
     }
     
     // Check if user has enough balance
     if (betAmount > numma.walletBalance) {
-      toast.error('Insufficient balance');
+      toast.error('Insufficient balance', { duration: 2000 });
       setError('Insufficient balance. Please add funds to your wallet.');
       return;
     }
@@ -58,7 +58,7 @@ export default function Numma({ gameData }) {
       betType = 'bigsmall';
       betValue = numma.bigSmall;
     } else {
-      toast.error('Please select a bet option');
+      toast.error('Please select a bet option', { duration: 2000 });
       return;
     }
     
@@ -87,7 +87,7 @@ export default function Numma({ gameData }) {
         });
         
         // Show success message
-        toast.success(`Bet placed: ${betType} on ${betValue} for ₹${betAmount} (x${multiplier})`);
+        toast.success(`Bet placed: ${betType} on ${betValue} for ₹${betAmount} (x${multiplier})`, { duration: 2000 });
         
         // Simulate win/loss after a delay (for demo purposes)
         if (Math.random() > 0.5) { // 50% chance of winning
@@ -105,7 +105,7 @@ export default function Numma({ gameData }) {
           
           // Simulate a delay before showing the win
           setTimeout(() => {
-            toast.success(`You won ₹${winAmount}!`);
+            toast.success(`You won ₹${winAmount}!`, { duration: 2000 });
             numma.updateWalletBalance(winAmount);
           }, 5000 + Math.random() * 5000); // Random delay between 5-10 seconds
         }
@@ -187,7 +187,7 @@ export default function Numma({ gameData }) {
         const response = await api.post('/numma/bet', payload);
         
         if (response.data.success) {
-          toast.success('Bet placed successfully!');
+          toast.success('Bet placed successfully!', { duration: 2000 });
           
           // Listen for bet result via WebSocket
           // In a real implementation, this would be handled by the WebSocket connection
@@ -204,11 +204,11 @@ export default function Numma({ gameData }) {
         
         // Check if we have a response with error details
         if (apiError.response?.data?.error) {
-          toast.error(apiError.response.data.error);
+          toast.error(apiError.response.data.error, { duration: 2000 });
           setError(apiError.response.data.error);
         } else {
           // Show the error message
-          toast.error(apiError.message || 'Failed to place bet');
+          toast.error(apiError.message || 'Failed to place bet', { duration: 2000 });
           setError(apiError.message || 'Failed to place bet');
         }
       }
@@ -223,7 +223,7 @@ export default function Numma({ gameData }) {
       
     } catch (err) {
       setError(err.message || 'Failed to place bet');
-      toast.error(err.message || 'Failed to place bet');
+      toast.error(err.message || 'Failed to place bet', { duration: 2000 });
     } finally {
       numma.setBetLoading(false);
     }
@@ -274,18 +274,7 @@ export default function Numma({ gameData }) {
           />
         </div>
         
-        {/* Error Display */}
-        {error && (
-          <div className="w-full max-w-2xl bg-red-100 text-red-700 text-center text-sm p-2 mb-2 rounded">
-            {error}
-            <button 
-              className="ml-2 text-blue-500 underline"
-              onClick={() => setError(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
+        {/* Removed error display as requested */}
         
         {/* Loading or no rounds message */}
         {numma.rounds.length === 0 && (

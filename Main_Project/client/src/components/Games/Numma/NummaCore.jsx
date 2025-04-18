@@ -194,18 +194,18 @@ const NummaCore = () => {
               ]);
             }
           });
-          toast.success(`Round ${data.round.roundNumber} result: ${data.round.resultNumber}`);
+          toast.success(`Round ${data.round.roundNumber} result: ${data.round.resultNumber}`, { duration: 2000 });
           if (totalWinnings > 0) {
             setTimeout(() => {
-              toast.success(`You won ₹${totalWinnings}!`);
+              toast.success(`You won ₹${totalWinnings}!`, { duration: 2000 });
               setWalletBalance(prev => prev + totalWinnings);
             }, 1000);
           }
         } else if (data.type === 'bet_result') {
           if (data.success) {
-            toast.success('Bet placed successfully!');
+            toast.success('Bet placed successfully!', { duration: 2000 });
           } else {
-            toast.error(data.error || 'Failed to place bet');
+            toast.error(data.error || 'Failed to place bet', { duration: 2000 });
             if (data.amount) {
               setWalletBalance(prev => prev + data.amount);
             }
