@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
@@ -56,11 +56,19 @@ export const NummaRoundInfo = ({ activeRound, timer, formattedTime }) => {
 export const NummaWallet = ({ walletBalance, walletLoading }) => {
   return (
     <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 justify-center">
-      <div className="bg-white rounded-xl px-4 sm:px-6 py-2 shadow text-base sm:text-lg font-bold flex items-center">
+      <div className="rounded-xl px-4 sm:px-6 py-2 shadow text-base sm:text-lg font-bold flex items-center"
+        style={{
+          background: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ff 40%, #a5b4fc 100%)',
+          boxShadow: '0 4px 24px 0 rgba(80,120,255,0.10), 0 1.5px 4px 0 rgba(80,120,255,0.07)',
+          border: '1.5px solid #dbeafe',
+          color: '#1e293b',
+          minWidth: 120,
+        }}
+      >
         {walletLoading ? (
           <span className="animate-pulse text-gray-400">Loading...</span>
         ) : (
-          <span className="mr-2">₹{walletBalance.toLocaleString()}</span>
+          <span className="mr-2">⚡{walletBalance.toLocaleString()}</span>
         )}
       </div>
       <button className="w-24 h-8 sm:w-28 sm:h-9 bg-green-500 text-white rounded-full font-semibold shadow hover:bg-green-600 transition-colors text-xs sm:text-sm flex items-center justify-center px-0">
@@ -79,19 +87,22 @@ export const NummaBetControls = ({
   handlePlaceBet, 
   betLoading 
 }) => {
-  const quickAmounts = [10, 50, 100, 500];
+  const quickMultipliers = [1, 5, 10, 20, 50, 100];
 
-  // Remove the bet amount input and Place Bet button since handled in popup
   return (
     <div className="flex flex-col items-center gap-4 mb-6">
       <div className="flex flex-wrap gap-2 justify-center">
-        {quickAmounts.map(amount => (
+        {quickMultipliers.map(mult => (
           <button
-            key={amount}
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700 font-medium transition-colors text-sm"
-            onClick={() => setBetAmount(amount)}
+            key={mult}
+            className={`px-3 py-1 rounded-md text-gray-700 font-medium transition-colors text-sm border-2 ${
+              Number(betAmount) === mult
+                ? 'bg-yellow-400 border-yellow-500 shadow-lg scale-105' 
+                : 'bg-gray-100 hover:bg-gray-200 border-gray-200'
+            }`}
+            onClick={() => setBetAmount(mult)}
           >
-            ⚡{amount}
+            ⚡{mult}X
           </button>
         ))}
       </div>
@@ -143,10 +154,15 @@ export const NummaBetPopup = ({
   walletBalance,
   handlePlaceBet 
 }) => {
+  const defaultMultiplier = popupData?.defaultMultiplier;
   const [popupQuantity, setPopupQuantity] = useState(1);
-  const [popupMultiplier, setPopupMultiplier] = useState('x1');
+  const [popupMultiplier, setPopupMultiplier] = useState(defaultMultiplier ? `x${defaultMultiplier}` : 'x1');
   const [popupAgree, setPopupAgree] = useState(true);
-  
+
+  useEffect(() => {
+    if (defaultMultiplier) setPopupMultiplier(`x${defaultMultiplier}`);
+  }, [defaultMultiplier]);
+
   const balanceChips = [1, 10, 100, 1000];
   const popupMultipliers = ['x1', 'x5', 'x10', 'x20', 'x50', 'x100'];
 

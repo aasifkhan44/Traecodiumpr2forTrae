@@ -256,7 +256,20 @@ export default function Numma({ gameData }) {
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
             <span className="text-3xl font-extrabold text-white">N</span>
           </div>
-          <h1 className="text-2xl font-bold mt-2 text-gray-800">Numma Color Prediction</h1>
+          <h1
+            className="mt-3 text-xl sm:text-2xl md:text-3xl font-black tracking-wide text-center"
+            style={{
+              fontFamily: 'Poppins, Segoe UI, Arial, sans-serif',
+              letterSpacing: '0.03em',
+              lineHeight: 1.08,
+              color: '#FFD700',
+              textShadow: '2px 2px 0 #222, 4px 4px 12px #000a, 0 1px 2px #000, 0 0 16px #FFD700cc',
+              marginBottom: 0,
+              filter: 'drop-shadow(0 4px 18px #000a) drop-shadow(0 1px 0 #fff8)'
+            }}
+          >
+            Numma Color Prediction
+          </h1>
         </div>
         
         {/* Wallet Section */}
@@ -353,7 +366,16 @@ export default function Numma({ gameData }) {
           )}
           
           {/* Chart Tab */}
-          {numma.activeTab === 'chart' && <NummaChart />}
+          {numma.activeTab === 'chart' && (
+            <NummaChart 
+              chartData={
+                (numma.historyRounds || numma.rounds || []).filter(r => r.result && typeof r.result.number === 'number').map(r => ({
+                  period: r.period || r.roundNumber || r._id || '',
+                  number: r.result.number
+                }))
+              }
+            />
+          )}
           
           {/* My History Tab */}
           {numma.activeTab === 'my' && (
@@ -371,7 +393,10 @@ export default function Numma({ gameData }) {
       <NummaBetPopup 
         showPopup={numma.showPopup}
         setShowPopup={numma.setShowPopup}
-        popupData={numma.popupData}
+        popupData={{
+          ...numma.popupData,
+          defaultMultiplier: numma.betAmount && [1,5,10,20,50,100].includes(Number(numma.betAmount)) ? Number(numma.betAmount) : 1
+        }}
         walletBalance={numma.walletBalance}
         handlePlaceBet={handlePlaceBet}
       />

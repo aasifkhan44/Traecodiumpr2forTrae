@@ -206,21 +206,25 @@ export const NummaGameHistory = ({
           </table>
           
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-4 py-2">
-            <button 
-              className="text-xl px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          <div className="flex items-center justify-center gap-2 py-4">
+            <button
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md border border-gray-200"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              aria-label="Previous Page"
             >
-              &lt;
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
             </button>
-            <span className="text-base">{currentPage}/{totalPages}</span>
-            <button 
-              className="text-xl px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            <span className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 font-semibold text-base shadow-sm">
+              {currentPage}
+            </span>
+            <button
+              className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md border border-gray-200"
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
+              aria-label="Next Page"
             >
-              &gt;
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
             </button>
           </div>
         </>
@@ -352,21 +356,25 @@ export const NummaUserHistory = ({
               </table>
               
               {/* Pagination */}
-              <div className="flex items-center justify-center gap-4 py-2">
-                <button 
-                  className="text-xl px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              <div className="flex items-center justify-center gap-2 py-4">
+                <button
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md border border-gray-200"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  aria-label="Previous Page"
                 >
-                  &lt;
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <span className="text-base">{currentPage}/{totalPages}</span>
-                <button 
-                  className="text-xl px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                <span className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 font-semibold text-base shadow-sm">
+                  {currentPage}
+                </span>
+                <button
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md border border-gray-200"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  aria-label="Next Page"
                 >
-                  &gt;
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </button>
               </div>
             </>
@@ -377,13 +385,73 @@ export const NummaUserHistory = ({
   );
 };
 
-export const NummaChart = () => {
+export const NummaChart = ({ chartData = [], currentPage, setCurrentPage, totalPages }) => {
+  const rows = Array.isArray(chartData) && chartData.length > 0 ? chartData : [];
+
   return (
-    <div className="p-8 text-center">
-      <div className="bg-gray-50 rounded-lg p-8">
-        <p className="text-gray-500">Chart view coming soon...</p>
-        <p className="text-sm text-gray-400 mt-2">Visualize patterns and trends in Numma results</p>
-      </div>
+    <div className="overflow-x-auto">
+      <table className="min-w-full border rounded-xl bg-white shadow">
+        <thead>
+          <tr>
+            <th className="px-2 py-2 bg-gray-50 text-xs font-bold text-gray-600 text-center">Period</th>
+            {[...Array(10).keys()].map(n => (
+              <th key={n} className="px-2 py-2 bg-gray-50 text-xs font-bold text-gray-600 text-center">{n}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => (
+            <tr key={row.period || idx} className="border-b last:border-b-0">
+              <td className="px-2 py-1 text-xs sm:text-sm font-mono text-center text-gray-700">{row.period}</td>
+              {[...Array(10).keys()].map(n => {
+                let bg = '';
+                if (n === row.number) {
+                  if (Array.isArray(row.dualColors) && row.dualColors.includes('Violet')) {
+                    bg = 'bg-purple-500 text-white';
+                  } else if (row.color === 'Red') bg = 'bg-red-500 text-white';
+                  else if (row.color === 'Green') bg = 'bg-green-500 text-white';
+                  else if (row.color === 'Violet') bg = 'bg-purple-500 text-white';
+                  else bg = 'bg-yellow-400 text-gray-900';
+                } else {
+                  bg = 'bg-gray-50 text-gray-400';
+                }
+                return (
+                  <td key={n} className={`px-2 py-1 text-center font-semibold text-xs sm:text-sm rounded-md ${bg}`}>
+                    {n}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+          {rows.length === 0 && (
+            <tr><td colSpan={11} className="text-center text-gray-400 py-8">No data available</td></tr>
+          )}
+        </tbody>
+      </table>
+      {/* Pagination for Chart */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-4">
+          <button
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md border border-gray-200"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            aria-label="Previous Page"
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <span className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-700 font-semibold text-base shadow-sm">
+            {currentPage}
+          </span>
+          <button
+            className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md border border-gray-200"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            aria-label="Next Page"
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -402,4 +470,9 @@ NummaUserHistory.propTypes = {
   user: PropTypes.object
 };
 
-NummaChart.propTypes = {};
+NummaChart.propTypes = {
+  chartData: PropTypes.array,
+  currentPage: PropTypes.number.isRequired,
+  setCurrentPage: PropTypes.func.isRequired,
+  totalPages: PropTypes.number.isRequired
+};

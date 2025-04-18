@@ -29,6 +29,7 @@ const NummaCore = () => {
   const [winningBets, setWinningBets] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [popupData, setPopupData] = useState({ betType: '', betValue: '', round: null });
+  const [historyRounds, setHistoryRounds] = useState([]);
 
   const formattedTime = useMemo(() => {
     const minutes = Math.floor(timer / 60);
@@ -245,6 +246,25 @@ const NummaCore = () => {
     return () => clearInterval(interval);
   }, [activeRound?.endTime]);
 
+  useEffect(() => {
+    const fetchHistoryRounds = async () => {
+      try {
+        const res = await api.get('/numma/rounds/history', {
+          params: { duration: selectedDuration, page: 1 }
+        });
+        if (res.data.success) {
+          setHistoryRounds(res.data.data.rounds || []);
+        } else {
+          setHistoryRounds([]);
+        }
+      } catch (err) {
+        setHistoryRounds([]);
+      }
+    };
+    // Only fetch if chart tab is active
+    if (activeTab === 'chart') fetchHistoryRounds();
+  }, [selectedDuration, activeTab]);
+
   // --- Remainder of component unchanged ---
   return {
     user,
@@ -267,9 +287,11 @@ const NummaCore = () => {
     selectedMode,
     setSelectedMode,
     selectedDuration,
+    setSelectedDuration,
     walletBalance,
+    setWalletBalance,
     walletLoading,
-    updateWalletBalance: useCallback((amount) => setWalletBalance(prev => prev + amount), []),
+    setWalletLoading,
     activeTab,
     setActiveTab,
     currentPage,
@@ -282,7 +304,9 @@ const NummaCore = () => {
     showPopup,
     setShowPopup,
     popupData,
-    handleShowPopup
+    setPopupData,
+    handleShowPopup,
+    historyRounds
   };
 };
 
