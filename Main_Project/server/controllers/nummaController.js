@@ -30,36 +30,31 @@ exports.getActiveRounds = async (req, res) => {
 // Get current round for a specific period
 exports.getCurrentRound = async (req, res) => {
   try {
-    const period = parseInt(req.query.period);
-    
-    if (![1, 3, 5].includes(period)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid period. Must be 1, 3, or 5.'
-      });
+    const { period } = req.query; // period should be 1, 3, or 5
+    let Model;
+    if (period === '1' || period === 1) Model = NummaRound1m;
+    else if (period === '3' || period === 3) Model = NummaRound3m;
+    else if (period === '5' || period === 5) Model = NummaRound5m;
+    else {
+      return res.status(400).json({ success: false, error: 'Invalid period' });
     }
-    
-    const activeRounds = await nummaRoundManager.getActiveRounds();
-    const round = activeRounds[period];
-    
+
+    const round = await Model.findOne({ status: 'active' }).sort({ endTime: 1 });
     if (!round) {
-      return res.status(404).json({
-        success: false,
-        error: 'No active round found for this period.'
-      });
+      return res.status(404).json({ success: false, error: 'No active round found' });
     }
-    
-    // Calculate time remaining
+
     const now = Date.now();
     const endTime = new Date(round.endTime).getTime();
     const timeRemaining = Math.max(endTime - now, 0);
-    
+
     res.json({
       success: true,
       data: {
         roundNumber: round.roundNumber,
         timeRemaining,
-        endTime: round.endTime
+        endTime: round.endTime,
+        serverTime: new Date().toISOString()
       }
     });
   } catch (error) {
@@ -100,6 +95,13 @@ exports.getRoundHistory = async (req, res) => {
   }
 };
 
+function getRoundModel(duration) {
+  if (duration === 1 || duration === '1') return NummaRound1m;
+  if (duration === 3 || duration === '3') return NummaRound3m;
+  if (duration === 5 || duration === '5') return NummaRound5m;
+  throw new Error('Invalid duration');
+}
+
 // Place a bet
 exports.placeBet = async (req, res) => {
   try {
@@ -111,6 +113,12 @@ exports.placeBet = async (req, res) => {
         success: false,
         error: 'Missing required fields'
       });
+    }
+    
+    const RoundModel = getRoundModel(duration);
+    const round = await RoundModel.findById(roundId);
+    if (!round || round.status !== 'active') {
+      return res.status(400).json({ success: false, error: 'Invalid or inactive round' });
     }
     
     // Validate bet type
