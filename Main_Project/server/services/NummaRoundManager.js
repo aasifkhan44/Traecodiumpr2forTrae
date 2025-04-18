@@ -470,17 +470,15 @@ class NummaRoundManager {
         console.log(`[DEBUG] Created new NummaBetOutcome for roundId=${roundId}, duration=${duration}`);
       }
       
-      // Multiply amount * frontend multiplier * backend multiplier
+      // Multiply amount * backendMultiplier for outcomeValue
       const type = (betType || '').toLowerCase();
       console.log('DEBUG betType received:', betType, 'Normalized:', type);
-      const frontendMultiplier = typeof multiplier !== 'undefined' ? Number(multiplier) : 1;
       const backendMultiplier = this.getNummaMultiplier(type, betValue);
       console.log('DEBUG backendMultiplier:', backendMultiplier, 'from getNummaMultiplier(', type, ',', betValue, ')');
-      const outcomeValue = amount * frontendMultiplier * backendMultiplier;
+      const outcomeValue = amount * backendMultiplier;
       console.log('Storing outcome:', {
         key: `${type}:${betValue}`,
         amount,
-        frontendMultiplier,
         backendMultiplier,
         outcomeValue
       });
