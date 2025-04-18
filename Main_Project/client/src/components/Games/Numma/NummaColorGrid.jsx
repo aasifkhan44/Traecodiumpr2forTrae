@@ -1,13 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-// Correct color mapping for color prediction game
-// 0: Red+Violet, 5: Green+Violet, all odds: Red, all evens (except 0,5): Green
+// Custom color mapping for number buttons: 1,3,7,9 green; 2,4,6,8 red; 0,5 keep as before
 const getNumberColors = (n) => {
   if (n === 0) return ['bg-red-500', 'bg-purple-500'];
   if (n === 5) return ['bg-green-500', 'bg-purple-500'];
-  if (n % 2 === 0) return ['bg-green-500'];
-  return ['bg-red-500'];
+  if ([1, 3, 7, 9].includes(n)) return ['bg-green-500'];
+  if ([2, 4, 6, 8].includes(n)) return ['bg-red-500'];
+  // fallback: even numbers not in above (shouldn't occur)
+  return ['bg-gray-300'];
 };
 
 export const NummaColorSelection = ({ 
