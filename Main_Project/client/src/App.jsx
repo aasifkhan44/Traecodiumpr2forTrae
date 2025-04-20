@@ -92,6 +92,7 @@ function App() {
     localStorage.removeItem('mobile');
     setIsAuthenticated(false);
     setIsAdmin(false);
+    window.location.href = '/';
   };
 
   if (loading) {
@@ -109,8 +110,7 @@ function App() {
           <Routes>
             {/* Public routes that don't require authentication */}
             <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={isAuthenticated ? (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Login setIsAuthenticated={setIsAuthenticated} setIsAdmin={setIsAdmin} />} />
-            <Route path="/register" element={isAuthenticated ? (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Register setIsAuthenticated={setIsAuthenticated} setIsAdmin={setIsAdmin} />} />
+            {/* Removed /login and /register routes as authentication is now via modal */}
             
             {/* Protected routes */}
             {isAuthenticated && isAdmin ? (

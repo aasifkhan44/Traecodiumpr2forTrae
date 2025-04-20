@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSiteSettings } from '../contexts/SiteSettingsContext';
+import Login from '../auth/Login';
+import Register from '../auth/Register';
 
 const cardSvgs = [
   '/1.svg',
@@ -17,12 +19,44 @@ const sliderImages = [
   '/p5.png',
 ];
 
+function Modal({ open, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-8 relative">
+        <button onClick={onClose} className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-700">&times;</button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 const HomePage = () => {
   const { siteSettings } = useSiteSettings();
   const [current, setCurrent] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
   const sliderRef = useRef(null);
   const jumping = useRef(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Close modal on successful login/register
+  const handleSetIsAuthenticated = (val) => {
+    setIsAuthenticated(val);
+    // Always get isAdmin from localStorage after login
+    if (val) {
+      setModalOpen(false);
+      const adminStatus = localStorage.getItem('isAdmin') === 'true';
+      if (adminStatus) {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+  };
+  const handleSetIsAdmin = (val) => setIsAdmin(val);
 
   // Auto-advance (pause during jump)
   useEffect(() => {
@@ -75,21 +109,35 @@ const HomePage = () => {
             )}
             <h1 className="text-3xl font-bold">{siteSettings.siteName || 'Color Prediction Game'}</h1>
           </div>
-          <div className="flex space-x-4">
-            <Link 
-              to="/login" 
-              className="px-6 py-2 bg-white text-primary font-medium rounded-md hover:bg-gray-100 transition-colors"
-            >
-              Login
-            </Link>
-            <Link 
-              to="/register" 
-              className="px-6 py-2 border-2 border-white text-white font-medium rounded-md hover:bg-white hover:text-primary transition-colors"
-            >
-              Register
-            </Link>
+          <div>
+            {!isAuthenticated ? (
+              <button 
+                onClick={() => setModalOpen(true)}
+                className="px-6 py-2 bg-white text-primary font-medium rounded-md hover:bg-gray-100 transition-colors"
+              >
+                Login / Register
+              </button>
+            ) : (
+              <button
+                className="px-6 py-2 bg-green-100 text-green-800 font-medium rounded-md hover:bg-green-200 transition-colors"
+                onClick={() => window.location.href = '/dashboard'}
+              >
+                Dashboard
+              </button>
+            )}
           </div>
         </header>
+        <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+          <div className="flex mb-6">
+            <button onClick={() => setActiveTab('login')} className={`flex-1 py-2 font-bold rounded-l ${activeTab==='login' ? 'bg-primary text-white' : 'bg-gray-100 text-primary'}`}>Login</button>
+            <button onClick={() => setActiveTab('register')} className={`flex-1 py-2 font-bold rounded-r ${activeTab==='register' ? 'bg-primary text-white' : 'bg-gray-100 text-primary'}`}>Register</button>
+          </div>
+          {activeTab === 'login' ? (
+            <Login setIsAuthenticated={handleSetIsAuthenticated} setIsAdmin={handleSetIsAdmin} isModal={true} />
+          ) : (
+            <Register setIsAuthenticated={handleSetIsAuthenticated} setIsAdmin={handleSetIsAdmin} isModal={true} />
+          )}
+        </Modal>
         <main>
           <div className="mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
