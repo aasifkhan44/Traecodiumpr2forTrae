@@ -167,12 +167,19 @@ const HomePage = () => {
             </div>
             {/* Play Now Button (Full Width) */}
             <div className="mt-8">
-              <Link
-                to="/login"
+              <button
                 className="block w-full px-8 py-4 bg-gradient-to-r from-yellow-400 to-pink-500 text-white text-2xl font-bold rounded-xl shadow-lg text-center hover:scale-105 transition-transform"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setActiveTab('login');
+                    setModalOpen(true);
+                  } else {
+                    window.location.href = '/dashboard';
+                  }
+                }}
               >
                 Play Now
-              </Link>
+              </button>
             </div>
             {/* SVG Cards Section */}
             <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-6">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 // Full country code list
@@ -161,96 +161,26 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
     }
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Optionally, you can validate the token here
+      if (setIsAuthenticated) setIsAuthenticated(true);
+      if (setIsAdmin) setIsAdmin(localStorage.getItem('isAdmin') === 'true');
+    }
+  }, []);
+
   const inputClass = `input ${isModal ? 'text-gray-900 placeholder-gray-400' : ''}`;
 
   return (
     isModal ? (
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-primary mb-6">Login to Color Prediction Game</h2>
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-            <p>{error}</p>
-          </div>
-        )}
-        <form onSubmit={onSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="mobile">
-              Mobile Number
-            </label>
-            <div className="flex">
-              <select
-                className={`${inputClass} mr-2 w-1/3`}
-                id="countryCode"
-                name="countryCode"
-                value={countryCode}
-                onChange={onChange}
-                required
-              >
-                {countryCodes.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.code} ({country.country})
-                  </option>
-                ))}
-              </select>
-              <input
-                className={`${inputClass} w-2/3`}
-                type="tel"
-                id="mobile"
-                name="mobile"
-                value={mobile}
-                onChange={onChange}
-                placeholder="Enter your mobile number"
-                required
-              />
-            </div>
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-              Password
-            </label>
-            <input
-              className={inputClass}
-              type="password"
-              id="password"
-              name="password"
-              value={password}
-              onChange={onChange}
-              placeholder="Enter your password"
-              required
-              minLength="6"
-            />
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <button
-              type="submit"
-              className={`btn btn-primary w-full ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Logging in...
-                </span>
-              ) : (
-                'Login'
-              )}
-            </button>
-          </div>
-          <p className="text-center text-gray-600 text-sm">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary hover:text-primary/80">
-              Register
-            </Link>
-          </p>
-        </form>
-      </div>
-    ) : (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      localStorage.getItem('token') ? (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold mb-4 text-green-600">You are already logged in.</h2>
+        </div>
+      ) : (
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h2 className="text-2xl font-bold text-center text-primary mb-6">Login to Color Prediction Game</h2>
+          <h2 className="text-2xl font-bold text-center mb-6" style={{ color: 'red' }}>login</h2>
           {error && (
             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
               <p>{error}</p>
@@ -263,7 +193,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
               </label>
               <div className="flex">
                 <select
-                  className="input mr-2 w-1/3"
+                  className={`${inputClass} mr-2 w-1/3`}
                   id="countryCode"
                   name="countryCode"
                   value={countryCode}
@@ -277,7 +207,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   ))}
                 </select>
                 <input
-                  className="input w-2/3"
+                  className={`${inputClass} w-2/3`}
                   type="tel"
                   id="mobile"
                   name="mobile"
@@ -288,13 +218,12 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 />
               </div>
             </div>
-            
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
                 Password
               </label>
               <input
-                className="input"
+                className={inputClass}
                 type="password"
                 id="password"
                 name="password"
@@ -305,7 +234,6 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 minLength="6"
               />
             </div>
-            
             <div className="flex items-center justify-between mb-4">
               <button
                 type="submit"
@@ -325,7 +253,6 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 )}
               </button>
             </div>
-            
             <p className="text-center text-gray-600 text-sm">
               Don't have an account?{' '}
               <Link to="/register" className="text-primary hover:text-primary/80">
@@ -334,7 +261,103 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
             </p>
           </form>
         </div>
-      </div>
+      )
+    ) : (
+      localStorage.getItem('token') ? (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
+            <h2 className="text-2xl font-bold mb-4 text-green-600">You are already logged in.</h2>
+          </div>
+        </div>
+      ) : (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+            <h2 className="text-2xl font-bold text-center mb-6" style={{ color: 'red' }}>login</h2>
+            {error && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+                <p>{error}</p>
+              </div>
+            )}
+            <form onSubmit={onSubmit}>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="mobile">
+                  Mobile Number
+                </label>
+                <div className="flex">
+                  <select
+                    className="input mr-2 w-1/3"
+                    id="countryCode"
+                    name="countryCode"
+                    value={countryCode}
+                    onChange={onChange}
+                    required
+                  >
+                    {countryCodes.map((country) => (
+                      <option key={country.code} value={country.code}>
+                        {country.code} ({country.country})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    className="input w-2/3"
+                    type="tel"
+                    id="mobile"
+                    name="mobile"
+                    value={mobile}
+                    onChange={onChange}
+                    placeholder="Enter your mobile number"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  className="input"
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                  placeholder="Enter your password"
+                  required
+                  minLength="6"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="submit"
+                  className={`btn btn-primary w-full ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Logging in...
+                    </span>
+                  ) : (
+                    'Login'
+                  )}
+                </button>
+              </div>
+              
+              <p className="text-center text-gray-600 text-sm">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-primary hover:text-primary/80">
+                  Register
+                </Link>
+              </p>
+            </form>
+          </div>
+        </div>
+      )
     )
   );
 };

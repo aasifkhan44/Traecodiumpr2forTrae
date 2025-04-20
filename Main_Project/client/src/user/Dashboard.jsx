@@ -161,77 +161,68 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
-      
-      {/* User Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card bg-white shadow-md rounded-lg p-6">
-          <div className="flex items-center mb-4">
-            <FaWallet className="text-primary text-2xl mr-3" />
-            <h2 className="text-xl font-bold">Wallet Balance</h2>
+    <div className="min-h-screen bg-gradient-to-b from-primary to-secondary text-white">
+      <div className="container mx-auto px-4 py-16">
+        <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
+        
+        {/* Modern compact user stats */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          {/* Wallet */}
+          <div className="flex-1 min-w-[180px] max-w-xs bg-white shadow rounded-lg px-6 py-5 flex flex-col items-start justify-center gap-2 border border-gray-100">
+            <div className="flex items-center gap-2 mb-2">
+              <FaWallet className="text-primary text-2xl" />
+              <span className="text-xl font-bold text-gray-900">Wallet</span>
+            </div>
+            {loading ? (
+              <div className="animate-pulse w-full">
+                <div className="h-7 bg-gray-200 rounded w-2/3 mb-2"></div>
+              </div>
+            ) : error ? (
+              <div className="text-red-600 text-sm font-semibold">
+                <p>Could not load</p>
+                <button onClick={() => window.location.reload()} className="text-primary hover:underline mt-1">Refresh</button>
+              </div>
+            ) : (
+              <>
+                <span
+                  className="text-2xl font-extrabold text-primary break-all truncate max-w-full"
+                  style={{ wordBreak: 'break-all', overflowWrap: 'break-word', width: '100%', display: 'block' }}
+                  title={userStats.balance.toFixed(2)}
+                >
+                  ⚡{userStats.balance.toFixed(2)}
+                </span>
+                <Link to="/wallet/recharge" className="text-sm text-primary hover:underline mt-1 font-semibold">Add funds</Link>
+              </>
+            )}
           </div>
-          {loading ? (
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-4 bg-gray-100 rounded w-1/4"></div>
+          {/* Referrals */}
+          <div className="flex-1 min-w-[180px] max-w-xs bg-white shadow rounded-lg px-6 py-5 flex flex-col items-start justify-center gap-2 border border-gray-100">
+            <div className="flex items-center gap-2 mb-2">
+              <FaShareAlt className="text-primary text-2xl" />
+              <span className="text-xl font-bold text-gray-900">Referrals</span>
             </div>
-          ) : error ? (
-            <div className="text-red-500">
-              <p>Could not load balance</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="text-primary hover:underline mt-2 inline-block"
-              >
-                Refresh
-              </button>
+            <div className="flex flex-col gap-1 w-full">
+              <span className="text-sm text-gray-800 font-semibold">Total: <span className="font-bold text-lg text-primary">{userStats.referrals}</span></span>
+              <span className="text-sm text-gray-800 font-semibold">Earnings: <span className="font-bold text-lg text-green-600">₹{userStats.referralEarnings}</span></span>
             </div>
-          ) : (
-            <>
-              <p className="text-3xl font-bold"> {userStats.balance.toFixed(2)}</p>
-              <Link to="/profile" className="text-primary hover:underline mt-2 inline-block">
-                Add funds
-              </Link>
-            </>
-          )}
+            <Link to="/referrals" className="text-sm text-primary hover:underline mt-1 font-semibold">Referral program</Link>
+          </div>
         </div>
         
-
+        {/* Games Grid - Shows games available according to settings */}
+        <div className="mb-8">
+          {user?.isAdmin ? <AdminGamesGrid /> : <GamesGrid />}
+        </div>
         
-        <div className="card bg-white shadow-md rounded-lg p-6">
-          <div className="flex items-center mb-4">
-            <FaShareAlt className="text-primary text-2xl mr-3" />
-            <h2 className="text-xl font-bold">Referrals</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-gray-600">Total Referrals</p>
-              <p className="text-2xl font-bold">{userStats.referrals}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Earnings</p>
-              <p className="text-2xl font-bold"> {userStats.referralEarnings}</p>
-            </div>
-          </div>
-          <Link to="/referrals" className="text-primary hover:underline mt-2 inline-block">
-            View referral program
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          
+          <Link to="/referrals" className="card bg-gradient-to-r from-accent to-purple-500 text-white p-6 transform transition-transform hover:scale-105">
+            <FaShareAlt className="text-4xl mb-4" />
+            <h3 className="text-xl font-bold mb-2">Invite Friends</h3>
+            <p>Earn commissions through our multi-level referral program!</p>
           </Link>
         </div>
-      </div>
-      
-      {/* Games Grid - Shows games available according to settings */}
-      <div className="mb-8">
-        {user?.isAdmin ? <AdminGamesGrid /> : <GamesGrid />}
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        
-        <Link to="/referrals" className="card bg-gradient-to-r from-accent to-purple-500 text-white p-6 transform transition-transform hover:scale-105">
-          <FaShareAlt className="text-4xl mb-4" />
-          <h3 className="text-xl font-bold mb-2">Invite Friends</h3>
-          <p>Earn commissions through our multi-level referral program!</p>
-        </Link>
       </div>
     </div>
   );

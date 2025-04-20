@@ -182,7 +182,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
   return (
     isModal ? (
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-primary mb-6">Register for Color Prediction Game</h2>
+        <h2 className="text-2xl font-bold text-center mb-6" style={{ color: 'red' }}>Register</h2>
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
             <p>{error}</p>

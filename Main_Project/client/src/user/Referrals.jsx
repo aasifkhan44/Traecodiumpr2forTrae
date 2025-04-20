@@ -71,70 +71,33 @@ const Referrals = () => {
     <div>
       <h1 className="text-2xl font-bold mb-6">Referral Program</h1>
       
-      {/* Referral Link Card */}
-      <div className="card mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Your Referral Link</h2>
-          <FaShareAlt className="text-primary text-xl" />
-        </div>
-        
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          Share your referral code with friends and earn commissions when they play!
-        </p>
-        
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-            <p>{error}</p>
+      {/* Modern compact referral card */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        {/* Referral Link */}
+        <div className="flex-1 min-w-[220px] max-w-lg bg-white shadow rounded-lg px-4 py-3 flex flex-col justify-center border border-gray-100">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-base font-semibold">Your Referral Link</span>
+            <FaShareAlt className="text-primary text-lg" />
           </div>
-        )}
-        
-        <div className="p-4">
-          <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex items-center justify-between mb-4">
-            {loading ? (
-              <div className="font-mono font-bold truncate">Loading your referral code...</div>
-            ) : (
-              <div className="font-mono font-bold truncate">
-                {siteSettings?.domain ? `${siteSettings.domain}/register?ref=${referralCode}` : 'Loading domain...'}
-              </div>
-            )}
-            <button 
-              onClick={handleCopyReferralCode}
-              className="ml-2 btn btn-primary"
-              disabled={loading || !referralCode}
-            >
-              {copySuccess ? 'Copied!' : <><FaCopy className="mr-1" /> Copy</>}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="font-mono text-xs truncate bg-gray-100 px-2 py-1 rounded">
+              {loading ? 'Loading...' : siteSettings?.domain ? `${siteSettings.domain}/register?ref=${referralCode}` : 'Loading domain...'}
+            </span>
+            <button onClick={handleCopyReferralCode} className="btn btn-xs btn-primary px-2 py-1 text-xs" disabled={loading || !referralCode}>
+              {copySuccess ? 'Copied!' : <FaCopy />}
             </button>
           </div>
+          {error && <div className="text-xs text-red-500 mt-2">{error}</div>}
         </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            <div className="flex items-center text-primary mb-2">
-              <FaUsers className="mr-2" />
-              <h3 className="font-bold">Referral Structure</h3>
-            </div>
-            <ul className="text-sm space-y-1 text-gray-600 dark:text-gray-400">
-              <li>• Level 1: 10% commission</li>
-              <li>• Level 2: 5% commission</li>
-              <li>• Level 3: 2% commission</li>
-            </ul>
+        {/* Earnings summary */}
+        <div className="flex-1 min-w-[160px] max-w-xs bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 flex flex-col justify-center border border-gray-100">
+          <div className="flex items-center text-primary mb-1">
+            <FaDollarSign className="mr-2 text-base" />
+            <span className="font-semibold text-base">Your Earnings</span>
           </div>
-          
-          <div className="flex-1 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-            <div className="flex items-center text-primary mb-2">
-              <FaDollarSign className="mr-2" />
-              <h3 className="font-bold">Your Earnings</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Total Referrals</p>
-                <p className="text-lg font-bold">{referrals.length}</p>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400">Total Earnings</p>
-                <p className="text-lg font-bold">$48.00</p>
-              </div>
-            </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs text-gray-600 dark:text-gray-400">Total Referrals: <span className="font-bold text-sm text-gray-900">{referrals.length}</span></span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">Total Earnings: <span className="font-bold text-sm text-green-600">$48.00</span></span>
           </div>
         </div>
       </div>

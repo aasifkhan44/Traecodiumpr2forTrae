@@ -42,8 +42,7 @@ const UserLayout = ({ onLogout }) => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-4">
             <NavLink 
-              to="/" 
-              end
+              to="/dashboard" 
               className={({isActive}) => 
                 `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`
               }
@@ -97,8 +96,7 @@ const UserLayout = ({ onLogout }) => {
           <div className="md:hidden bg-white dark:bg-gray-800 py-2">
             <div className="px-2 pt-2 pb-3 space-y-1">
               <NavLink 
-                to="/" 
-                end
+                to="/dashboard" 
                 className={({isActive}) => 
                   `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'}`
                 }
@@ -166,7 +164,7 @@ const UserLayout = ({ onLogout }) => {
       <footer className="bg-white dark:bg-gray-800 shadow mt-auto">
         <div className="container mx-auto px-4 py-4">
           <p className="text-center text-gray-600 dark:text-gray-400 text-sm">
-            © {new Date().getFullYear()} All rights reserved.
+            {new Date().getFullYear()} All rights reserved.
           </p>
         </div>
       </footer>
