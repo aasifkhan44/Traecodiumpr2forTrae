@@ -55,6 +55,7 @@ const commissionSettingsRoutes = require('./routes/commissionSettings');
 const wingoRoutes = require('./routes/wingo');
 const adminGamesRoutes = require('./routes/admin/games');
 const nummaRoutes = require('./routes/numma');
+const nummaAdminResultRouter = require('./routes/nummaAdminResult');
 const SiteSettings = require('./models/SiteSettings');
 const wingoController = require('./controllers/wingoController');
 
@@ -72,6 +73,7 @@ app.use('/api/commission-settings', commissionSettingsRoutes);
 console.log('Mounting wingo routes at /api/wingo');
 app.use('/api/wingo', wingoRoutes);
 app.use('/api/numma', nummaRoutes);
+app.use('/api/numma/admin/result-info', nummaAdminResultRouter);
 
 // Public route for site settings
 app.get('/api/site-settings', async (req, res) => {

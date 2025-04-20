@@ -171,6 +171,17 @@ const AdminLayout = ({ onLogout }) => {
               </li>
               <li>
                 <NavLink 
+                  to="/admin/numma-result-manager" 
+                  className={({isActive}) => 
+                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
+                  }
+                  onClick={toggleMobileMenu}
+                >
+                  <FaDice className="mr-2" /> Numma Result Manager
+                </NavLink>
+              </li>
+              <li>
+                <NavLink 
                   to="/admin/transactions" 
                   className={({isActive}) => 
                     `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`

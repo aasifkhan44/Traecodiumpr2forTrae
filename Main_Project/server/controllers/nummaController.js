@@ -2,18 +2,25 @@ const nummaRoundManager = require('../services/NummaRoundManager');
 const NummaBet = require('../models/NummaBet');
 const { NummaRound1m, NummaRound3m, NummaRound5m } = require('../models/NummaRound');
 const User = require('../models/User');
+const NummaAdminResult = require('../models/NummaAdminResult');
 
 // Get active rounds
 exports.getActiveRounds = async (req, res) => {
   try {
     const activeRounds = await nummaRoundManager.getActiveRounds();
-    
-    // Convert to array format
+    // Convert to array format, ensure all expected fields are present
     const roundsArray = Object.entries(activeRounds).map(([duration, round]) => ({
+      _id: round._id,
       duration: parseInt(duration),
-      ...round.toObject()
+      roundNumber: round.roundNumber,
+      status: round.status,
+      endTime: round.endTime,
+      startTime: round.startTime,
+      createdAt: round.createdAt,
+      totalBets: round.totalBets,
+      totalAmount: round.totalAmount,
+      totalPayout: round.totalPayout
     }));
-    
     res.json({
       success: true,
       data: roundsArray
@@ -201,52 +208,47 @@ exports.getUserBetHistory = async (req, res) => {
   }
 };
 
-// Set manual result (admin only)
+// Admin sets a manual result (pending, to be applied at round end)
 exports.setManualResult = async (req, res) => {
   try {
     const { roundId, duration, number } = req.body;
-    
     if (!roundId || !duration || number === undefined) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields'
-      });
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
-    
     if (![1, 3, 5].includes(parseInt(duration))) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid duration'
-      });
+      return res.status(400).json({ success: false, error: 'Invalid duration' });
     }
-    
     if (isNaN(number) || number < 0 || number > 9) {
-      return res.status(400).json({
-        success: false,
-        error: 'Number must be between 0 and 9'
-      });
+      return res.status(400).json({ success: false, error: 'Number must be between 0 and 9' });
     }
-    
-    const round = await nummaRoundManager.setManualResult(roundId, duration, parseInt(number));
-    
-    // Process bets for this round
-    await nummaRoundManager.processBets(round);
-    
-    // Broadcast result to clients
-    if (global.nummaWebSocketServer) {
-      global.nummaWebSocketServer.broadcastResult(round);
+    // Upsert admin result for this round
+    await NummaAdminResult.findOneAndUpdate(
+      { roundId, duration },
+      { number, createdAt: new Date() },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, message: 'Admin result set. It will be applied at round end.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Get outcomes for a specific round (admin usage)
+exports.getRoundOutcome = async (req, res) => {
+  try {
+    const { roundId } = req.query;
+    if (!roundId) {
+      return res.status(400).json({ success: false, error: 'Missing roundId' });
     }
-    
-    res.json({
-      success: true,
-      data: round
-    });
+    const NummaBetOutcome = require('../models/NummaBetOutcome');
+    const outcome = await NummaBetOutcome.findOne({ roundId });
+    if (!outcome) {
+      return res.status(404).json({ success: false, error: 'No outcome found for this round' });
+    }
+    res.json({ success: true, data: outcome });
   } catch (error) {
-    console.error('Error setting manual result:', error);
-    res.status(400).json({
-      success: false,
-      error: error.message || 'Error setting manual result'
-    });
+    console.error('Error getting round outcome:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 

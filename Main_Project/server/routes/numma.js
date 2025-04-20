@@ -46,4 +46,9 @@ router.post('/admin/start', authMiddleware, adminMiddleware, nummaController.sta
 // @access  Private/Admin
 router.post('/admin/stop', authMiddleware, adminMiddleware, nummaController.stopRounds);
 
+// @route   GET api/numma/admin/round-outcome
+// @desc    Get outcome for a specific round (admin)
+// @access  Private/Admin
+router.get('/admin/round-outcome', authMiddleware, adminMiddleware, nummaController.getRoundOutcome);
+
 module.exports = router;

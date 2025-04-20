@@ -3,6 +3,7 @@ const NummaBet = require('../models/NummaBet');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const NummaBetOutcome = require('../models/NummaBetOutcome');
+const NummaAdminResult = require('../models/NummaAdminResult');
 const mongoose = require('mongoose');
 
 class NummaRoundManager {
@@ -137,50 +138,38 @@ class NummaRoundManager {
         return;
       }
       
-      // --- Use pre-calculated outcome totals for risk control ---
-      const outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
-      let forcedNumber = null;
-      if (outcomeDoc) {
-        // Find the number with the lowest total bets (most profitable for admin)
-        let minTotal = Infinity;
-        let minNumbers = [];
-        for (let i = 0; i < 10; i++) {
-          const key = `number:${i}`;
-          const total = outcomeDoc.outcomeTotals.get(key) || 0;
-          if (total < minTotal) {
-            minTotal = total;
-            minNumbers = [i];
-          } else if (total === minTotal) {
-            minNumbers.push(i);
-          }
-        }
-        // If multiple numbers have the same (lowest) total, pick randomly among them
-        forcedNumber = minNumbers[Math.floor(Math.random() * minNumbers.length)];
-      }
-      // --- End risk control ---
-
-      // Generate result if not manually set
-      if (!round.result || !round.result.number) {
-        let randomNumber;
-        if (forcedNumber !== null) {
-          randomNumber = forcedNumber;
-        } else {
-          // fallback to weighted or uniform random
-          const weights = [0.07, 0.07, 0.07, 0.07, 0.07, 0.13, 0.13, 0.13, 0.13, 0.13];
-          function weightedRandom(weights) {
-            let sum = 0;
-            const r = Math.random();
-            for (let i = 0; i < weights.length; i++) {
-              sum += weights[i];
-              if (r < sum) return i;
+      // --- Use admin-declared result if exists ---
+      let adminResult = await NummaAdminResult.findOne({ roundId, duration });
+      if (adminResult && typeof adminResult.number === 'number' && adminResult.number >= 0 && adminResult.number <= 9) {
+        round.setResultFromNumber(adminResult.number);
+        round.isManualResult = true;
+      } else {
+        // --- Use pre-calculated outcome totals for risk control ---
+        const outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
+        let forcedNumber = null;
+        if (outcomeDoc) {
+          // Find the number with the lowest total bets (most profitable for admin)
+          let minTotal = Infinity;
+          let minNumbers = [];
+          for (let i = 0; i < 10; i++) {
+            const key = `number:${i}`;
+            const total = outcomeDoc.outcomeTotals.get(key) || 0;
+            if (total < minTotal) {
+              minTotal = total;
+              minNumbers = [i];
+            } else if (total === minTotal) {
+              minNumbers.push(i);
             }
-            return weights.length - 1;
           }
-          randomNumber = weightedRandom(weights);
+          // If multiple numbers have the same min total, pick randomly
+          forcedNumber = minNumbers[Math.floor(Math.random() * minNumbers.length)];
+          round.setResultFromNumber(forcedNumber);
+        } else {
+          // Fallback: random result
+          round.setResultFromNumber(Math.floor(Math.random() * 10));
         }
-        round.setResultFromNumber(randomNumber);
+        round.isManualResult = false;
       }
-      
       round.status = 'completed';
       await round.save();
       
@@ -195,9 +184,15 @@ class NummaRoundManager {
       }
 
       // Clean up NummaBetOutcome after result is generated
+      const outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
       if (outcomeDoc) {
         await NummaBetOutcome.deleteOne({ _id: outcomeDoc._id });
         console.log(`[DEBUG] Deleted NummaBetOutcome for roundId=${roundId}, duration=${duration}`);
+      }
+      
+      // Clean up pending admin result after use
+      if (adminResult) {
+        await NummaAdminResult.deleteOne({ _id: adminResult._id });
       }
       
     } catch (error) {
