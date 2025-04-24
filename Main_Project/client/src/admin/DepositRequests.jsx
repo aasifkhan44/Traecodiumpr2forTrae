@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { 
   FaCheckCircle, 
   FaTimesCircle, 
@@ -13,6 +12,7 @@ import {
   FaMobile
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import api from '../utils/api';
 
 const DepositRequests = () => {
   const [depositRequests, setDepositRequests] = useState([]);
@@ -31,20 +31,7 @@ const DepositRequests = () => {
         setLoading(true);
         setError(null);
         
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Authentication required');
-          setLoading(false);
-          return;
-        }
-        
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await axios.get(`${API_BASE_URL}/api/admin/deposit-requests`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await api.get('/admin/deposit-requests');
         
         if (response.data.success && response.data.data) {
           setDepositRequests(response.data.data);
@@ -55,12 +42,7 @@ const DepositRequests = () => {
           
           await Promise.all(userIds.map(async (userId) => {
             try {
-              const userResponse = await axios.get(`${API_BASE_URL}/api/admin/users/${userId}`, {
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                }
-              });
+              const userResponse = await api.get(`/admin/users/${userId}`);
               
               if (userResponse.data.success && userResponse.data.data) {
                 userDetailsObj[userId] = userResponse.data.data;
@@ -102,16 +84,8 @@ const DepositRequests = () => {
     try {
       setProcessingAction(true);
       
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required');
-        setProcessingAction(false);
-        return;
-      }
-      
       console.log(`Processing ${status} for request ${requestId}`);
       
-      const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
       const requestData = { 
         status: status.toString(),
         adminComment: 'Processed by admin'
@@ -119,16 +93,7 @@ const DepositRequests = () => {
       
       console.log('Sending request with data:', requestData);
       
-      const response = await axios.put(
-        `${API_BASE_URL}/api/admin/deposit-requests/${requestId}`, 
-        requestData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await api.put(`/admin/deposit-requests/${requestId}`, requestData);
       
       if (response.data.success) {
         toast.success(`Request ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, memo, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { WS_URL } from '../utils/ws';
 
 const AdminGameManagement = () => {
   const [games, setGames] = useState([]);
@@ -50,8 +51,6 @@ const AdminGameManagement = () => {
       
       setWsStatus('connecting');
       
-      // Try to get WebSocket URL from server
-      const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
       
       if (!token) {
@@ -61,39 +60,7 @@ const AdminGameManagement = () => {
         return;
       }
       
-      let wsUrl = null;
-      try {
-        const response = await axios.get(`${API_BASE_URL}/api/wingo/websocket-status`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.data.success && response.data.data && response.data.data.serverUrl) {
-          wsUrl = response.data.data.serverUrl;
-          console.log(`Got WebSocket URL from server: ${wsUrl}`);
-        }
-      } catch (err) {
-        console.warn('Could not get WebSocket URL from server, using fallback');
-      }
-      
-      // Fallback to default options if needed
-      if (!wsUrl) {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const hostname = window.location.hostname;
-        
-        const fallbackUrls = [
-          `${protocol}//${hostname}:5000`,
-          `${protocol}//${hostname}:3001`,
-          'ws://localhost:5000',
-          'ws://localhost:3001'
-        ];
-        
-        wsUrl = fallbackUrls.find(url => url) || 'ws://localhost:5000';
-      }
-      
-      console.log(`Connecting to WebSocket at ${wsUrl}`);
-      wsRef.current = new WebSocket(wsUrl);
+      wsRef.current = new window.WebSocket(WS_URL);
       
       wsRef.current.onopen = () => {
         console.log('Admin WebSocket connection established');

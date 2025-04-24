@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUsers, FaGamepad, FaMoneyBill, FaChartLine, FaCog, FaShareAlt } from 'react-icons/fa';
+import { API_BASE_URL } from '../utils/api';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -17,8 +18,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+        const response = await fetch(`${API_BASE_URL}/admin/dashboard`, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaCheck, FaTimes, FaSpinner, FaEye, FaTrash } from 'react-icons/fa';
 import { format } from 'date-fns';
-
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+import api from '../utils/api';
 
 const WithdrawalRequests = () => {
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
@@ -28,10 +26,7 @@ const WithdrawalRequests = () => {
   const fetchWithdrawalRequests = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/withdrawal-requests?status=${statusFilter}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/admin/withdrawal-requests?status=${statusFilter}`);
       
       if (res.data.success) {
         setWithdrawalRequests(res.data.data);
@@ -47,10 +42,7 @@ const WithdrawalRequests = () => {
   // Handle view request details
   const handleViewRequest = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/withdrawal-requests/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/admin/withdrawal-requests/${id}`);
       
       if (res.data.success) {
         setSelectedRequest(res.data.data);
@@ -76,16 +68,12 @@ const WithdrawalRequests = () => {
     
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.put(
-        `${API_BASE_URL}/api/admin/withdrawal-requests/${selectedRequest._id}`,
+      const res = await api.put(
+        `/admin/withdrawal-requests/${selectedRequest._id}`,
         {
           status: 'approved',
           adminComment: formData.adminComment,
           transactionId: formData.transactionId
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
         }
       );
       
@@ -117,16 +105,12 @@ const WithdrawalRequests = () => {
     
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.put(
-        `${API_BASE_URL}/api/admin/withdrawal-requests/${selectedRequest._id}`,
+      const res = await api.put(
+        `/admin/withdrawal-requests/${selectedRequest._id}`,
         {
           status: 'rejected',
           adminComment: formData.adminComment,
           rejectionReason: formData.rejectionReason
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
         }
       );
       
@@ -155,15 +139,11 @@ const WithdrawalRequests = () => {
     
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.put(
-        `${API_BASE_URL}/api/admin/withdrawal-requests/${selectedRequest._id}`,
+      const res = await api.put(
+        `/admin/withdrawal-requests/${selectedRequest._id}`,
         {
           status: 'processing',
           adminComment: formData.adminComment
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
         }
       );
       
@@ -193,13 +173,7 @@ const WithdrawalRequests = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.delete(
-        `${API_BASE_URL}/api/admin/withdrawal-requests/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const res = await api.delete(`/admin/withdrawal-requests/${id}`);
       
       if (res.data.success) {
         toast.success('Withdrawal request deleted successfully');

@@ -34,16 +34,14 @@ class WingoWebSocketServer {
       if (httpServer) {
         // Try to attach to the HTTP server first
         try {
-          this.server = new WebSocket.Server({ server: httpServer });
-          console.log('Wingo WebSocket server attached to HTTP server');
-          
-          // Set the server URL based on the HTTP server address
+          // Attach to HTTP server at specific path for Wingo
+          this.server = new WebSocket.Server({ server: httpServer, path: '/ws/wingo' });
+          console.log('Wingo WebSocket server attached to HTTP server at /ws/wingo');
           const address = httpServer.address() || {};
           const host = address.address === '::' ? 'localhost' : (address.address || 'localhost');
           const port = address.port || 5000;
-          this.serverUrl = `ws://${host}:${port}`;
+          this.serverUrl = `ws://${host}:${port}/ws/wingo`;
           console.log(`WebSocket server URL: ${this.serverUrl}`);
-          
           this.isRunning = true;
         } catch (err) {
           console.error('Failed to attach WebSocket server to HTTP server:', err.message);
@@ -203,7 +201,7 @@ class WingoWebSocketServer {
         this.adminClients.delete(ws); // Also remove from admin clients if present
       });
       
-      // Send current round info to the client
+      // Send active rounds to the client
       this.sendActiveRounds(ws);
 
       // Send welcome message to the client
@@ -226,6 +224,9 @@ class WingoWebSocketServer {
       // Handle different message types
       if (data.type === 'ping') {
         ws.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+      } else if (data.type === 'getRounds') {
+        this.sendActiveRounds(ws);
+        return;
       } else if (data.type === 'admin-auth') {
         // Handle admin authentication
         this.handleAdminAuth(ws, data.token);
@@ -452,24 +453,21 @@ class WingoWebSocketServer {
     }
   }
   
+  // Send active rounds to a specific client (Numma-style)
   async sendActiveRounds(ws) {
     try {
       const activeRounds = await WingoRoundManager.getActiveRounds();
-      
-      // Convert to array format for easier client processing
+      // Ensure duration is always a number in the payload, and use array format
       const roundsArray = Object.entries(activeRounds).map(([duration, round]) => {
-        // Use .toObject() only if available, else use round as-is
-        const roundObj = (typeof round.toObject === 'function') ? round.toObject() : round;
+        const obj = (typeof round.toObject === 'function') ? round.toObject() : round;
         return {
-          duration: parseInt(duration),
-          ...roundObj
+          ...obj,
+          duration: Number(duration)
         };
       });
-
       ws.send(JSON.stringify({
         type: 'roundUpdate',
-        rounds: roundsArray,
-        timestamp: new Date().toISOString()
+        rounds: roundsArray
       }));
     } catch (err) {
       console.error('Error sending active rounds:', err);
@@ -482,38 +480,30 @@ class WingoWebSocketServer {
     }
   }
 
+  // Broadcast active rounds to all clients (Numma-style)
   async broadcastActiveRounds() {
     try {
       if (this.clients.size === 0) return;
-
       const activeRounds = await WingoRoundManager.getActiveRounds();
-      
-      // Convert to array format for easier client processing
+      // Ensure duration is always a number in the payload, and use array format
       const roundsArray = Object.entries(activeRounds).map(([duration, round]) => {
-        // Use .toObject() only if available, else use round as-is
-        const roundObj = (typeof round.toObject === 'function') ? round.toObject() : round;
+        const obj = (typeof round.toObject === 'function') ? round.toObject() : round;
         return {
-          duration: parseInt(duration),
-          ...roundObj
+          ...obj,
+          duration: Number(duration)
         };
       });
-
       const message = JSON.stringify({
         type: 'roundUpdate',
-        rounds: roundsArray,
-        timestamp: new Date().toISOString()
+        rounds: roundsArray
       });
-
-      // Broadcast to all connected clients
       for (const client of this.clients) {
         if (client.readyState === WebSocket.OPEN) {
           client.send(message);
         }
       }
-      
       // If we have admin clients, send them detailed data including bet statistics
       if (this.adminClients.size > 0) {
-        // For admin clients, we send more detailed information
         for (const adminClient of this.adminClients) {
           if (adminClient.readyState === WebSocket.OPEN) {
             this.sendAdminRoundsData(adminClient);

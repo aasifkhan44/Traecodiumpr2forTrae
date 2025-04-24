@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaTrash, FaEdit, FaCheck, FaTimes, FaPlus, FaSave, FaUserFriends } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-
-// Use the environment variable or fallback to default
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../utils/api';
 
 const ReferralCommissionSettings = () => {
   // State for commission settings
@@ -520,7 +518,7 @@ const ReferralCommissionSettings = () => {
                         </span>
                       </td>
                       <td className="py-2 px-4 border-b">
-                        🪙 {stat.totalCommission?.toFixed(2) || "0.00"}
+                        {stat.totalCommission?.toFixed(2) || "0.00"}
                       </td>
                       <td className="py-2 px-4 border-b">
                         <span className={`px-2 py-1 rounded text-xs ${stat.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

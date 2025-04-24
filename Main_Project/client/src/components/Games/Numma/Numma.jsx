@@ -89,7 +89,8 @@ export default function Numma({ gameData }) {
           betType,
           betValue,
           amount: Number(betAmount),
-          multiplier: Number(multiplier)
+          multiplier: Number(multiplier),
+          game: 'numma'
         });
         
         // Show success message
@@ -174,7 +175,8 @@ export default function Numma({ gameData }) {
           betType,
           betValue: formattedBetValue,
           amount: Number(betAmount),
-          multiplier: Number(multiplier)
+          multiplier: Number(multiplier),
+          game: 'numma'
         };
         
         // Ensure all required fields are present
@@ -319,6 +321,7 @@ export default function Numma({ gameData }) {
             activeRound={numma.activeRound} 
             timer={numma.timer} 
             formattedTime={numma.formattedTime} 
+            waitingForNextRound={numma.waitingForNextRound}
           />
         )}
         

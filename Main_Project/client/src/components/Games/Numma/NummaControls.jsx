@@ -31,7 +31,7 @@ export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
   );
 };
 
-export const NummaRoundInfo = ({ activeRound, timer, formattedTime }) => {
+export const NummaRoundInfo = ({ activeRound, timer, formattedTime, waitingForNextRound }) => {
   return (
     <div className="w-full max-w-xs sm:max-w-sm bg-gradient-to-br from-blue-50 to-white shadow-lg p-2 sm:p-3 rounded-2xl mb-3 flex flex-row items-center justify-between border border-blue-100 mx-auto">
       <div className="flex flex-row items-center gap-1 sm:gap-3 mb-1 sm:mb-0">
@@ -44,10 +44,14 @@ export const NummaRoundInfo = ({ activeRound, timer, formattedTime }) => {
         </span>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className={`font-mono text-base sm:text-lg ${timer <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}
-          style={{ minWidth: '60px', textAlign: 'center' }}>
-          {formattedTime}
-        </span>
+        {waitingForNextRound ? (
+          <span className="font-mono text-base sm:text-lg text-gray-500 animate-pulse" style={{ minWidth: '60px', textAlign: 'center' }}>Wait..</span>
+        ) : (
+          <span className={`font-mono text-base sm:text-lg ${timer <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}
+            style={{ minWidth: '60px', textAlign: 'center' }}>
+            {formattedTime}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -315,7 +319,8 @@ NummaGameModes.propTypes = {
 NummaRoundInfo.propTypes = {
   activeRound: PropTypes.object,
   timer: PropTypes.number.isRequired,
-  formattedTime: PropTypes.string.isRequired
+  formattedTime: PropTypes.string.isRequired,
+  waitingForNextRound: PropTypes.bool.isRequired
 };
 
 NummaWallet.propTypes = {

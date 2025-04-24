@@ -1,7 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
-
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../utils/api';
 
 // Create the context
 const SiteSettingsContext = createContext();
@@ -19,7 +18,7 @@ export const SiteSettingsProvider = ({ children }) => {
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/site-settings`);
+        const response = await axios.get(`${API_BASE_URL}/site-settings`);
         if (response.data.success && response.data.data) {
           setSiteSettings(response.data.data);
         }

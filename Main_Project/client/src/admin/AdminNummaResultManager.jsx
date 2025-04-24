@@ -57,6 +57,12 @@ const AdminNummaResultManager = () => {
         if (isMounted) setOutcome(res.data.data || null);
       } catch (err) {
         if (isMounted) setOutcome(null);
+        // Prevent console error spam for missing outcome (auto-deleted)
+        // Optionally: log only if not a 404
+        if (err?.response?.status && err.response.status !== 404) {
+          // eslint-disable-next-line no-console
+          console.error('Error fetching outcome:', err);
+        }
       }
     };
     fetchOutcome(); // initial fetch

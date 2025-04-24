@@ -4,6 +4,7 @@ const WingoAdminResult = require('../models/WingoAdminResult');
 const WingoPotentialWin = require('../models/WingoPotentialWin'); // Fix import path
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const WingoWebSocketServer = require('./wingoWebSocketServer');
 
 // Helper to extract only color/number for round.result
 function toRoundResult(adminResult) {
@@ -98,9 +99,11 @@ class WingoRoundManager {
       this.scheduleRoundEnd(round);
       
       // Broadcast round update to all clients after new round is created
-      const wsServer = require('./wingoWebSocketServer').getInstance();
-      if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
-        wsServer.broadcastActiveRounds();
+      if (WingoWebSocketServer && typeof WingoWebSocketServer.getInstance === 'function') {
+        const wsServer = WingoWebSocketServer.getInstance();
+        if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
+          wsServer.broadcastActiveRounds();
+        }
       }
       
       return round;
@@ -143,9 +146,11 @@ class WingoRoundManager {
         this.scheduleRoundEnd(newRound);
         
         // Broadcast round update to all clients after new round is created
-        const wsServer = require('./wingoWebSocketServer').getInstance();
-        if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
-          wsServer.broadcastActiveRounds();
+        if (WingoWebSocketServer && typeof WingoWebSocketServer.getInstance === 'function') {
+          const wsServer = WingoWebSocketServer.getInstance();
+          if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
+            wsServer.broadcastActiveRounds();
+          }
         }
         
         return newRound;
@@ -211,9 +216,11 @@ class WingoRoundManager {
     await round.save();
 
     // Broadcast round update to all clients after round ends
-    const wsServer = require('./wingoWebSocketServer').getInstance();
-    if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
-      wsServer.broadcastActiveRounds();
+    if (WingoWebSocketServer && typeof WingoWebSocketServer.getInstance === 'function') {
+      const wsServer = WingoWebSocketServer.getInstance();
+      if (wsServer && typeof wsServer.broadcastActiveRounds === 'function') {
+        wsServer.broadcastActiveRounds();
+      }
     }
 
     // Process bets
@@ -308,9 +315,11 @@ class WingoRoundManager {
           });
 
           // Send balance update to user via WebSocket after payout
-          const wsServer = require('./wingoWebSocketServer').getInstance();
-          if (wsServer && typeof wsServer.sendUserBalanceUpdate === 'function') {
-            wsServer.sendUserBalanceUpdate(user._id, user.balance);
+          if (WingoWebSocketServer && typeof WingoWebSocketServer.getInstance === 'function') {
+            const wsServer = WingoWebSocketServer.getInstance();
+            if (wsServer && typeof wsServer.sendUserBalanceUpdate === 'function') {
+              wsServer.sendUserBalanceUpdate(user._id, user.balance);
+            }
           }
         }
       }
@@ -355,12 +364,32 @@ class WingoRoundManager {
     const activeRounds = {};
     const now = new Date();
     for (const duration of Object.keys(this.roundModels)) {
-      const round = await this.roundModels[duration].findOne({ status: 'open' });
+      let round = await this.roundModels[duration].findOne({ status: 'open' });
+      if (!round) {
+        // If no open round exists, create one immediately
+        try {
+          round = await this.createNewRound(duration);
+        } catch (err) {
+          console.error(`Failed to auto-create round for duration ${duration}:`, err.message);
+          continue;
+        }
+      }
       if (round) {
-        // Use .toObject() only if available, else use round as-is
+        // Special fix for 1-minute round: ensure startTime/endTime are always correct and countdown is live
         const roundObj = (typeof round.toObject === 'function') ? round.toObject() : round;
         roundObj.endTime = round.endTime;
-        roundObj.timeRemaining = Math.max(0, new Date(round.endTime).getTime() - now.getTime());
+        roundObj.startTime = round.startTime;
+        // For 1-minute, always recalc from DB and never use stale in-memory timer
+        if (Number(duration) === 1) {
+          // Refetch from DB to ensure latest
+          const fresh = await this.roundModels[duration].findOne({ status: 'open' }).lean();
+          if (fresh) {
+            roundObj.roundNumber = fresh.roundNumber;
+            roundObj.startTime = fresh.startTime;
+            roundObj.endTime = fresh.endTime;
+          }
+        }
+        roundObj.timeRemaining = Math.max(0, new Date(roundObj.endTime).getTime() - now.getTime());
         activeRounds[duration] = roundObj;
       }
     }

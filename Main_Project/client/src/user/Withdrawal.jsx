@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { 
   FaWallet, 
   FaCreditCard, 
@@ -13,6 +12,7 @@ import {
   FaExclamationTriangle,
   FaCoins
 } from 'react-icons/fa';
+import api from '../utils/api';
 
 const Withdrawal = () => {
   // Payment settings and options
@@ -56,20 +56,7 @@ const Withdrawal = () => {
     const fetchWithdrawalSettings = async () => {
       setLoadingSettings(true);
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setErrorSettings('Authentication required');
-          setLoadingSettings(false);
-          return;
-        }
-        
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await axios.get(`${API_BASE_URL}/api/withdrawal/options`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await api.get('/withdrawal/options');
         
         if (response.data.success) {
           // Log the received data to debug icon issues
@@ -130,20 +117,7 @@ const Withdrawal = () => {
     
     const fetchWithdrawalSettings = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setErrorSettings('Authentication required');
-          setLoadingSettings(false);
-          return;
-        }
-        
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await axios.get(`${API_BASE_URL}/api/withdrawal/options`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await api.get('/withdrawal/options');
         
         if (response.data.success) {
           // Ensure imageUrl is properly set for all options
@@ -184,20 +158,7 @@ const Withdrawal = () => {
       try {
         setLoadingHistory(true);
         
-        // Get token
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setLoadingHistory(false);
-          return;
-        }
-        
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await axios.get(`${API_BASE_URL}/api/withdrawal/my-requests`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
+        const response = await api.get('/withdrawal/my-requests');
         
         if (response.data.success && response.data.data) {
           setRequestHistory(response.data.data);
@@ -357,21 +318,7 @@ const Withdrawal = () => {
         requestData.cryptoAddress = cryptoAddress;
       }
       
-      // Get token
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Authentication required');
-        setLoading(false);
-        return;
-      }
-      
-      const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-      const response = await axios.post(`${API_BASE_URL}/api/withdrawal/create-request`, requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.post('/withdrawal/create-request', requestData);
       
       if (response.data.success) {
         setSuccess(true);
@@ -457,20 +404,7 @@ const Withdrawal = () => {
               // Retry fetching withdrawal settings
               const fetchWithdrawalSettings = async () => {
                 try {
-                  const token = localStorage.getItem('token');
-                  if (!token) {
-                    setErrorSettings('Authentication required');
-                    setLoadingSettings(false);
-                    return;
-                  }
-                  
-                  const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-                  const response = await axios.get(`${API_BASE_URL}/api/withdrawal/options`, {
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${token}`
-                    }
-                  });
+                  const response = await api.get('/withdrawal/options');
                   
                   if (response.data.success) {
                     // Ensure imageUrl is properly set for all options

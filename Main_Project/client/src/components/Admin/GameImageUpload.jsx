@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { API_BASE_URL } from '../../utils/api';
 
 const GameImageUpload = ({ gameIdentifier, imageType, currentImageUrl, onImageUpdate }) => {
   const [previewUrl, setPreviewUrl] = useState(currentImageUrl || '');
@@ -28,7 +29,6 @@ const GameImageUpload = ({ gameIdentifier, imageType, currentImageUrl, onImageUp
       formData.append('image', file);
       formData.append('type', imageType); // 'logo' or 'card'
 
-      const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
 
       if (!token) {

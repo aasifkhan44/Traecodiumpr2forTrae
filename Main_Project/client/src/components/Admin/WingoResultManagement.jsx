@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
+import { WS_URL } from '../../utils/ws';
 
 export default function WingoResultManagement() {
   const [loading, setLoading] = useState(true);
@@ -13,6 +14,7 @@ export default function WingoResultManagement() {
   const [localTimeRemaining, setLocalTimeRemaining] = useState(null);
   const [showSubmissionSummary, setShowSubmissionSummary] = useState(false);
   const [submissionDetails, setSubmissionDetails] = useState(null);
+  const [waitingForNextRound, setWaitingForNextRound] = useState(false);
   const timerRef = React.useRef(null);
 
   const durations = [
@@ -38,6 +40,7 @@ export default function WingoResultManagement() {
     setSelectedResultType(null);
     setSelectedResultValue(null);
     setLocalTimeRemaining(null);
+    setWaitingForNextRound(false);
     fetchRoundStats();
     // eslint-disable-next-line
   }, [selectedDuration]);
@@ -51,6 +54,7 @@ export default function WingoResultManagement() {
         setLocalTimeRemaining(prev => {
           if (prev === null || prev <= 1000) {
             clearInterval(timerRef.current);
+            fetchRoundStats(); // Force refresh round info when timer hits 0
             return 0;
           }
           return prev - 1000;
@@ -95,7 +99,7 @@ export default function WingoResultManagement() {
 
     function setupWS() {
       cleanupWS();
-      ws = new window.WebSocket('ws://localhost:5000'); // Changed port to match backend
+      ws = new window.WebSocket(WS_URL);
       ws.onopen = () => {
         // Optionally authenticate if your backend requires it
       };
@@ -149,20 +153,24 @@ export default function WingoResultManagement() {
       const response = await api.get('/wingo/admin-round-stats', {
         params: { duration: selectedDuration }
       });
-      if (response.data.success) {
+      if (response.data.success && response.data.data && response.data.data.round) {
         setRoundStats(response.data.data);
+        setWaitingForNextRound(false);
         if (response.data.data.suggestion) {
           const { type, value } = response.data.data.suggestion;
           setSelectedResultType(type);
           setSelectedResultValue(value);
         }
       } else {
-        setError(response.data.message || 'Failed to fetch round statistics');
         setRoundStats(null);
+        setWaitingForNextRound(true);
+        setTimeout(fetchRoundStats, 3000); // Try again in 3 seconds
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to fetch round statistics');
       setRoundStats(null);
+      setWaitingForNextRound(true);
+      setTimeout(fetchRoundStats, 3000);
     } finally {
       setLoading(false);
     }
@@ -264,6 +272,10 @@ export default function WingoResultManagement() {
         toast.error('Failed to copy details');
       });
   };
+
+  if (waitingForNextRound) {
+    return <div className="text-center py-10 text-lg text-blue-600">Waiting for next round...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

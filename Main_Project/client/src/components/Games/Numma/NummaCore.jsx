@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useContext, useRef } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
 import api from '../../../utils/api';
+import { WS_URL } from '../../../utils/ws';
 import { toast } from 'react-hot-toast';
+
+let interval = null;
 
 const NummaCore = () => {
   const auth = useContext(AuthContext);
@@ -30,6 +33,7 @@ const NummaCore = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupData, setPopupData] = useState({ betType: '', betValue: '', round: null });
   const [historyRounds, setHistoryRounds] = useState([]);
+  const [waitingForNextRound, setWaitingForNextRound] = useState(false);
 
   const formattedTime = useMemo(() => {
     const minutes = Math.floor(timer / 60);
@@ -129,28 +133,33 @@ const NummaCore = () => {
 
   const connectWebSocket = useCallback(() => {
     if (wsRef.current) wsRef.current.close();
-    const wsUrl = 'ws://localhost:5000/ws/numma';
-    const ws = new WebSocket(wsUrl);
+    console.log('Connecting to Numma WebSocket at:', WS_URL);
+    const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
     ws.onopen = () => {
       if (user && user.token) {
-        ws.send(JSON.stringify({ type: 'auth', token: user.token }));
+        ws.send(JSON.stringify({ type: 'auth', token: user.token, game: 'numma' }));
       }
-      ws.send(JSON.stringify({ type: 'subscribe', duration: selectedDuration }));
+      ws.send(JSON.stringify({ type: 'subscribe', duration: selectedDuration, game: 'numma' }));
     };
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'roundUpdate' && Array.isArray(data.rounds)) {
-          setRounds(data.rounds);
-          const active = data.rounds.find(round => round.duration === selectedDuration && round.status === 'active');
+        if (data.type === 'roundUpdate' && data.rounds) {
+          // Accept both object and array formats
+          let roundsArr = Array.isArray(data.rounds)
+            ? data.rounds
+            : Object.values(data.rounds);
+          setRounds(roundsArr);
+          const active = roundsArr.find(round => round.duration === selectedDuration && round.status === 'active');
           if (active) {
             setActiveRound(active);
             const endTime = new Date(active.endTime).getTime();
             const now = Date.now();
             setTimer(Math.max(0, Math.floor((endTime - now) / 1000)));
+            setWaitingForNextRound(false);
           }
-          const completed = data.rounds.filter(round => round.status === 'completed');
+          const completed = roundsArr.filter(round => round.status === 'completed');
           if (completed.length > 0) {
             setCompletedRounds(prev => {
               const existingIds = new Set(prev.map(r => r._id));
@@ -163,6 +172,7 @@ const NummaCore = () => {
           const endTime = new Date(data.round.endTime).getTime();
           const now = Date.now();
           setTimer(Math.max(0, Math.floor((endTime - now) / 1000)));
+          setWaitingForNextRound(false);
         } else if (data.type === 'round_result') {
           setCompletedRounds(prev => [data.round, ...prev]);
           const userBetsForRound = userBets.filter(bet => bet.roundId === data.round._id);
@@ -214,7 +224,15 @@ const NummaCore = () => {
         }
       } catch (error) {}
     };
-    ws.onerror = () => {};
+    ws.onerror = (event) => {
+      // Suppress 'WebSocket is closed before the connection is established' error if already closing/closed
+      if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) {
+        // Ignore benign errors
+        return;
+      }
+      // Optionally, log other errors for debugging
+      // console.error('WebSocket error:', event);
+    };
     ws.onclose = () => {};
   }, [user, selectedDuration, userBets]);
 
@@ -226,25 +244,51 @@ const NummaCore = () => {
     };
   }, [user, selectedDuration, fetchActiveRound, connectWebSocket]);
 
+  // --- Timer logic for live countdown and auto-fetch next round (MIRROR Wingo) ---
+  const timerRef = useRef(null);
   useEffect(() => {
-    if (!activeRound || !activeRound.endTime) return;
-
-    const endTime = new Date(activeRound.endTime).getTime();
-
-    const updateTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const round = activeRound;
+    if (!round || !round.endTime) {
+      setTimer(null);
+      return;
+    }
+    const calcRemaining = () => {
       const now = Date.now();
-      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-      setTimer(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-      }
+      const end = new Date(round.endTime).getTime();
+      return Math.max(0, Math.floor((end - now) / 1000));
     };
+    setTimer(calcRemaining());
+    setWaitingForNextRound(false);
+    timerRef.current = setInterval(() => {
+      const remaining = calcRemaining();
+      setTimer(remaining);
+      if (remaining === 0) {
+        setWaitingForNextRound(true);
+        let wsRequestSent = false;
+        if (wsRef.current && wsRef.current.readyState === 1) {
+          wsRef.current.send(JSON.stringify({ type: 'getRounds', game: 'numma' }));
+          wsRequestSent = true;
+        } else {
+          fetchActiveRound();
+        }
+        // Fallback: If after 2.5s timer is still 0, force REST fetch
+        setTimeout(() => {
+          // Only fetch if still stuck at 0 and waiting
+          if (timer === 0 && waitingForNextRound) {
+            fetchActiveRound();
+          }
+        }, 2500);
+      }
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [activeRound, selectedDuration]);
 
-    updateTimer(); // Initialize immediately
-    const interval = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeRound?.endTime]);
+  useEffect(() => {
+    if (waitingForNextRound && timer > 0) {
+      setWaitingForNextRound(false);
+    }
+  }, [timer, waitingForNextRound]);
 
   useEffect(() => {
     const fetchHistoryRounds = async () => {

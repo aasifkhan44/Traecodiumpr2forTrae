@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
-import axios from 'axios';
 import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+import api from '../utils/api';
 
 const PaymentSettings = () => {
   console.log('PaymentSettings component initializing');
@@ -31,10 +29,7 @@ const PaymentSettings = () => {
     const fetchPaymentMethods = async () => {
       try {
         console.log('Fetching payment methods');
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`${API_BASE_URL}/api/admin/payment-methods?type=${activeTab}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get(`/admin/payment-methods?type=${activeTab}`);
         
         console.log('Payment methods response:', res.data);
         
@@ -56,10 +51,7 @@ const PaymentSettings = () => {
   const fetchPaymentMethods = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/admin/payment-methods?type=${activeTab}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/admin/payment-methods?type=${activeTab}`);
       
       if (res.data.success) {
         setPaymentMethods(res.data.data);
@@ -90,17 +82,7 @@ const PaymentSettings = () => {
         type: activeTab
       };
       
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/admin/payment-methods`, 
-        newFormData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await api.post('/admin/payment-methods', newFormData);
 
       if (response.data.success) {
         toast.success(`New ${activeTab === 'upi' ? 'UPI ID' : 'crypto wallet'} added successfully`);
@@ -141,10 +123,7 @@ const PaymentSettings = () => {
   // Handle update form submission
   const handleUpdateSubmit = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.put(`${API_BASE_URL}/api/admin/payment-methods/${id}`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.put(`/admin/payment-methods/${id}`, formData);
 
       if (res.data.success) {
         toast.success(`${activeTab === 'upi' ? 'UPI ID' : 'Crypto wallet'} updated successfully`);
@@ -160,11 +139,8 @@ const PaymentSettings = () => {
   // Handle active toggle
   const handleToggleActive = async (id, currentStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.put(`${API_BASE_URL}/api/admin/payment-methods/${id}`, {
+      const res = await api.put(`/admin/payment-methods/${id}`, {
         isActive: !currentStatus
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.success) {
@@ -184,10 +160,7 @@ const PaymentSettings = () => {
     }
     
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.delete(`${API_BASE_URL}/api/admin/payment-methods/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.delete(`/admin/payment-methods/${id}`);
 
       if (res.data.success) {
         toast.success(res.data.message);

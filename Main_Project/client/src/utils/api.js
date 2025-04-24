@@ -1,7 +1,20 @@
 import axios from 'axios';
 
+// Ensure API_BASE_URL always ends with /api
+const getBaseUrl = () => {
+  let base = (typeof window !== 'undefined' && window.API_BASE_URL) ||
+    (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) ||
+    'http://localhost:5000';
+  if (!base.endsWith('/api')) {
+    base = base.replace(/\/+$/, '') + '/api';
+  }
+  return base;
+};
+
+export const API_BASE_URL = getBaseUrl();
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }

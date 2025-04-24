@@ -6,9 +6,9 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
-const WingoWebSocketServerClass = require('./services/wingoWebSocketServer');
-const nummaWebSocketServer = require('./services/nummaWebSocketServer');
 const NummaRoundManager = require('./services/NummaRoundManager');
+const gameWebSocketServer = require('./services/gameWebSocketServer');
+const wingoController = require('./controllers/wingoController');
 
 const app = express();
 
@@ -17,9 +17,6 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Create HTTP server
 const server = http.createServer(app);
-
-// Initialize Numma WebSocket server
-const nummaWebSocketServerInstance = nummaWebSocketServer.init(server);
 
 // Middleware
 app.use(cors({
@@ -57,7 +54,6 @@ const adminGamesRoutes = require('./routes/admin/games');
 const nummaRoutes = require('./routes/numma');
 const nummaAdminResultRouter = require('./routes/nummaAdminResult');
 const SiteSettings = require('./models/SiteSettings');
-const wingoController = require('./controllers/wingoController');
 
 // Mount routers
 console.log('Registering routes...');
@@ -195,47 +191,25 @@ connectDB()
       }
     });
 
-    // Start Wingo WebSocket server
-    const wingoWebSocketServer = WingoWebSocketServerClass.getInstance();
+    // --- Unified WebSocket upgrade handling for both games ---
+    // Start unified Game WebSocket server
     try {
-      // Ensure the server is properly installed to handle WebSocket upgrade requests
-      const started = wingoWebSocketServer.start(server);
+      const started = gameWebSocketServer.start(server);
       if (started) {
-        const status = wingoWebSocketServer.getStatus();
-        console.log(`Wingo WebSocket server started successfully on ${status.serverUrl}`);
-        
-        // Handle WebSocket status endpoint with proper CORS headers
-        app.get('/api/wingo/websocket-status', (req, res) => {
-          // Set proper headers for WebSocket protocol
-          res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-          res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-          res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Upgrade, Connection');
-          
-          const status = wingoWebSocketServer.getStatus();
-          res.json({
-            success: true,
-            data: status
-          });
-        });
-        
-        // Add explicit handling for WebSocket protocol upgrade
-        server.on('upgrade', (request, socket, head) => {
-          console.log('Upgrade request received for WebSocket protocol');
-          // Let the WingoWebSocketServer handle the upgrade
-          if (wingoWebSocketServer.server) {
-            wingoWebSocketServer.server.handleUpgrade(request, socket, head, (ws) => {
-              wingoWebSocketServer.server.emit('connection', ws, request);
-            });
-          } else {
-            // Fallback to Socket.io handling
-            socket.destroy();
-          }
-        });
+        console.log('Unified Game WebSocket server started at /ws/game');
       } else {
-        console.error('Failed to start Wingo WebSocket server');
+        console.error('Failed to start Unified Game WebSocket server');
       }
     } catch (err) {
-      console.error('Error starting Wingo WebSocket server:', err);
+      console.error('Error starting Unified Game WebSocket server:', err);
+    }
+
+    // START NUMMA ROUND MANAGER
+    try {
+      NummaRoundManager.start();
+      console.log('Numma Round Manager started (all durations)');
+    } catch (err) {
+      console.error('Error starting Numma Round Manager:', err);
     }
   })
   .catch(err => console.error('MongoDB connection error:', err));
@@ -255,11 +229,4 @@ db.on('error', (err) => console.error('MongoDB connection error:', err));
 db.on('disconnected', () => console.log('MongoDB disconnected'));
 db.once('open', async () => {
   console.log('MongoDB connected');
-  // Start Numma rounds automatically on server start
-  if (NummaRoundManager && typeof NummaRoundManager.start === 'function') {
-    await NummaRoundManager.start();
-    console.log('Numma round manager started.');
-  } else {
-    console.error('Numma round manager not found or start method not available');
-  }
 });

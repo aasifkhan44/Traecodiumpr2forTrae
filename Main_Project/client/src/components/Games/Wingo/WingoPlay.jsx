@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Fragment, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import api from '../../../utils/api';
+import api, { API_BASE_URL } from '../../../utils/api';
+import { WS_URL } from '../../../utils/ws';
 import { useAuth } from '../../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -26,7 +27,9 @@ export default function WingoPlay() {
   const [totalCount, setTotalCount] = useState(0);
   const [results, setResults] = useState([]);
   const [localTimeRemaining, setLocalTimeRemaining] = useState(null);
+  const [waitingForNextRound, setWaitingForNextRound] = useState(false);
   const timerRef = React.useRef(null);
+  const wsRef = React.useRef(null);
 
   const colors = [
     { value: 'Red', className: 'bg-red-500' },
@@ -44,254 +47,78 @@ export default function WingoPlay() {
   ];
 
   useEffect(() => {
-    fetchActiveRounds();
-    const pollInterval = setInterval(fetchActiveRounds, 5000);
-    let ws = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
     const reconnectDelay = 2000;
     let reconnectTimer = null;
+    let pollInterval = null;
 
     const connectWebSocket = async () => {
       try {
-        if (ws) {
-          ws.onclose = null;
-          ws.close();
+        if (wsRef.current) {
+          wsRef.current.onclose = null;
+          wsRef.current.close();
         }
-
-        let wsUrl = null;
-        try {
-          const response = await api.get('/wingo/websocket-status');
-          if (response.data.success && response.data.data && response.data.data.serverUrl) {
-            wsUrl = response.data.data.serverUrl;
-            console.log(`Got WebSocket URL from server: ${wsUrl}`);
-          }
-        } catch (err) {
-          console.warn('Could not get WebSocket URL from server, using fallback methods');
-        }
-
-        if (!wsUrl) {
-          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          const hostname = window.location.hostname;
-          const fallbackUrls = [
-            import.meta.env.VITE_WS_URL,
-            `${protocol}//${hostname}:3001`,
-            `${protocol}//${hostname}:5000`,
-            'ws://localhost:3001'
-          ];
-          wsUrl = fallbackUrls.find(url => url) || 'ws://localhost:3001';
-        }
-
-        console.log(`Attempting WebSocket connection to ${wsUrl}`);
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
+        wsRef.current = new WebSocket(WS_URL);
+        console.log(`Attempting WebSocket connection to ${WS_URL}`);
+        wsRef.current.onopen = () => {
           console.log('WebSocket connected successfully');
           reconnectAttempts = 0;
-          fetchActiveRounds();
+          wsRef.current.send(JSON.stringify({ type: 'getRounds', game: 'wingo' }));
         };
-
-        ws.onmessage = (event) => {
+        wsRef.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('WebSocket message received:', data);
-
-            if (data.type === 'roundError') {
-              console.error('Server error:', data.error, '-', data.details);
-              setError(`${data.message}: ${data.details}`);
-              setLoading(false);
-              return;
-            }
-
-            // Check for bet result to show win/loss notification with updated balance
-            if (data.type === 'betResult') {
-              // Refresh user balance when bet results are received
-              fetchUserData();
-              
-              // Display win/loss notification with updated balance
-              if (data.win) {
-                const winAmount = data.payout || data.amount || 0;
-                toast.success(
-                  <div>
-                    <strong>You won!</strong>
-                    <div>Amount: +🪙{winAmount.toFixed(2)}</div>
-                    <div className="mt-1">Refreshing balance...</div>
-                  </div>,
-                  { duration: 5000 }
-                );
-                
-                // After a short delay, show the updated balance
-                setTimeout(() => {
-                  if (userProfile && userProfile.balance) {
-                    toast.success(
-                      <div>
-                        <strong>Balance Updated</strong>
-                        <div>New Balance: 🪙{userProfile.balance.toFixed(2)}</div>
-                      </div>,
-                      { duration: 3000 }
-                    );
-                  }
-                }, 2000);
-              } else if (data.loss) {
-                toast.error(
-                  <div>
-                    <strong>Better luck next time!</strong>
-                    <div>Amount: -🪙{data.amount?.toFixed(2) || '0.00'}</div>
-                  </div>,
-                  { duration: 3000 }
-                );
-              }
-              
-              // Also fetch recent bets to show updated results
-              fetchRecentBets();
-            }
-
-            // Check for round completion to refresh balance
-            if (data.type === 'roundComplete' || data.type === 'roundResult') {
-              // Refresh user balance when a round completes
-              fetchUserData();
-              
-              // If there's a result with color/number, show it
-              if (data.result) {
-                const { color, number } = data.result;
-                toast.info(
-                  <div>
-                    <strong>Round Complete!</strong>
-                    <div>Result: {color} {number}</div>
-                  </div>,
-                  { duration: 3000 }
-                );
-              }
-              
-              // Also fetch recent bets to show updated results
-              fetchRecentBets();
-            }
-
-            // Handle balance update message directly
-            if (data.type === 'balanceUpdate' && data.balance !== undefined) {
-              const prevBalance = userProfile?.balance || 0;
-              const newBalance = data.balance;
-              const difference = newBalance - prevBalance;
-              
-              // Update the user profile with new balance
-              setUserProfile(prevProfile => {
-                if (!prevProfile || prevProfile.balance !== data.balance) {
-                  // If balance increased significantly, show a win notification
-                  if (difference > 0 && difference > 1) {
-                    toast.success(
-                      <div>
-                        <strong>Balance Updated</strong>
-                        <div>New Balance: 🪙{newBalance.toFixed(2)}</div>
-                        <div className="text-green-500">+🪙{difference.toFixed(2)}</div>
-                      </div>,
-                      { duration: 3000 }
-                    );
-                  }
-                  return { ...prevProfile, balance: data.balance };
-                }
-                return prevProfile;
-              });
-            }
-            
-            // Check for round update to refresh balance
-            if (data.type === 'roundUpdate' && data.round && data.duration) {
-              setActiveRounds(prevRounds => {
-                // Check if this is a new round (different round number)
-                const isNewRound = !prevRounds[data.duration] || 
-                                  prevRounds[data.duration].roundNumber !== data.round.roundNumber;
-                
-                // If it's a new round, refresh the user balance
-                if (isNewRound) {
-                  fetchUserData();
-                }
-                
-                return {
-                  ...prevRounds,
-                  [data.duration]: data.round
-                };
-              });
-              setLoading(false);
-              setError(null);
-            } else if (data.rounds) {
-              const roundsObj = {};
+            console.log('[WS] Received message:', data); // DEBUG LOG
+            if (data.type === 'roundUpdate' && data.rounds) {
+              // Accept both array and object formats
+              let roundsData = {};
               if (Array.isArray(data.rounds)) {
                 data.rounds.forEach(round => {
-                  if (round && round.duration) {
-                    roundsObj[round.duration] = round;
-                  }
+                  if (round && round.duration) roundsData[round.duration] = round;
                 });
-              } else if (typeof data.rounds === 'object') {
-                Object.keys(data.rounds).forEach(key => {
-                  roundsObj[key] = data.rounds[key];
-                });
+              } else {
+                roundsData = data.rounds;
               }
-
-              if (Object.keys(roundsObj).length > 0) {
-                // Only update if rounds have changed
-                setActiveRounds(prevRounds => {
-                  // Check if the rounds are different
-                  const hasChanged = Object.keys(roundsObj).some(duration => {
-                    return !prevRounds[duration] || 
-                           prevRounds[duration].roundNumber !== roundsObj[duration].roundNumber ||
-                           prevRounds[duration].timeRemaining !== roundsObj[duration].timeRemaining;
-                  });
-                  
-                  // If a new round has started, refresh the user balance
-                  if (hasChanged) {
-                    const hasNewRound = Object.keys(roundsObj).some(duration => {
-                      return !prevRounds[duration] || 
-                             prevRounds[duration].roundNumber !== roundsObj[duration].roundNumber;
-                    });
-                    
-                    if (hasNewRound) {
-                      fetchUserData();
-                    }
-                  }
-                  
-                  return hasChanged ? roundsObj : prevRounds;
-                });
-                setLoading(false);
-                setError(null);
-              }
+              setActiveRounds(roundsData);
+              setError(null);
+              setLoading(false);
             }
           } catch (err) {
-            console.error('Error processing WebSocket message:', err);
-            setError(`Error processing game data: ${err.message}`);
-            setLoading(false);
+            // Ignore
           }
         };
-
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+        wsRef.current.onerror = (err) => {
+          console.error('WebSocket error:', err);
         };
-
-        ws.onclose = (event) => {
-          console.log('WebSocket connection closed:', event.code, event.reason);
-          if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+        wsRef.current.onclose = (e) => {
+          console.warn('WebSocket connection closed:', e.code, e.reason || '');
+          if (reconnectAttempts < maxReconnectAttempts) {
             reconnectAttempts++;
             console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts})...`);
-            const delay = reconnectDelay * Math.pow(1.5, reconnectAttempts - 1);
-            reconnectTimer = setTimeout(connectWebSocket, delay);
-          } else if (reconnectAttempts >= maxReconnectAttempts) {
-            console.log('Max reconnect attempts reached. Relying on polling.');
+            reconnectTimer = setTimeout(connectWebSocket, reconnectDelay);
+          } else {
+            setError('WebSocket connection failed. Please refresh or try again later.');
+            // As fallback, start polling
+            pollInterval = setInterval(fetchActiveRounds, 5000);
           }
         };
       } catch (err) {
         console.error('Error creating WebSocket:', err);
-        fetchActiveRounds();
+        setError('WebSocket connection failed.');
+        // As fallback, start polling
+        pollInterval = setInterval(fetchActiveRounds, 5000);
       }
     };
 
     connectWebSocket();
 
     return () => {
-      clearInterval(pollInterval);
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-      if (ws) {
-        ws.onclose = null;
-        ws.close();
+      if (pollInterval) clearInterval(pollInterval);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
       }
     };
   }, []);
@@ -313,6 +140,42 @@ export default function WingoPlay() {
     fetchRecentResults();
   }, [currentPage, search]);
 
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const round = activeRounds[selectedDuration];
+    if (!round || !round.endTime) {
+      setLocalTimeRemaining(null);
+      return;
+    }
+    const calcRemaining = () => {
+      const now = Date.now();
+      const end = new Date(round.endTime).getTime();
+      return Math.max(0, Math.floor((end - now) / 1000));
+    };
+    setLocalTimeRemaining(calcRemaining());
+    setWaitingForNextRound(false);
+    timerRef.current = setInterval(() => {
+      const remaining = calcRemaining();
+      setLocalTimeRemaining(remaining);
+      if (remaining === 0) {
+        setWaitingForNextRound(true);
+        if (wsRef.current && wsRef.current.readyState === 1) {
+          wsRef.current.send(JSON.stringify({ type: 'getRounds', game: 'wingo' }));
+        } else {
+          fetchActiveRounds();
+        }
+      }
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [activeRounds, selectedDuration]);
+
+  useEffect(() => {
+    const round = activeRounds[selectedDuration];
+    if (waitingForNextRound && round && round.timeRemaining > 0) {
+      setWaitingForNextRound(false);
+    }
+  }, [activeRounds, selectedDuration, waitingForNextRound]);
+
   const userBalance = useMemo(() => {
     if (userProfile && userProfile.balance !== undefined) {
       const profileBalance = typeof userProfile.balance === 'string' ? parseFloat(userProfile.balance) : userProfile.balance;
@@ -327,7 +190,7 @@ export default function WingoPlay() {
 
   const fetchActiveRounds = async () => {
     try {
-      const response = await api.get('/wingo/active-rounds');
+      const response = await api.get(`${API_BASE_URL}/wingo/active-rounds`);
       if (response.data.success && response.data.data) {
         let roundsData = {};
         if (Array.isArray(response.data.data)) {
@@ -389,8 +252,16 @@ export default function WingoPlay() {
     }
   };
 
+  // --- Only update round info, never reload page on duration change ---
   const handleDurationChange = (duration) => {
     setSelectedDuration(duration);
+    setError(null);
+    // Only fetch rounds, don't reload or set loading for whole page
+    if (wsRef.current && wsRef.current.readyState === 1) {
+      wsRef.current.send(JSON.stringify({ type: 'getRounds', game: 'wingo' }));
+    } else {
+      fetchActiveRounds();
+    }
   };
 
   const handleBetTypeSelect = (type, value) => {
@@ -409,28 +280,27 @@ export default function WingoPlay() {
       return;
     }
     setBetLoading(true);
+    setBetError(null);
     try {
-      const response = await api.post('/wingo/bet', {
+      const response = await api.post(`${API_BASE_URL}/wingo/bet`, {
+        duration: selectedDuration,
         betType: selectedBetType,
         betValue: selectedBetValue,
         amount: Number(betAmount),
-        duration: selectedDuration,
       });
-      if (response.data.success) {
-        toast.success('Bet placed successfully!');
-        await fetchUserData();
-        await fetchRecentBets();
+      if (response.data && response.data.success) {
+        toast.success('Bet placed successfully');
+        fetchUserData(); // Refresh user wallet
+        fetchRecentBets(); // Refresh bets
         setSelectedBetType(null);
         setSelectedBetValue(null);
         setBetAmount('10');
-        setError(null);
       } else {
-        toast.error(response.data.message || 'Failed to place bet');
+        toast.error(response.data?.message || 'Failed to place bet');
       }
     } catch (error) {
-      console.error('Bet placement error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to place bet';
-      toast.error(errorMessage);
+      setBetError(error.response?.data?.message || error.message || 'Failed to place bet');
+      toast.error(error.response?.data?.message || error.message || 'Failed to place bet');
     } finally {
       setBetLoading(false);
     }
@@ -445,7 +315,7 @@ export default function WingoPlay() {
         return;
       }
       
-      const response = await api.get('/wingo/recent-bets');
+      const response = await api.get(`${API_BASE_URL}/wingo/recent-bets`);
       console.log('Recent bets response:', response.data);
       
       if (response.data.success && response.data.bets) {
@@ -468,7 +338,7 @@ export default function WingoPlay() {
       console.log('Fetching recent results...');
       setError(null); // Clear any previous errors
       
-      const response = await api.get('/wingo/recent-results', {
+      const response = await api.get(`${API_BASE_URL}/wingo/recent-results`, {
         params: {
           page: currentPage,
           limit: resultsPerPage,
@@ -514,7 +384,7 @@ export default function WingoPlay() {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const profileResponse = await api.get('/user/profile');
+          const profileResponse = await api.get(`${API_BASE_URL}/user/profile`);
           if (profileResponse.data.success && profileResponse.data.data) {
             const userData = profileResponse.data.data;
             // Only update if the balance actually changed
@@ -534,43 +404,10 @@ export default function WingoPlay() {
     }
   };
 
-  // Sync local time remaining with active round for selected duration
-  useEffect(() => {
-    const round = activeRounds[selectedDuration];
-    if (round && typeof round.timeRemaining === 'number' && round.timeRemaining > 0) {
-      setLocalTimeRemaining(round.timeRemaining);
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setLocalTimeRemaining(prev => {
-          if (prev === null || prev <= 1000) {
-            clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1000;
-        });
-      }, 1000);
-    } else {
-      // If round is missing or timeRemaining is not valid, log for debugging
-      console.warn('No valid round or timeRemaining for duration:', selectedDuration, round);
-      setLocalTimeRemaining(null);
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [activeRounds, selectedDuration]);
-
-  // Also clear timer on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
   const formatTime = (time) => {
     if (typeof time !== 'number' || time < 0) return '00:00';
-    const minutes = Math.floor(time / 60000);
-    const seconds = Math.floor((time % 60000) / 1000);
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
@@ -632,29 +469,27 @@ export default function WingoPlay() {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-3 md:p-6">
-          <div className="flex justify-between items-center mb-4 md:mb-6">
-            <div className="flex items-center space-x-1">
-              <span className="text-sm md:text-base font-medium">Round</span>
-              <span className="text-sm md:text-base font-medium text-blue-500">
-                {currentRound?.roundNumber ? `#${currentRound.roundNumber}` : 'Waiting for Round'}
+          {/* Numma-style Round info and countdown */}
+          <div className="w-full max-w-xs sm:max-w-sm bg-gradient-to-br from-blue-50 to-white shadow-lg p-2 sm:p-3 rounded-2xl mb-3 flex flex-row items-center justify-between border border-blue-100 mx-auto">
+            <div className="flex flex-row items-center gap-1 sm:gap-3 mb-1 sm:mb-0">
+              <span className="font-bold text-blue-700 text-xs sm:text-base">Round:</span>
+              <span className="font-mono text-blue-900 text-xs sm:text-base bg-blue-100 px-2 py-0.5 rounded">
+                {currentRound ? currentRound.roundNumber : '--'}
+              </span>
+              <span className="font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded text-xs sm:text-base">
+                {currentRound ? currentRound.duration : '--'} min
               </span>
             </div>
-            {currentRound && (
-              <div className="space-y-2">
-                <div className="relative w-full max-w-sm h-2 rounded-full bg-gray-200 overflow-hidden">
-                  <div className="absolute inset-0 transition-all duration-1000 ease-linear" style={{ 
-                    width: `${Math.floor(((new Date(currentRound.endTime) - new Date()) / (new Date(currentRound.endTime) - new Date(currentRound.startTime))) * 100)}%`,
-                    backgroundColor: Math.floor(((new Date(currentRound.endTime) - new Date()) / (new Date(currentRound.endTime) - new Date(currentRound.startTime))) * 100) > 60 ? 'rgb(34 197 94)' : 
-                                   Math.floor(((new Date(currentRound.endTime) - new Date()) / (new Date(currentRound.endTime) - new Date(currentRound.startTime))) * 100) > 30 ? 'rgb(245 158 11)' : 'rgb(239 68 68)'
-                  }}></div>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-base md:text-lg font-semibold text-green-700">
-                    {formatTime(localTimeRemaining !== null ? localTimeRemaining : activeRounds[selectedDuration]?.timeRemaining ?? 0)}
-                  </span>
-                </div>
-              </div>
-            )}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {waitingForNextRound ? (
+                <span className="font-mono text-base sm:text-lg text-gray-500 animate-pulse" style={{ minWidth: '60px', textAlign: 'center' }}>Wait..</span>
+              ) : (
+                <span className={`font-mono text-base sm:text-lg ${localTimeRemaining <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}
+                  style={{ minWidth: '60px', textAlign: 'center' }}>
+                  {localTimeRemaining !== null ? `${Math.floor(localTimeRemaining/60)}:${(localTimeRemaining%60).toString().padStart(2,'0')}` : '--:--'}
+                </span>
+              )}
+            </div>
           </div>
           
           <div className="mb-4 md:mb-6">

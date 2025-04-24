@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaSave, FaEnvelope, FaEdit, FaCode, FaTimes } from 'react-icons/fa';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
 import Editor from '@monaco-editor/react';
-
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+import api from '../utils/api';
 
 const EmailTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -50,12 +48,7 @@ const EmailTemplates = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${window.API_BASE_URL}/api/admin/email-templates`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await api.get('/admin/email-templates');
       if (res.data.success) {
         setTemplates(res.data.data);
       }
@@ -86,16 +79,7 @@ const EmailTemplates = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await axios.post(
-        `${window.API_BASE_URL}/api/admin/email-templates/${activeTab}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      );
+      const res = await api.put(`/admin/email-templates/${activeTab}`, formData);
       
       if (res.data.success) {
         toast.success('Template saved successfully');

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FaShareAlt, FaCopy, FaUsers, FaDollarSign } from 'react-icons/fa';
 import { useContext } from 'react';
 import SiteSettingsContext from '../contexts/SiteSettingsContext.jsx';
+import { API_BASE_URL } from '../utils/api';
 
 const Referrals = () => {
   const { siteSettings } = useContext(SiteSettingsContext);
@@ -29,7 +30,7 @@ const Referrals = () => {
           return;
         }
         
-        const response = await fetch('http://localhost:5000/api/user/profile', {
+        const response = await fetch(`${API_BASE_URL}/user/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
           }

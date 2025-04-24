@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import { API_BASE_URL } from '../utils/api';
 
 const CommissionSettings = () => {
   const [settings, setSettings] = useState([]);
@@ -27,7 +28,7 @@ const CommissionSettings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/commission-settings');
+      const response = await fetch(`${API_BASE_URL}/commission-settings`);
       const data = await response.json();
 
       if (data.success) {
@@ -56,7 +57,7 @@ const CommissionSettings = () => {
     try {
       setLoading(true);
       
-      const response = await fetch('http://localhost:5000/api/commission-settings', {
+      const response = await fetch(`${API_BASE_URL}/commission-settings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ const CommissionSettings = () => {
     try {
       setLoading(true);
       
-      const response = await fetch(`http://localhost:5000/api/commission-settings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/commission-settings/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

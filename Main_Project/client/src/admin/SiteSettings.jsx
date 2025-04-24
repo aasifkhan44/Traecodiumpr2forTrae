@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaSave, FaSpinner, FaImage, FaCog, FaFont, FaGlobe } from 'react-icons/fa';
 import { Card, Spinner } from 'react-bootstrap';
-
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+import api from '../utils/api';
 
 const SiteSettings = () => {
   const [settings, setSettings] = useState({
@@ -35,11 +33,7 @@ const SiteSettings = () => {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API_BASE_URL}/api/admin/site-settings`,
-        { headers: { Authorization: `Bearer ${token}` }}
-      );
+      const response = await api.get('/admin/site-settings');
       
       if (response.data.success) {
         const data = response.data.data;
@@ -88,12 +82,7 @@ const SiteSettings = () => {
     setSaving(true);
     
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.put(
-        `${API_BASE_URL}/api/admin/site-settings`,
-        settings,
-        { headers: { Authorization: `Bearer ${token}` }}
-      );
+      const response = await api.post('/admin/site-settings', settings);
       
       if (response.data.success) {
         const serverData = response.data.data;

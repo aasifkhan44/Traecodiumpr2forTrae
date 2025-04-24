@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaSave, FaEnvelope, FaServer, FaUser, FaLock, FaPortrait } from 'react-icons/fa';
-
-// Use the environment variable or fallback to default
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import api from '../utils/api';
 
 const SmtpSettings = () => {
   const [settings, setSettings] = useState({
@@ -30,17 +27,7 @@ const SmtpSettings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-
-      const res = await axios.get(`${API_BASE_URL}/api/admin/smtp-settings`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const res = await api.get('/admin/smtp-settings');
       
       if (res.data.success) {
         setSettings(res.data.data);
@@ -86,22 +73,7 @@ const SmtpSettings = () => {
     
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-      
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin/smtp-settings`, 
-        settings,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const res = await api.post('/admin/smtp-settings', settings);
       
       if (res.data.success) {
         toast.success('SMTP settings saved successfully');
@@ -125,21 +97,7 @@ const SmtpSettings = () => {
 
     try {
       setIsTestingConnection(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-      
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin/test-smtp-connection`,
-        {}, // No body needed
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const res = await api.post('/admin/test-smtp-connection');
       
       if (res.data.success) {
         toast.success(`SMTP connection successful to ${res.data.smtp.host}:${res.data.smtp.port}`);
@@ -170,20 +128,7 @@ const SmtpSettings = () => {
 
     try {
       setIsTesting(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-      
-      const res = await axios.post(`${API_BASE_URL}/api/admin/test-email`, 
-        { email: testEmail },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const res = await api.post('/admin/test-email', { email: testEmail });
       
       if (res.data.success) {
         toast.success('Test email sent successfully');

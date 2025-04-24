@@ -78,18 +78,18 @@ class NummaWebSocketServer {
   async sendActiveRounds(ws) {
     try {
       const activeRounds = await nummaRoundManager.getActiveRounds();
-      
-      // Convert to array format
-      const roundsArray = Object.entries(activeRounds).map(([duration, round]) => ({
-        duration: parseInt(duration),
-        ...round.toObject()
-      }));
-      
+      // Ensure duration is always a number in the payload
+      const roundsArray = Object.entries(activeRounds).map(([duration, round]) => {
+        const obj = round.toObject();
+        return {
+          ...obj,
+          duration: Number(duration) // force duration to always be a number
+        };
+      });
       ws.send(JSON.stringify({
         type: 'roundUpdate',
         rounds: roundsArray
       }));
-      
     } catch (error) {
       console.error('Error sending active rounds:', error);
     }
@@ -99,18 +99,18 @@ class NummaWebSocketServer {
   async broadcastActiveRounds() {
     try {
       const activeRounds = await nummaRoundManager.getActiveRounds();
-      
-      // Convert to array format
-      const roundsArray = Object.entries(activeRounds).map(([duration, round]) => ({
-        duration: parseInt(duration),
-        ...round.toObject()
-      }));
-      
+      // Ensure duration is always a number in the payload
+      const roundsArray = Object.entries(activeRounds).map(([duration, round]) => {
+        const obj = round.toObject();
+        return {
+          ...obj,
+          duration: Number(duration) // force duration to always be a number
+        };
+      });
       this.broadcast({
         type: 'roundUpdate',
         rounds: roundsArray
       });
-      
     } catch (error) {
       console.error('Error broadcasting active rounds:', error);
     }

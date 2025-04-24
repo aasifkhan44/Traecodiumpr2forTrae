@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/api';
 
 // Full country code list
 const fullCountryCodes = [
@@ -142,7 +143,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
 
     try {
       // Make a real API call to the backend
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

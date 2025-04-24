@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/api';
 import { 
   FaWallet, 
   FaCreditCard, 
@@ -53,8 +54,7 @@ const WalletRecharge = () => {
           return;
         }
         
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await axios.get(`${API_BASE_URL}/api/deposit/payment-options`, {
+        const response = await axios.get(`${API_BASE_URL}/deposit/payment-options`, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -101,8 +101,7 @@ const WalletRecharge = () => {
           return;
         }
         
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-        const response = await axios.get(`${API_BASE_URL}/api/deposit/my-requests`, {
+        const response = await axios.get(`${API_BASE_URL}/deposit/my-requests`, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
@@ -229,13 +228,16 @@ const WalletRecharge = () => {
         return;
       }
       
-      const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-      const response = await axios.post(`${API_BASE_URL}/api/deposit/create-request`, requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      const response = await axios.post(
+        `${API_BASE_URL}/deposit/create-request`,
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
         }
-      });
+      );
       
       if (response.data.success) {
         setSuccess(true);

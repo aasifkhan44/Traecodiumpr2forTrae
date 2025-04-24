@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaUsers, FaMoneyBillWave, FaChartLine } from 'react-icons/fa';
+import { API_BASE_URL } from '../utils/api';
 
 const ReferralCommissions = () => {
   const [referrals, setReferrals] = useState([]);
@@ -31,7 +32,7 @@ const ReferralCommissions = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:5000/api/user/referrals', {
+      const response = await fetch(`${API_BASE_URL}/api/user/referrals`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -55,7 +56,7 @@ const ReferralCommissions = () => {
   // Fetch commission settings
   const fetchCommissionSettings = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/commission-settings');
+      const response = await fetch(`${API_BASE_URL}/api/commission-settings`);
       const data = await response.json();
       
       if (data.success) {

@@ -5,9 +5,7 @@ import { Link } from 'react-router-dom';
 import { FaUser, FaLock, FaPhone, FaSave, FaSpinner, FaEnvelope, FaCheck, FaWallet, FaPlusCircle } from 'react-icons/fa';
 // Import the Dialog component from your UI library of choice (or create a simple one)
 import { Modal, Button } from 'react-bootstrap';
-
-const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
-console.log('Using API base URL:', API_BASE_URL);
+import { API_BASE_URL } from '../utils/api';
 
 // Country codes list for dropdown
 const countryCodes = [
@@ -66,7 +64,7 @@ const Profile = () => {
           setError('Authentication required');
           return;
         }
-        const response = await axios.get(`${API_BASE_URL}/api/user/profile`, {
+        const response = await axios.get(`${API_BASE_URL}/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const userData = response.data.data;
@@ -178,7 +176,7 @@ const Profile = () => {
       });
       
       const response = await axios.put(
-        `${API_BASE_URL}/api/user/profile`,
+        `${API_BASE_URL}/user/profile`,
         profileData,
         { headers: { Authorization: `Bearer ${token}` }}
       );
@@ -268,7 +266,7 @@ const Profile = () => {
       });
       
       const response = await axios.put(
-        `${API_BASE_URL}/api/user/profile`,
+        `${API_BASE_URL}/user/profile`,
         passwordUpdateData,
         { headers: { Authorization: `Bearer ${token}` }}
       );
@@ -514,10 +512,10 @@ const Profile = () => {
                       }
                       
                       // Make direct API call with fetch instead of axios
-                      console.log('Sending profile update request to:', `${API_BASE_URL}/api/user/profile`);
+                      console.log('Sending profile update request to:', `${API_BASE_URL}/user/profile`);
                       console.log('With profile data:', JSON.stringify(profileData));
                       
-                      fetch(`${API_BASE_URL}/api/user/profile`, {
+                      fetch(`${API_BASE_URL}/user/profile`, {
                         method: 'PUT',
                         headers: {
                           'Content-Type': 'application/json',

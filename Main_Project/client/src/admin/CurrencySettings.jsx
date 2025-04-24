@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FaSave, FaCoins, FaExchangeAlt, FaGlobe } from 'react-icons/fa';
-
-// Use the environment variable or fallback to default
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { API_BASE_URL } from '../utils/api';
 
 const CurrencySettings = () => {
   const [loading, setLoading] = useState(false);

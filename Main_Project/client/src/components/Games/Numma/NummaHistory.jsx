@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import api from '../../../utils/api';
+import api, { API_BASE_URL } from '../../../utils/api';
 
 export const NummaGameHistory = ({ 
   activeTab, 
@@ -22,7 +22,7 @@ export const NummaGameHistory = ({
       setGameHistoryError(null);
       
       try {
-        const res = await api.get('/numma/rounds/history', { 
+        const res = await api.get(`${API_BASE_URL}/numma/rounds/history`, { 
           params: { 
             duration: selectedDuration,
             page: currentPage 
@@ -253,7 +253,7 @@ export const NummaUserHistory = ({
       setHistoryError(null);
       
       try {
-        const res = await api.get('/numma/history', { 
+        const res = await api.get(`${API_BASE_URL}/numma/history`, { 
           params: { 
             userId: user.id || user._id,
             page: currentPage 

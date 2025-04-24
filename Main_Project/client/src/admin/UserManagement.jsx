@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaCheck, FaTimes, FaPlus, FaMoneyBillWave, FaKey, FaSearch, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { API_BASE_URL } from '../utils/api';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -45,7 +46,7 @@ const UserManagement = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch(`${API_BASE_URL}/admin/users`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -115,7 +116,7 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:5000/api/admin/users/${user._id}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/users/${user._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem('token');
       
-      let endpoint = `http://localhost:5000/api/admin/users/${selectedUser._id}`;
+      let endpoint = `${API_BASE_URL}/admin/users/${selectedUser._id}`;
       let method = 'PUT';
       let body = { ...formData };
       
@@ -197,10 +198,10 @@ const UserManagement = () => {
           return;
         }
         
-        endpoint = `http://localhost:5000/api/admin/users/${selectedUser._id}/update-password`;
+        endpoint = `${API_BASE_URL}/admin/users/${selectedUser._id}/update-password`;
         body = { password: passwordData.password };
       } else if (formType === 'balance') {
-        endpoint = `http://localhost:5000/api/admin/users/${selectedUser._id}/adjust-balance`;
+        endpoint = `${API_BASE_URL}/admin/users/${selectedUser._id}/adjust-balance`;
         body = { ...balanceData, amount: parseFloat(balanceData.amount) };
       }
       

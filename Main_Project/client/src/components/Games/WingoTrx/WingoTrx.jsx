@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import api from '../../../utils/api';
+import api, { API_BASE_URL } from '../../../utils/api';
 
 export default function WingoTrx() {
   const [gameData, setGameData] = useState(null);
@@ -10,7 +10,7 @@ export default function WingoTrx() {
   useEffect(() => {
     const fetchGameData = async () => {
       try {
-        const response = await api.get('/games/active');
+        const response = await api.get(`${API_BASE_URL}/games/active`);
         if (response.data.success) {
           const wingoTrxGame = response.data.data.find(game => game.identifier === 'WingoTrx');
           if (wingoTrxGame) {
