@@ -704,64 +704,67 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Amount</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Result</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Payout</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round ID</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {bets.map((bet) => (
-                  <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {new Date(bet.createdAt).toLocaleTimeString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {bet.betType === 'color' ? (
-                          <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
-                            bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
-                            bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
-                            'bg-violet-100 text-violet-800'
-                          }`}>
-                            <div className={`w-2 h-2 rounded-full ${
-                              bet.betValue === 'Green' ? 'bg-green-500' :
-                              bet.betValue === 'Red' ? 'bg-red-500' :
-                              'bg-violet-500'
-                            }`} />
-                            <span className="ml-2">{bet.betValue}</span>
-                          </div>
+                {bets.map((bet) => {
+                  console.log('RecentBet row:', bet);
+                  return (
+                    <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {new Date(bet.createdAt).toLocaleTimeString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          {bet.betType === 'color' ? (
+                            <div className={`px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full ${
+                              bet.betValue === 'Green' ? 'bg-green-100 text-green-800' :
+                              bet.betValue === 'Red' ? 'bg-red-100 text-red-800' :
+                              'bg-violet-100 text-violet-800'
+                            }`}>
+                              <div className={`w-2 h-2 rounded-full ${
+                                bet.betValue === 'Green' ? 'bg-green-500' :
+                                bet.betValue === 'Red' ? 'bg-red-500' :
+                                'bg-violet-500'
+                              }`} />
+                              <span className="ml-2">{bet.betValue}</span>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
+                              <div className="w-2 h-2 rounded-full bg-gray-600" />
+                              <span className="ml-2">{bet.betValue}</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        🪙{bet.amount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {bet.status === 'pending' ? (
+                          <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Pending
+                          </span>
+                        ) : bet.status === 'won' ? (
+                          <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
+                            Won
+                          </span>
                         ) : (
-                          <div className="px-3 py-1 inline-flex items-center text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">
-                            <div className="w-2 h-2 rounded-full bg-gray-600" />
-                            <span className="ml-2">{bet.betValue}</span>
-                          </div>
+                          <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
+                            Lost
+                          </span>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      🪙{bet.amount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {bet.status === 'pending' ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          Pending
-                        </span>
-                      ) : bet.status === 'won' ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
-                          Won
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
-                          Lost
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {bet.payout ? `🪙${bet.payout}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {bet.roundId || '-'}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {bet.payout ? `🪙${bet.payout}` : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {bet.roundNumber ? `#${bet.roundNumber}` : (bet.roundId || '-')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (
@@ -931,6 +934,7 @@ RecentBets.propTypes = {
       status: PropTypes.string,
       payout: PropTypes.number,
       roundId: PropTypes.string,
+      roundNumber: PropTypes.string,
     })
   ),
   results: PropTypes.arrayOf(

@@ -10,6 +10,10 @@ const wingoBetSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true
   },
+  roundNumber: {
+    type: Number,
+    required: true
+  },
   duration: {
     type: Number,
     required: true,

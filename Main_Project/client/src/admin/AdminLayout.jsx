@@ -158,27 +158,41 @@ const AdminLayout = ({ onLogout }) => {
                   <FaGamepad className="mr-2" /> Games
                 </NavLink>
               </li>
-              <li>
-                <NavLink 
-                  to="/admin/wingo-result-management" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
-                  onClick={toggleMobileMenu}
+              <li className="group relative">
+                <button
+                  className="flex items-center px-3 py-2 rounded-md w-full text-left hover:bg-secondary focus:outline-none focus:bg-secondary"
+                  type="button"
                 >
-                  <FaDice className="mr-2" /> Wingo Results
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/numma-result-manager" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
-                  onClick={toggleMobileMenu}
-                >
-                  <FaDice className="mr-2" /> Numma Result Manager
-                </NavLink>
+                  <FaDice className="mr-2" />
+                  Result
+                  <svg className="ml-2 w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.585l3.71-3.354a.75.75 0 111.04 1.08l-4.25 3.85a.75.75 0 01-1.04 0l-4.25-3.85a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                <ul className="absolute left-0 mt-1 w-56 bg-secondary text-white rounded shadow-lg z-40 hidden group-hover:block group-focus:block">
+                  <li>
+                    <NavLink
+                      to="/admin/wingo-result-management"
+                      className={({ isActive }) =>
+                        `block px-4 py-2 hover:bg-primary rounded ${isActive ? 'bg-primary text-white' : 'text-white'}`
+                      }
+                      onClick={toggleMobileMenu}
+                    >
+                      Wingo Results
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      to="/admin/numma-result-manager"
+                      className={({ isActive }) =>
+                        `block px-4 py-2 hover:bg-primary rounded ${isActive ? 'bg-primary text-white' : 'text-white'}`
+                      }
+                      onClick={toggleMobileMenu}
+                    >
+                      Numma Result Manager
+                    </NavLink>
+                  </li>
+                </ul>
               </li>
               <li>
                 <NavLink 

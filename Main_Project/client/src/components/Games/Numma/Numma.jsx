@@ -169,7 +169,7 @@ export default function Numma({ gameData }) {
         }
         
         const payload = {
-          userId,
+          // userId, // REMOVE userId, backend will use authenticated user
           roundId,
           duration: numma.selectedDuration,
           betType,
@@ -179,13 +179,8 @@ export default function Numma({ gameData }) {
           game: 'numma'
         };
         
-        // Ensure all required fields are present
-        const requiredFields = ['userId', 'roundId', 'duration', 'betType', 'betValue', 'amount'];
-        const missingFields = requiredFields.filter(field => payload[field] === undefined || payload[field] === null || payload[field] === '');
-        
-        if (missingFields.length > 0) {
-          throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-        }
+        // Remove userId if present
+        // delete payload.userId;
         
         console.log('Placing bet with payload:', payload);
         

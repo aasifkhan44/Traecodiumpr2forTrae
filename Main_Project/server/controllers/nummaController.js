@@ -112,73 +112,78 @@ function getRoundModel(duration) {
 // Place a bet
 exports.placeBet = async (req, res) => {
   try {
-    const { userId, roundId, duration, betType, betValue, amount, multiplier } = req.body;
-    
-    // Validate required fields
-    if (!userId || !roundId || !duration || !betType || betValue === undefined || !amount) {
+    // Always use authenticated user from token
+    const userIdFromToken = req.user && (req.user._id || req.user.id);
+    const { userId: userIdFromBody, roundId, duration, betType, betValue, amount, multiplier } = req.body;
+    console.log('[Numma] Place bet request:', req.body, 'Token user:', userIdFromToken);
+    if (!userIdFromToken) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    // If userId in body does not match token, warn and reject
+    if (userIdFromBody && userIdFromBody !== userIdFromToken.toString()) {
+      console.warn('[Numma] User ID in body does not match token. Body:', userIdFromBody, 'Token:', userIdFromToken);
+      return res.status(403).json({ success: false, error: 'User ID mismatch' });
+    }
+    // Validate required fields (except userId)
+    if (!roundId || !duration || !betType || betValue === undefined || !amount) {
+      console.warn('[Numma] Missing required fields:', req.body);
       return res.status(400).json({
         success: false,
         error: 'Missing required fields'
       });
     }
-    
     const RoundModel = getRoundModel(duration);
     const round = await RoundModel.findById(roundId);
     if (!round || round.status !== 'active') {
-      return res.status(400).json({ success: false, error: 'Invalid or inactive round' });
+      console.warn('[Numma] Round not active:', roundId, 'status:', round && round.status);
+      return res.status(400).json({ success: false, error: 'Round is not active' });
     }
-    
-    // Validate bet type
-    if (!['color', 'number', 'bigsmall'].includes(betType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid bet type'
-      });
-    }
-    
-    // Validate bet value based on type
+    // Validate betType and betValue
     if (betType === 'color' && !['Red', 'Green', 'Violet'].includes(betValue)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid color value'
-      });
+      console.warn('[Numma] Invalid color value:', betValue);
+      return res.status(400).json({ success: false, error: 'Invalid color value' });
     } else if (betType === 'number' && (isNaN(betValue) || betValue < 0 || betValue > 9)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid number value'
-      });
+      console.warn('[Numma] Invalid number value:', betValue);
+      return res.status(400).json({ success: false, error: 'Invalid number value' });
     } else if (betType === 'bigsmall' && !['Big', 'Small'].includes(betValue)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid big/small value'
-      });
+      console.warn('[Numma] Invalid bigsmall value:', betValue);
+      return res.status(400).json({ success: false, error: 'Invalid big/small value' });
     }
-    
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
+      console.warn('[Numma] Invalid amount:', amount);
+      return res.status(400).json({ success: false, error: 'Invalid amount' });
+    }
+    // Place bet with authenticated user only
+    let bet;
+    try {
+      bet = await nummaRoundManager.placeBet(
+        userIdFromToken,
+        roundId,
+        duration,
+        betType,
+        betValue,
+        amount,
+        multiplier || 1
+      );
+    } catch (err) {
+      console.error('[Numma] Error in placeBet:', err);
       return res.status(400).json({
         success: false,
-        error: 'Invalid amount'
+        error: err.message || 'Error placing bet'
       });
     }
-    
-    // Place bet
-    const bet = await nummaRoundManager.placeBet(
-      userId,
-      roundId,
-      duration,
-      betType,
-      betValue,
-      amount,
-      multiplier || 1
-    );
-    
+    if (!bet || !bet._id) {
+      console.error('[Numma] Bet not saved:', bet);
+      return res.status(500).json({ success: false, error: 'Failed to save bet' });
+    }
+    console.log('[Numma] Bet placed successfully:', bet._id, 'for user:', userIdFromToken);
     res.json({
       success: true,
       data: bet
     });
   } catch (error) {
-    console.error('Error placing bet:', error);
+    console.error('[Numma] Unhandled error placing bet:', error);
     res.status(400).json({
       success: false,
       error: error.message || 'Error placing bet'

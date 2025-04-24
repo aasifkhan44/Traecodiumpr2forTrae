@@ -10,12 +10,8 @@ const Referrals = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [referrals, setReferrals] = useState([
-    { id: 1, name: 'John Doe', level: 1, joinDate: '2025-03-25', totalBets: 45, commission: 25 },
-    { id: 2, name: 'Jane Smith', level: 1, joinDate: '2025-03-28', totalBets: 32, commission: 18 },
-    { id: 3, name: 'Mike Johnson', level: 2, joinDate: '2025-04-01', totalBets: 12, commission: 5 }
-  ]);
-  
+  const [referrals, setReferrals] = useState([]);
+
   // Fetch user profile to get referral code
   useEffect(() => {
     let isMounted = true;
@@ -61,7 +57,40 @@ const Referrals = () => {
     fetchUserProfile();
     return () => { isMounted = false; };
   }, []);
-  
+
+  // Fetch user referrals from backend
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUserReferrals = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication required');
+          setLoading(false);
+          return;
+        }
+        const response = await fetch(`${API_BASE_URL}/user/referrals`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data) && isMounted) {
+          setReferrals(data.data);
+        } else if (!data.success && isMounted) {
+          setError(data.message || 'Failed to fetch referrals');
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError('Server error while fetching referrals');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchUserReferrals();
+    return () => { isMounted = false; };
+  }, []);
+
   const handleCopyReferralCode = () => {
     navigator.clipboard.writeText(referralCode);
     setCopySuccess(true);
@@ -103,10 +132,9 @@ const Referrals = () => {
         </div>
       </div>
       
-      {/* Referrals Table */}
+      {/* Referrals Table - Only show original data */}
       <div className="card">
         <h2 className="text-xl font-bold mb-4">Your Referrals</h2>
-        
         {referrals.length === 0 ? (
           <div className="text-center py-8">
             <FaUsers className="mx-auto text-4xl text-gray-300 dark:text-gray-600 mb-2" />
@@ -125,15 +153,6 @@ const Referrals = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Level
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Join Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Total Bets
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Your Commission
-                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-700 divide-y divide-gray-200 dark:divide-gray-600">
@@ -143,23 +162,7 @@ const Referrals = () => {
                       {referral.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      <span 
-                        className={`px-2 py-1 rounded-full text-xs font-medium
-                          ${referral.level === 1 ? 'bg-primary text-white' : 
-                          referral.level === 2 ? 'bg-secondary text-white' : 
-                          'bg-accent text-white'}`}
-                      >
-                        Level {referral.level}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {referral.joinDate}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      {referral.totalBets}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-success font-medium">
-                      ${referral.commission}
+                      Level {referral.level}
                     </td>
                   </tr>
                 ))}

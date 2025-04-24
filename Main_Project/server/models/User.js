@@ -190,80 +190,65 @@ UserSchema.statics.getAllReferrals = async function (userId, maxLevel = 10) {
   return allReferrals;
 };
 
-// Apply commission to all levels when a bet is placed
-UserSchema.statics.applyMultiLevelCommission = async function(userId, betAmount) {
+// --- Referral Commission Transaction Logging ---
+// Call this function after each commission payout to log the transaction
+UserSchema.statics.logCommissionTransaction = async function(referrer, fromUser, commissionAmount, level, balanceBefore, balanceAfter) {
+  const Transaction = require('./Transaction');
+  const tx = new Transaction({
+    user: referrer._id,
+    amount: commissionAmount,
+    type: 'credit',
+    reference: `Referral Commission (Level ${level}) from ${fromUser}`,
+    status: 'completed',
+    balanceBefore,
+    balanceAfter,
+    description: `Referral commission received from user ${fromUser} at level ${level}`
+  });
+  await tx.save();
+};
+
+// Apply commission to all levels when a deposit is approved
+UserSchema.statics.applyMultiLevelCommission = async function(userId, depositAmount) {
   const CommissionSetting = mongoose.model('CommissionSetting');
-  
-  // Find the user who placed the bet
+  // Find the user who made the deposit
   const user = await this.findById(userId);
   if (!user || !user.referredBy) return null; // No referrer found
-  
   let currentReferrer = user.referredBy;
   let currentLevel = 1;
   let commissionsApplied = [];
-  
+
   // Process up to 10 levels of referrals
   while (currentReferrer && currentLevel <= 10) {
-    // Get commission percentage for this level
-    const commissionSetting = await CommissionSetting.findOne({ 
-      level: currentLevel,
-      isActive: true
-    });
-    
+    const commissionSetting = await CommissionSetting.findOne({ level: currentLevel, isActive: true });
     if (!commissionSetting) {
-      // No commission setting for this level, move to next referrer
       const nextUser = await this.findById(currentReferrer);
       currentReferrer = nextUser ? nextUser.referredBy : null;
       currentLevel++;
       continue;
     }
-    
-    // Calculate commission amount
     const commissionPercentage = commissionSetting.percentage;
-    const commissionAmount = (betAmount * commissionPercentage) / 100;
-    
-    // Update referrer's commission
+    const commissionAmount = (depositAmount * commissionPercentage) / 100;
     const referrer = await this.findById(currentReferrer);
     if (referrer) {
-      // Add commission to their balance
+      const balanceBefore = referrer.balance;
       referrer.balance += commissionAmount;
-      
-      // Track commission in referrals array
-      const existingReferral = referrer.referrals.find(
-        ref => ref.user.toString() === userId.toString()
-      );
-      
+      const existingReferral = referrer.referrals.find(ref => ref.user.toString() === userId.toString());
       if (existingReferral) {
         existingReferral.commission += commissionAmount;
       } else {
-        referrer.referrals.push({
-          user: userId,
-          level: currentLevel,
-          commission: commissionAmount
-        });
+        referrer.referrals.push({ user: userId, level: currentLevel, commission: commissionAmount });
       }
-      
-      // Update total commission
       referrer.totalCommission += commissionAmount;
       await referrer.save();
-      
-      // Add to our results
-      commissionsApplied.push({
-        referrer: referrer._id,
-        level: currentLevel,
-        amount: commissionAmount,
-        percentage: commissionPercentage
-      });
-      
-      // Move to next level referrer
+      // Log commission transaction
+      await this.logCommissionTransaction(referrer, userId, commissionAmount, currentLevel, balanceBefore, referrer.balance);
+      commissionsApplied.push({ referrer: referrer._id, level: currentLevel, amount: commissionAmount, percentage: commissionPercentage });
       currentReferrer = referrer.referredBy;
       currentLevel++;
     } else {
-      // Referrer not found, break the chain
       break;
     }
   }
-  
   return commissionsApplied;
 };
 

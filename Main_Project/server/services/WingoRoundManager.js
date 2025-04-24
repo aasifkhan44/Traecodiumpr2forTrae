@@ -249,11 +249,11 @@ class WingoRoundManager {
       // Calculate potential win amount based on bet type
       const multiplier = bet.betType === 'color' ? 2 : 10;
       const potentialWinAmount = bet.amount * multiplier;
+      const allColors = ['Red', 'Violet', 'Green'];
+      const allNumbers = Array.from({ length: 10 }, (_, i) => i);
       
-      console.log(`Updating potential win for ${bet.betType} ${bet.betValue} with amount ${bet.amount}, potential win: ${potentialWinAmount}`);
-      
-      // Find or create potential win record
-      const result = await WingoPotentialWin.findOneAndUpdate(
+      // 1. Update/increment the selected outcome
+      await WingoPotentialWin.findOneAndUpdate(
         {
           roundId: roundId,
           duration: bet.duration,
@@ -265,8 +265,43 @@ class WingoRoundManager {
         },
         { upsert: true, new: true }
       );
-      
-      console.log(`Updated potential win record: ${result.color || result.number}, new total: ${result.potentialWin}`);
+
+      // 2. Ensure all other possible outcomes have a doc with potentialWin: 0
+      if (bet.betType === 'color') {
+        for (const color of allColors) {
+          if (color === bet.betValue) continue; // already updated
+          await WingoPotentialWin.findOneAndUpdate(
+            {
+              roundId: roundId,
+              duration: bet.duration,
+              color,
+              number: null
+            },
+            {
+              $setOnInsert: { potentialWin: 0 }
+            },
+            { upsert: true, new: true }
+          );
+        }
+      } else if (bet.betType === 'number') {
+        for (const number of allNumbers) {
+          if (parseInt(bet.betValue) === number) continue; // already updated
+          await WingoPotentialWin.findOneAndUpdate(
+            {
+              roundId: roundId,
+              duration: bet.duration,
+              color: null,
+              number
+            },
+            {
+              $setOnInsert: { potentialWin: 0 }
+            },
+            { upsert: true, new: true }
+          );
+        }
+      }
+      // Optionally, log for debug
+      console.log(`[updatePotentialWin] Ensured all outcomes for round ${roundId}, duration ${bet.duration}`);
     } catch (error) {
       console.error('Error updating potential win:', error);
     }

@@ -203,6 +203,8 @@ class NummaRoundManager {
   // Process all bets for a completed round
   async processBets(round) {
     try {
+      const Transaction = require('../models/Transaction');
+      const User = require('../models/User');
       // Find all pending bets for this round
       const bets = await NummaBet.find({ 
         roundId: round._id,
@@ -222,38 +224,49 @@ class NummaRoundManager {
             // Update user balance
             const user = await User.findById(bet.userId);
             if (user) {
-              const originalBalance = user.balance;
+              const balanceBefore = user.balance;
               user.balance += result.winAmount;
               await user.save();
-              
-              // Create transaction record
+              // Log win transaction
               await Transaction.create({
                 user: user._id,
                 amount: result.winAmount,
                 type: 'credit',
-                reference: `Numma Win #${round.roundNumber}`,
+                reference: `Numma Bet Win (${bet.betType}:${bet.betValue})`,
                 status: 'completed',
-                balanceBefore: originalBalance,
+                balanceBefore,
                 balanceAfter: user.balance,
                 description: `Numma ${bet.betType} bet win on ${bet.betValue}`
               });
-              
               totalPayout += result.winAmount;
             }
           }
-          
+          // Always log bet placement (debit)
+          if (bet.status === 'pending') {
+            const user = await User.findById(bet.userId);
+            if (user) {
+              const balanceBefore = user.balance + bet.amount; // since bet.amount already deducted before
+              await Transaction.create({
+                user: user._id,
+                amount: bet.amount,
+                type: 'debit',
+                reference: `Numma Bet (${bet.betType}:${bet.betValue})`,
+                status: 'completed',
+                balanceBefore,
+                balanceAfter: user.balance,
+                description: `Numma ${bet.betType} bet placed on ${bet.betValue}`
+              });
+            }
+          }
           // Save updated bet
           await bet.save();
-          
         } catch (betError) {
           console.error(`Error processing bet ${bet._id}:`, betError);
         }
       }
-      
       // Update round with total payout
       round.totalPayout = totalPayout;
       await round.save();
-      
     } catch (error) {
       console.error(`Error processing bets for round ${round.roundNumber}:`, error);
     }

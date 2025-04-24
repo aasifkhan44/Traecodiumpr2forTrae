@@ -5,6 +5,9 @@ const WingoWebSocketServer = require('../services/wingoWebSocketServer');
 const User = require('../models/User');
 const WingoAdminResult = require('../models/WingoAdminResult');
 
+// Place BetRoundModel at the top so it's only declared once
+const BetRoundModel = { 1: WingoRound1m, 3: WingoRound3m, 5: WingoRound5m, 10: WingoRound10m };
+
 // Get recent results
 exports.getRecentResults = async (req, res) => {
   try {
@@ -175,12 +178,7 @@ exports.placeBet = async (req, res) => {
     console.log('Bet details:', { duration, betType, betValue, amount });
 
     // Validate duration
-    const RoundModel = {
-      1: WingoRound1m,
-      3: WingoRound3m,
-      5: WingoRound5m,
-      10: WingoRound10m
-    }[duration];
+    const RoundModel = BetRoundModel[duration];
 
     if (!RoundModel) {
       console.error('Invalid duration:', duration);
@@ -188,12 +186,12 @@ exports.placeBet = async (req, res) => {
     }
 
     // Find active round
-    const round = await RoundModel.findOne({ status: 'open' });
-    if (!round) {
+    const betRound = await RoundModel.findOne({ status: 'open' });
+    if (!betRound) {
       console.error('No active round found for duration:', duration);
       return res.status(400).json({ success: false, message: 'No active round found' });
     }
-    console.log('Active round found:', round._id);
+    console.log('Active round found:', betRound._id);
 
     // Validate bet type and value
     if (!['color', 'number'].includes(betType)) {
@@ -239,11 +237,12 @@ exports.placeBet = async (req, res) => {
 
     const potentialPayout = betAmount * potentialMultiplier;
 
-    // Create the bet
-    const bet = new WingoBet({
+    // When creating the bet, include roundNumber and duration
+    const bet = await WingoBet.create({
       userId,
-      roundId: round._id,
-      duration,
+      roundId: betRound._id,
+      roundNumber: betRound.roundNumber, // Save round number directly
+      duration: betRound.duration,
       betType,
       betValue,
       amount: betAmount,
@@ -251,12 +250,13 @@ exports.placeBet = async (req, res) => {
       status: 'pending',
       winAmount: 0
     });
+    console.log('Bet created with roundNumber:', bet.roundNumber);
 
     // Save the bet
     await bet.save();
 
     // Update potential win table for result calculation
-    await WingoRoundManager.updatePotentialWin(round._id, bet);
+    await WingoRoundManager.updatePotentialWin(betRound._id, bet);
 
     // Update user balance (deduct bet amount)
     user.balance = userBalance - betAmount;
@@ -336,8 +336,35 @@ exports.getRecentBets = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .lean();
-      
+    
     console.log('Found bets:', bets.length);
+
+    // Collect all unique roundIds
+    const allRoundIds = bets
+      .map(bet => bet.roundId?.toString())
+      .filter(Boolean);
+    const uniqueRoundIds = Array.from(new Set(allRoundIds));
+
+    // Fetch all rounds from all duration collections
+    const allRounds = [];
+    const roundModels = [WingoRound1m, WingoRound3m, WingoRound5m, WingoRound10m];
+    for (const Model of roundModels) {
+      const rounds = await Model.find({ _id: { $in: uniqueRoundIds } }, { _id: 1, roundNumber: 1, duration: 1 }).lean();
+      allRounds.push(...rounds);
+    }
+    // Map roundId to roundNumber and duration
+    const roundInfoMap = {};
+    for (const round of allRounds) {
+      roundInfoMap[`${round._id}`] = {
+        roundNumber: round.roundNumber,
+        duration: round.duration
+      };
+    }
+    // Debug: Log missing roundIds
+    const missingRoundIds = uniqueRoundIds.filter(id => !roundInfoMap[id]);
+    if (missingRoundIds.length > 0) {
+      console.warn('Missing roundNumber for roundIds:', missingRoundIds);
+    }
 
     // Format the bets with additional information
     const formattedBets = bets.map(bet => ({
@@ -348,7 +375,9 @@ exports.getRecentBets = async (req, res) => {
       createdAt: bet.createdAt,
       status: bet.status || 'pending',
       payout: bet.status === 'won' ? bet.winAmount : 0,
-      roundId: bet.roundId ? bet.roundId.toString() : null
+      roundId: bet.roundId ? bet.roundId.toString() : null,
+      roundNumber: bet.roundNumber || null,
+      duration: bet.duration || null
     }));
     
     console.log('Formatted bets:', formattedBets.length);

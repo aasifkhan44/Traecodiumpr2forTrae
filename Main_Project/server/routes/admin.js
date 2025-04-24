@@ -467,10 +467,57 @@ router.post('/settings', (req, res) => {
 });
 
 // @route   GET api/admin/transactions
-// @desc    Get all transactions
+// @desc    Get all transactions with filtering
 // @access  Private/Admin
-router.get('/transactions', (req, res) => {
-  res.json({ msg: 'Admin transactions route' });
+router.get('/transactions', adminMiddleware, async (req, res) => {
+  try {
+    const {
+      user, // user id
+      type, // credit/debit
+      status, // completed/pending/failed
+      minAmount,
+      maxAmount,
+      startDate,
+      endDate,
+      reference,
+      description,
+      page = 1,
+      limit = 30
+    } = req.query;
+
+    const filter = {};
+    if (user) filter.user = user;
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+    if (reference) filter.reference = { $regex: reference, $options: 'i' };
+    if (description) filter.description = { $regex: description, $options: 'i' };
+    if (minAmount) filter.amount = { ...filter.amount, $gte: Number(minAmount) };
+    if (maxAmount) filter.amount = { ...filter.amount, $lte: Number(maxAmount) };
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const transactions = await Transaction.find(filter)
+      .populate('user', 'name mobile email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+    const total = await Transaction.countDocuments(filter);
+
+    res.json({
+      success: true,
+      data: transactions,
+      total,
+      page: Number(page),
+      limit: Number(limit)
+    });
+  } catch (err) {
+    console.error('Error fetching transactions:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 // @route   GET api/admin/referrals
@@ -914,6 +961,14 @@ router.put('/deposit-requests/:id', adminMiddleware, async (req, res) => {
         // Save user changes first
         await request.user.save();
         console.log('User balance updated successfully');
+
+        // After approving a deposit, trigger referral commission
+        try {
+          await User.applyMultiLevelCommission(request.user._id, amountToAdd);
+          console.log('Referral commission applied for deposit approval');
+        } catch (err) {
+          console.error('Error applying referral commission:', err);
+        }
 
         // Update request status
         request.status = status;

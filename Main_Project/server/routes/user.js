@@ -214,8 +214,33 @@ router.put('/profile', auth, async (req, res) => {
 // @route   GET api/user/transactions
 // @desc    Get user transactions
 // @access  Private
-router.get('/transactions', (req, res) => {
-  res.json({ msg: 'User transactions route' });
+router.get('/transactions', auth, async (req, res) => {
+  try {
+    const { type, status, minAmount, maxAmount, startDate, endDate, reference, description, page = 1, limit = 30 } = req.query;
+    const filter = { user: req.user._id };
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+    if (reference) filter.reference = { $regex: reference, $options: 'i' };
+    if (description) filter.description = { $regex: description, $options: 'i' };
+    if (minAmount) filter.amount = { ...filter.amount, $gte: Number(minAmount) };
+    if (maxAmount) filter.amount = { ...filter.amount, $lte: Number(maxAmount) };
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+    const skip = (Number(page) - 1) * Number(limit);
+    const Transaction = require('../models/Transaction');
+    const transactions = await Transaction.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit));
+    const total = await Transaction.countDocuments(filter);
+    res.json({ success: true, data: transactions, total, page: Number(page), limit: Number(limit) });
+  } catch (err) {
+    console.error('Error fetching user transactions:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 // @route   GET api/user/referrals
