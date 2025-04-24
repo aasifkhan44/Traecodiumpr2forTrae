@@ -1,7 +1,12 @@
+console.log('Requiring express...');
 const express = require('express');
+console.log('Requiring router...');
 const router = express.Router();
+console.log('Requiring bcryptjs...');
 const bcrypt = require('bcryptjs');
+console.log('Requiring User model...');
 const User = require('../models/User');
+console.log('Requiring auth middleware...');
 const auth = require('../middleware/auth');
 
 // @route   POST api/auth/register

@@ -18,9 +18,24 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 // Create HTTP server
 const server = http.createServer(app);
 
-// Middleware
+// --- CORS CONFIGURATION ---
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5175',
+  'http://127.0.0.1:57867',
+  'http://localhost:3005'
+];
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : ['http://localhost:5173', 'http://localhost:5175', 'http://127.0.0.1:57867', 'http://localhost:3005'],
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS: ' + origin));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'Upgrade', 'Connection', 'Sec-WebSocket-Key', 'Sec-WebSocket-Version', 'Sec-WebSocket-Extensions'],
   exposedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
@@ -29,6 +44,8 @@ app.use(cors({
   optionsSuccessStatus: 204,
   maxAge: 86400
 }));
+// --- END CORS CONFIGURATION ---
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
@@ -42,34 +59,53 @@ app.use((req, res, next) => {
   next();
 });
 
-// Route files
+// Uncommenting all route requires and app.use statements
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const adminRoutes = require('./routes/admin');
 const gameRoutes = require('./routes/game');
 const depositRoutes = require('./routes/deposit');
-const commissionSettingsRoutes = require('./routes/commissionSettings');
+const commissionSettingsRoutes = require('./routes/commissionSettings_fixed');
+console.log('Required ./routes/commissionSettings_fixed');
 const wingoRoutes = require('./routes/wingo');
 const adminGamesRoutes = require('./routes/admin/games');
 const nummaRoutes = require('./routes/numma');
 const nummaAdminResultRouter = require('./routes/nummaAdminResult');
 const SiteSettings = require('./models/SiteSettings');
 
-// Mount routers
-console.log('Registering routes...');
+console.log('Registering /api/auth');
 app.use('/api/auth', authRoutes);
+console.log('Registered /api/auth');
+console.log('Registering /api/user');
 app.use('/api/user', userRoutes);
+console.log('Registered /api/user');
+console.log('Registering /api/admin');
 app.use('/api/admin', adminRoutes);
+console.log('Registered /api/admin');
+console.log('Registering /api/games');
 app.use('/api/games', gameRoutes);
+console.log('Registered /api/games');
+console.log('Registering /api/admin/games');
 app.use('/api/admin/games', adminGamesRoutes);
-console.log('Mounting deposit routes at /api/deposit');
+console.log('Registered /api/admin/games');
+console.log('Registering /api/deposit');
 app.use('/api/deposit', depositRoutes);
+console.log('Registered /api/deposit');
+console.log('Registering /api/withdrawal');
 app.use('/api/withdrawal', require('./routes/withdrawal'));
+console.log('Registered /api/withdrawal');
+console.log('Registering /api/commission-settings');
 app.use('/api/commission-settings', commissionSettingsRoutes);
-console.log('Mounting wingo routes at /api/wingo');
+console.log('Registered /api/commission-settings');
+console.log('Registering /api/wingo');
 app.use('/api/wingo', wingoRoutes);
+console.log('Registered /api/wingo');
+console.log('Registering /api/numma');
 app.use('/api/numma', nummaRoutes);
+console.log('Registered /api/numma');
+console.log('Registering /api/numma/admin/result-info');
 app.use('/api/numma/admin/result-info', nummaAdminResultRouter);
+console.log('Registered /api/numma/admin/result-info');
 
 // Public route for site settings
 app.get('/api/site-settings', async (req, res) => {
@@ -88,9 +124,15 @@ app.get('/api/site-settings', async (req, res) => {
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? 
-      process.env.CLIENT_URL : 
-      ['http://localhost:5173', 'http://localhost:5175', 'http://127.0.0.1:57867', 'http://localhost:3005'],
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS: ' + origin));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']

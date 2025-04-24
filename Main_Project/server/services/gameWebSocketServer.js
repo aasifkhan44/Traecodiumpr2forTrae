@@ -5,6 +5,8 @@ const NummaRoundManager = require('./NummaRoundManager');
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
+const WS_PATH = process.env.WS_PATH || '/ws/game';
+
 class GameWebSocketServer {
   constructor() {
     this.server = null;
@@ -16,11 +18,11 @@ class GameWebSocketServer {
   start(httpServer) {
     if (this.isRunning) return true;
     try {
-      this.server = new WebSocket.Server({ server: httpServer, path: '/ws/game' });
+      this.server = new WebSocket.Server({ server: httpServer, path: WS_PATH });
       this.server.on('connection', this.handleConnection.bind(this));
       this.isRunning = true;
-      this.serverUrl = '/ws/game';
-      console.log('Unified Game WebSocket server started at /ws/game');
+      this.serverUrl = WS_PATH;
+      console.log(`Unified Game WebSocket server started at ${WS_PATH}`);
       return true;
     } catch (err) {
       console.error('Failed to start unified WebSocket server:', err);

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { FaTrash, FaEdit, FaCheck, FaTimes, FaPlus, FaSave, FaUserFriends } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import { API_BASE_URL } from '../utils/api';
+import api, { API_BASE_URL } from '../utils/api';
 
 const ReferralCommissionSettings = () => {
   // State for commission settings
@@ -28,18 +27,7 @@ const ReferralCommissionSettings = () => {
   const fetchCommissionSettings = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        setLoading(false);
-        return;
-      }
-      
-      const res = await axios.get(`${API_BASE_URL}/api/admin/referral-settings`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const res = await api.get('/admin/referral-settings');
       if (res.data.success) {
         setCommissionSettings(res.data.data);
       }
@@ -56,18 +44,7 @@ const ReferralCommissionSettings = () => {
   const fetchReferralStats = async () => {
     try {
       setLoadingStats(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        setLoadingStats(false);
-        return;
-      }
-      
-      const res = await axios.get(`${API_BASE_URL}/api/admin/referrals`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const res = await api.get('/admin/referrals');
       if (res.data.success) {
         setReferralStats(res.data.data);
       }
@@ -121,37 +98,18 @@ const ReferralCommissionSettings = () => {
   // Create new commission setting
   const createCommissionSetting = async (e) => {
     e.preventDefault();
-    
     if (!formData.level || !formData.percentage) {
       toast.error('Level and percentage are required');
       return;
     }
-    
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-      
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin/referral-settings`,
-        formData,
-        {
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-          }
-        }
-      );
-      
+      const res = await api.post('/admin/referral-settings', formData);
       if (res.data.success) {
-        toast.success('Commission setting created successfully');
-        setCreateMode(false);
+        toast.success('Commission setting created');
         fetchCommissionSettings();
+        setCreateMode(false);
       }
     } catch (err) {
-      console.error('Error creating commission setting:', err);
       const errorMessage = err.response?.data?.message || 'Failed to create commission setting';
       toast.error(errorMessage);
     }
@@ -160,41 +118,14 @@ const ReferralCommissionSettings = () => {
   // Update existing commission setting
   const updateCommissionSetting = async (e) => {
     e.preventDefault();
-    
-    if (!formData.percentage) {
-      toast.error('Percentage is required');
-      return;
-    }
-    
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-      
-      const res = await axios.put(
-        `${API_BASE_URL}/api/admin/referral-settings/${editMode}`,
-        {
-          percentage: formData.percentage,
-          description: formData.description,
-          isActive: formData.isActive
-        },
-        {
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` 
-          }
-        }
-      );
-      
+      const res = await api.put(`/admin/referral-settings/${editMode}`, formData);
       if (res.data.success) {
-        toast.success('Commission setting updated successfully');
-        setEditMode(null);
+        toast.success('Commission setting updated');
         fetchCommissionSettings();
+        setEditMode(null);
       }
     } catch (err) {
-      console.error('Error updating commission setting:', err);
       const errorMessage = err.response?.data?.message || 'Failed to update commission setting';
       toast.error(errorMessage);
     }
@@ -202,30 +133,13 @@ const ReferralCommissionSettings = () => {
 
   // Delete commission setting
   const deleteCommissionSetting = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this commission setting?')) {
-      return;
-    }
-    
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Authentication required. Please log in.');
-        return;
-      }
-      
-      const res = await axios.delete(
-        `${API_BASE_URL}/api/admin/referral-settings/${id}`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-      
+      const res = await api.delete(`/admin/referral-settings/${id}`);
       if (res.data.success) {
-        toast.success('Commission setting deleted successfully');
+        toast.success('Commission setting deleted');
         fetchCommissionSettings();
       }
     } catch (err) {
-      console.error('Error deleting commission setting:', err);
       const errorMessage = err.response?.data?.message || 'Failed to delete commission setting';
       toast.error(errorMessage);
     }
