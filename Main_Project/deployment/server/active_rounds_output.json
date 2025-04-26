@@ -1,0 +1,29 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : {"success":true,"data":{"1":{"_id":"680a2b873baef09bc0
+                    51957e","duration":1,"status":"open","__v":0,"createdA
+                    t":"2025-04-24T12:16:07.780Z","endTime":"2025-04-24T12
+                    :17:07.780Z","isControlled":false,"rou...
+RawContent        : HTTP/1.1 200 OK
+                    Vary: Origin
+                    Access-Control-Allow-Credentials: true
+                    Access-Control-Expose-Headers: 
+                    Content-Type,Authorization,x-auth-token
+                    Connection: keep-alive
+                    Keep-Alive: timeout=5
+                    Content-Le...
+Forms             : {}
+Headers           : {[Vary, Origin], [Access-Control-Allow-Credentials, 
+                    true], [Access-Control-Expose-Headers, 
+                    Content-Type,Authorization,x-auth-token], 
+                    [Connection, keep-alive]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : System.__ComObject
+RawContentLength  : 1307
+
+
+
