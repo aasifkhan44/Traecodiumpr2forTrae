@@ -21,12 +21,26 @@ export default function Numma({ gameData }) {
   // Initialize error state to avoid "setError is not defined" errors
   const [error, setError] = useState(null);
   
+  // Fullscreen countdown overlay state
+  const [showCountdownOverlay, setShowCountdownOverlay] = useState(false);
+  const [overlaySeconds, setOverlaySeconds] = useState(null);
+
   // Get all core functionality from NummaCore
   const numma = NummaCore();
   
   // Get card image URL from gameData if available, fallback to site logo
   const logoUrl = gameData?.cardImageUrl || siteSettings.logoUrl;
   
+  // Effect to control countdown overlay
+  useEffect(() => {
+    if (numma.timer <= 6 && numma.timer > 0) {
+      setOverlaySeconds(numma.timer);
+      setShowCountdownOverlay(true);
+    } else {
+      setShowCountdownOverlay(false);
+    }
+  }, [numma.timer]);
+
   // Handle bet placement with proper error handling
   const handlePlaceBet = async (amount, multiplier = 1) => {
     if (!numma.user) {
@@ -255,6 +269,44 @@ export default function Numma({ gameData }) {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
+      {/* Fullscreen Countdown Overlay */}
+      {showCountdownOverlay && overlaySeconds > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'opacity 0.2s',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '14vw',
+              color: '#FFD700',
+              fontWeight: 'bold',
+              textShadow: '0 0 32px #fff, 0 0 128px #FFD700',
+              animation: 'flash 0.6s alternate infinite',
+              filter: 'drop-shadow(0 0 32px #FFD700)',
+              userSelect: 'none',
+            }}
+          >
+            {overlaySeconds}
+          </span>
+          <style>{`
+            @keyframes flash {
+              0% { opacity: 1; }
+              100% { opacity: 0.3; }
+            }
+          `}</style>
+        </div>
+      )}
       {/* Main Content */}
       <div className="w-full max-w-xl mx-auto flex flex-col items-center px-2 sm:px-6 py-6 bg-white rounded-2xl shadow-lg">
         {/* Logo */}
