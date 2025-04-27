@@ -3,6 +3,7 @@ const NummaBet = require('../models/NummaBet');
 const { NummaRound1m, NummaRound3m, NummaRound5m } = require('../models/NummaRound');
 const User = require('../models/User');
 const NummaAdminResult = require('../models/NummaAdminResult');
+const logger = require('../logger');
 
 // Get active rounds
 exports.getActiveRounds = async (req, res) => {
@@ -26,7 +27,7 @@ exports.getActiveRounds = async (req, res) => {
       data: roundsArray
     });
   } catch (error) {
-    console.error('Error getting active rounds:', error);
+    logger.error('Error getting active rounds:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -65,7 +66,7 @@ exports.getCurrentRound = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error getting current round:', error);
+    logger.error('Error getting current round:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -94,7 +95,7 @@ exports.getRoundHistory = async (req, res) => {
       data: history
     });
   } catch (error) {
-    console.error('Error getting round history:', error);
+    logger.error('Error getting round history:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -115,18 +116,18 @@ exports.placeBet = async (req, res) => {
     // Always use authenticated user from token
     const userIdFromToken = req.user && (req.user._id || req.user.id);
     const { userId: userIdFromBody, roundId, duration, betType, betValue, amount, multiplier } = req.body;
-    console.log('[Numma] Place bet request:', req.body, 'Token user:', userIdFromToken);
+    logger.info('[Numma] Place bet request:', req.body, 'Token user:', userIdFromToken);
     if (!userIdFromToken) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
     // If userId in body does not match token, warn and reject
     if (userIdFromBody && userIdFromBody !== userIdFromToken.toString()) {
-      console.warn('[Numma] User ID in body does not match token. Body:', userIdFromBody, 'Token:', userIdFromToken);
+      logger.warn('[Numma] User ID in body does not match token. Body:', userIdFromBody, 'Token:', userIdFromToken);
       return res.status(403).json({ success: false, error: 'User ID mismatch' });
     }
     // Validate required fields (except userId)
     if (!roundId || !duration || !betType || betValue === undefined || !amount) {
-      console.warn('[Numma] Missing required fields:', req.body);
+      logger.warn('[Numma] Missing required fields:', req.body);
       return res.status(400).json({
         success: false,
         error: 'Missing required fields'
@@ -135,23 +136,23 @@ exports.placeBet = async (req, res) => {
     const RoundModel = getRoundModel(duration);
     const round = await RoundModel.findById(roundId);
     if (!round || round.status !== 'active') {
-      console.warn('[Numma] Round not active:', roundId, 'status:', round && round.status);
+      logger.warn('[Numma] Round not active:', roundId, 'status:', round && round.status);
       return res.status(400).json({ success: false, error: 'Round is not active' });
     }
     // Validate betType and betValue
     if (betType === 'color' && !['Red', 'Green', 'Violet'].includes(betValue)) {
-      console.warn('[Numma] Invalid color value:', betValue);
+      logger.warn('[Numma] Invalid color value:', betValue);
       return res.status(400).json({ success: false, error: 'Invalid color value' });
     } else if (betType === 'number' && (isNaN(betValue) || betValue < 0 || betValue > 9)) {
-      console.warn('[Numma] Invalid number value:', betValue);
+      logger.warn('[Numma] Invalid number value:', betValue);
       return res.status(400).json({ success: false, error: 'Invalid number value' });
     } else if (betType === 'bigsmall' && !['Big', 'Small'].includes(betValue)) {
-      console.warn('[Numma] Invalid bigsmall value:', betValue);
+      logger.warn('[Numma] Invalid bigsmall value:', betValue);
       return res.status(400).json({ success: false, error: 'Invalid big/small value' });
     }
     // Validate amount
     if (isNaN(amount) || amount <= 0) {
-      console.warn('[Numma] Invalid amount:', amount);
+      logger.warn('[Numma] Invalid amount:', amount);
       return res.status(400).json({ success: false, error: 'Invalid amount' });
     }
     // Place bet with authenticated user only
@@ -167,23 +168,23 @@ exports.placeBet = async (req, res) => {
         multiplier || 1
       );
     } catch (err) {
-      console.error('[Numma] Error in placeBet:', err);
+      logger.error('[Numma] Error in placeBet:', err);
       return res.status(400).json({
         success: false,
         error: err.message || 'Error placing bet'
       });
     }
     if (!bet || !bet._id) {
-      console.error('[Numma] Bet not saved:', bet);
+      logger.error('[Numma] Bet not saved:', bet);
       return res.status(500).json({ success: false, error: 'Failed to save bet' });
     }
-    console.log('[Numma] Bet placed successfully:', bet._id, 'for user:', userIdFromToken);
+    logger.info('[Numma] Bet placed successfully:', bet._id, 'for user:', userIdFromToken);
     res.json({
       success: true,
       data: bet
     });
   } catch (error) {
-    console.error('[Numma] Unhandled error placing bet:', error);
+    logger.error('[Numma] Unhandled error placing bet:', error);
     res.status(400).json({
       success: false,
       error: error.message || 'Error placing bet'
@@ -205,7 +206,7 @@ exports.getUserBetHistory = async (req, res) => {
       data: history
     });
   } catch (error) {
-    console.error('Error getting user bet history:', error);
+    logger.error('Error getting user bet history:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -252,7 +253,7 @@ exports.getRoundOutcome = async (req, res) => {
     }
     res.json({ success: true, data: outcome });
   } catch (error) {
-    console.error('Error getting round outcome:', error);
+    logger.error('Error getting round outcome:', error);
     res.status(500).json({ success: false, error: 'Server error' });
   }
 };
@@ -267,7 +268,7 @@ exports.startRounds = async (req, res) => {
       message: 'Numma rounds started successfully'
     });
   } catch (error) {
-    console.error('Error starting Numma rounds:', error);
+    logger.error('Error starting Numma rounds:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
@@ -285,7 +286,7 @@ exports.stopRounds = async (req, res) => {
       message: 'Numma rounds stopped successfully'
     });
   } catch (error) {
-    console.error('Error stopping Numma rounds:', error);
+    logger.error('Error stopping Numma rounds:', error);
     res.status(500).json({
       success: false,
       error: 'Server error'
