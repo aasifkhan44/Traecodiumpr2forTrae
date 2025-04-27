@@ -93,15 +93,22 @@ const NummaCore = () => {
       }
       if (success && response) {
         const rounds = response.data.rounds || response.data.data || [];
-        // Only use rounds that match the selectedDuration
-        const filteredRounds = rounds.filter(round => round.duration === selectedDuration);
+        const serverTime = response.data.serverTime ? new Date(response.data.serverTime).getTime() : null;
+        let filteredRounds = rounds.filter(round => round.duration === selectedDuration);
+        if (filteredRounds.length === 0 && rounds.length > 0) {
+          filteredRounds = [rounds[0]];
+        }
         setRounds(filteredRounds);
-        const active = filteredRounds.find(round => round.status === 'active');
+        const active = filteredRounds.find(round => round.status === 'active') || filteredRounds[0];
         if (active) {
           setActiveRound(active);
-          const endTime = new Date(active.endTime).getTime();
-          const now = Date.now();
-          setTimer(Math.max(0, Math.floor((endTime - now) / 1000)));
+          const start = new Date(active.startTime).getTime();
+          const end = new Date(active.endTime).getTime();
+          let now = serverTime || (active.serverTime ? new Date(active.serverTime).getTime() : Date.now());
+          let timer = Math.max(0, Math.floor((end - now) / 1000));
+          let roundJustStarted = Math.abs(now - start) < 2000;
+          if (roundJustStarted) timer = Math.floor((end - start) / 1000);
+          setTimer(timer);
         }
         setCompletedRounds(filteredRounds.filter(round => round.status === 'completed'));
       } else {
@@ -146,32 +153,12 @@ const NummaCore = () => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'roundUpdate' && data.rounds) {
-          // Accept both object and array formats
-          let roundsArr = Array.isArray(data.rounds)
-            ? data.rounds
-            : Object.values(data.rounds);
-          setRounds(roundsArr);
-          const active = roundsArr.find(round => round.duration === selectedDuration && round.status === 'active');
-          if (active) {
-            setActiveRound(active);
-            const endTime = new Date(active.endTime).getTime();
-            const now = Date.now();
-            setTimer(Math.max(0, Math.floor((endTime - now) / 1000)));
-            setWaitingForNextRound(false);
-          }
-          const completed = roundsArr.filter(round => round.status === 'completed');
-          if (completed.length > 0) {
-            setCompletedRounds(prev => {
-              const existingIds = new Set(prev.map(r => r._id));
-              const newRounds = completed.filter(r => !existingIds.has(r._id));
-              return [...newRounds, ...prev];
-            });
-          }
+          handleWebSocketRoundUpdate(data);
         } else if (data.type === 'round_update') {
           setActiveRound(data.round);
-          const endTime = new Date(data.round.endTime).getTime();
-          const now = Date.now();
-          setTimer(Math.max(0, Math.floor((endTime - now) / 1000)));
+          const now = (data.serverTime ? new Date(data.serverTime).getTime() : Date.now());
+          const end = new Date(data.round.endTime).getTime();
+          setTimer(Math.max(0, Math.floor((end - now) / 1000)));
           setWaitingForNextRound(false);
         } else if (data.type === 'round_result') {
           setCompletedRounds(prev => [data.round, ...prev]);
@@ -225,13 +212,9 @@ const NummaCore = () => {
       } catch (error) {}
     };
     ws.onerror = (event) => {
-      // Suppress 'WebSocket is closed before the connection is established' error if already closing/closed
       if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) {
-        // Ignore benign errors
         return;
       }
-      // Optionally, log other errors for debugging
-      // console.error('WebSocket error:', event);
     };
     ws.onclose = () => {};
   }, [user, selectedDuration, userBets]);
@@ -246,6 +229,7 @@ const NummaCore = () => {
 
   // --- Timer logic for live countdown and auto-fetch next round (MIRROR Wingo) ---
   const timerRef = useRef(null);
+  const driftRef = useRef(0);
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     const round = activeRound;
@@ -253,8 +237,16 @@ const NummaCore = () => {
       setTimer(null);
       return;
     }
+    // Sync with server time if provided
+    let serverTime = null;
+    if (round.serverTime) {
+      serverTime = new Date(round.serverTime).getTime();
+      driftRef.current = serverTime - Date.now(); // Positive: server ahead, Negative: client ahead
+    } else {
+      driftRef.current = 0;
+    }
     const calcRemaining = () => {
-      const now = Date.now();
+      const now = Date.now() + driftRef.current;
       const end = new Date(round.endTime).getTime();
       return Math.max(0, Math.floor((end - now) / 1000));
     };
@@ -264,25 +256,51 @@ const NummaCore = () => {
       const remaining = calcRemaining();
       setTimer(remaining);
       if (remaining === 0) {
+        // Block betting and clear round/timer before fetching new round
+        setActiveRound(null);
+        setTimer(null);
         setWaitingForNextRound(true);
-        let wsRequestSent = false;
-        if (wsRef.current && wsRef.current.readyState === 1) {
-          wsRef.current.send(JSON.stringify({ type: 'getRounds', game: 'numma' }));
-          wsRequestSent = true;
-        } else {
-          fetchActiveRound();
-        }
-        // Fallback: If after 2.5s timer is still 0, force REST fetch
         setTimeout(() => {
-          // Only fetch if still stuck at 0 and waiting
-          if (timer === 0 && waitingForNextRound) {
-            fetchActiveRound();
-          }
-        }, 2500);
+          fetchActiveRound();
+        }, 200);
       }
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [activeRound, selectedDuration]);
+
+  // --- Patch WebSocket round update logic for precise timer sync ---
+  const handleWebSocketRoundUpdate = useCallback((data) => {
+    let roundsArr = Array.isArray(data.rounds)
+      ? data.rounds
+      : Object.values(data.rounds);
+    let filteredRounds = roundsArr.filter(round => round.duration === selectedDuration);
+    if (filteredRounds.length === 0 && roundsArr.length > 0) {
+      filteredRounds = [roundsArr[0]];
+    }
+    setRounds(filteredRounds);
+    const active = filteredRounds.find(round => round.status === 'active') || filteredRounds[0];
+    if (active) {
+      setActiveRound(active);
+      // Use serverTime if provided for precise sync
+      const now = (data.serverTime ? new Date(data.serverTime).getTime() : (active.serverTime ? new Date(active.serverTime).getTime() : Date.now()));
+      const start = new Date(active.startTime).getTime();
+      const end = new Date(active.endTime).getTime();
+      let timer = Math.max(0, Math.floor((end - now) / 1000));
+      // If round just started (within 2s), show full duration
+      let roundJustStarted = Math.abs(now - start) < 2000;
+      if (roundJustStarted) timer = Math.floor((end - start) / 1000);
+      setTimer(timer);
+      setWaitingForNextRound(false);
+    }
+    const completed = filteredRounds.filter(round => round.status === 'completed');
+    if (completed.length > 0) {
+      setCompletedRounds(prev => {
+        const existingIds = new Set(prev.map(r => r._id));
+        const newRounds = completed.filter(r => !existingIds.has(r._id));
+        return [...newRounds, ...prev];
+      });
+    }
+  }, [selectedDuration]);
 
   useEffect(() => {
     if (waitingForNextRound && timer > 0) {

@@ -9,6 +9,7 @@ exports.getActiveRounds = async (req, res) => {
   try {
     const activeRounds = await nummaRoundManager.getActiveRounds();
     // Convert to array format, ensure all expected fields are present
+    const now = new Date();
     const roundsArray = Object.entries(activeRounds).map(([duration, round]) => ({
       _id: round._id,
       duration: parseInt(duration),
@@ -19,11 +20,13 @@ exports.getActiveRounds = async (req, res) => {
       createdAt: round.createdAt,
       totalBets: round.totalBets,
       totalAmount: round.totalAmount,
-      totalPayout: round.totalPayout
+      totalPayout: round.totalPayout,
+      serverTime: now
     }));
     res.json({
       success: true,
-      data: roundsArray
+      data: roundsArray,
+      serverTime: now
     });
   } catch (error) {
     console.error('Error getting active rounds:', error);
