@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/api';
 
@@ -118,7 +118,15 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
     confirmPassword: '',
     referralCode: ''
   });
-  
+
+  // Prefill referral code from localStorage if present
+  useEffect(() => {
+    const ref = localStorage.getItem('referralCode');
+    if (ref) {
+      setFormData((prev) => ({ ...prev, referralCode: ref }));
+    }
+  }, []);
+
   const countryCodes = fullCountryCodes;
 
   const [loading, setLoading] = useState(false);

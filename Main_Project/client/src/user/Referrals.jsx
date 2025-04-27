@@ -11,8 +11,14 @@ const Referrals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [referrals, setReferrals] = useState([]);
+  const [totalEarnings, setTotalEarnings] = useState(0);
 
-  // Fetch user profile to get referral code
+  // Helper for referral link (should use homepage with ?ref=...)
+  const referralLink = siteSettings?.domain && referralCode
+    ? `${siteSettings.domain}/?ref=${referralCode}`
+    : '';
+
+  // Fetch user profile to get referral code and earnings
   useEffect(() => {
     let isMounted = true;
     const fetchUserProfile = async () => {
@@ -35,6 +41,10 @@ const Referrals = () => {
             }
             return prev;
           });
+          // Set total earnings if available
+          if (typeof response.data.data.referralEarnings === 'number') {
+            setTotalEarnings(response.data.data.referralEarnings);
+          }
         } else if (isMounted) {
           setError(response.data?.message || 'Failed to fetch profile data');
         }
@@ -84,7 +94,9 @@ const Referrals = () => {
   }, []);
 
   const handleCopyReferralCode = () => {
-    navigator.clipboard.writeText(referralCode);
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
+    }
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
@@ -103,9 +115,9 @@ const Referrals = () => {
           </div>
           <div className="flex items-center gap-2 mt-2">
             <span className="font-mono text-xs truncate bg-gray-100 px-2 py-1 rounded">
-              {loading ? 'Loading...' : siteSettings?.domain ? `${siteSettings.domain}/register?ref=${referralCode}` : 'Loading domain...'}
+              {loading ? 'Loading...' : referralLink || 'Loading domain...'}
             </span>
-            <button onClick={handleCopyReferralCode} className="btn btn-xs btn-primary px-2 py-1 text-xs" disabled={loading || !referralCode}>
+            <button onClick={handleCopyReferralCode} className="btn btn-xs btn-primary px-2 py-1 text-xs" disabled={loading || !referralLink}>
               {copySuccess ? 'Copied!' : <FaCopy />}
             </button>
           </div>
@@ -119,7 +131,7 @@ const Referrals = () => {
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-xs text-gray-600 dark:text-gray-400">Total Referrals: <span className="font-bold text-sm text-gray-900">{referrals.length}</span></span>
-            <span className="text-xs text-gray-600 dark:text-gray-400">Total Earnings: <span className="font-bold text-sm text-green-600">$48.00</span></span>
+            <span className="text-xs text-gray-600 dark:text-gray-400">Total Earnings: <span className="font-bold text-sm text-green-600">${totalEarnings.toFixed(2)}</span></span>
           </div>
         </div>
       </div>
