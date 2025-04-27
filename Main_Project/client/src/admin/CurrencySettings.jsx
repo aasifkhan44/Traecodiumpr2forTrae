@@ -29,7 +29,7 @@ const CurrencySettings = () => {
   const fetchCurrencySettings = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/admin/currency-settings');
+      const res = await api.get('/admin/currency-settings');
       
       if (res.data.success) {
         setSettings(res.data.data);
@@ -68,7 +68,7 @@ const CurrencySettings = () => {
     
     try {
       setLoading(true);
-      const res = await api.post('/api/admin/currency-settings', settings);
+      const res = await api.post('/admin/currency-settings', settings);
       
       if (res.data.success) {
         toast.success('Currency settings updated successfully');

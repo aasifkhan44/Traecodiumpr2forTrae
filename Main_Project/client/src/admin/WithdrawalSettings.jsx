@@ -27,7 +27,7 @@ const WithdrawalSettings = () => {
   const fetchWithdrawalSettings = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/admin/withdrawal-settings');
+      const response = await api.get('/admin/withdrawal-settings');
       
       if (response.data.success) {
         setSettings(response.data.data);
@@ -141,7 +141,7 @@ const WithdrawalSettings = () => {
   const handleSaveSettings = async () => {
     console.log("formData before sending:", formData);
     try {
-      const response = await api.post('/api/admin/withdrawal-settings', formData);
+      const response = await api.put('/admin/withdrawal-settings', formData);
 
       if (response.data.success) {
         toast.success('Withdrawal settings updated successfully');

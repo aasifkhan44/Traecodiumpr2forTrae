@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FaShareAlt, FaCopy, FaUsers, FaDollarSign } from 'react-icons/fa';
 import { useContext } from 'react';
 import SiteSettingsContext from '../contexts/SiteSettingsContext.jsx';
-import { API_BASE_URL } from '../utils/api';
+import api from '../utils/api';
 
 const Referrals = () => {
   const { siteSettings } = useContext(SiteSettingsContext);
@@ -19,46 +19,38 @@ const Referrals = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        
         if (!token) {
           setError('Authentication required');
           setLoading(false);
           return;
         }
-        
-        const response = await fetch(`${API_BASE_URL}/user/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+        // Use centralized API utility
+        const response = await api.get('/user/profile', {
+          headers: { Authorization: `Bearer ${token}` }
         });
-        
-        const data = await response.json();
-        
-        if (data.success && data.data && isMounted) {
+        if (response.data && response.data.data && isMounted) {
           setReferralCode(prev => {
-            if (prev !== (data.data.referralCode || '')) {
-              return data.data.referralCode || '';
+            if (prev !== (response.data.data.referralCode || '')) {
+              return response.data.data.referralCode || '';
             }
             return prev;
           });
-        } else if (!data.success && isMounted) {
-          setError(data.message || 'Failed to fetch profile data');
+        } else if (isMounted) {
+          setError(response.data?.message || 'Failed to fetch profile data');
         }
       } catch (err) {
         if (isMounted) {
-          console.error('Error fetching user profile:', err);
           setError('Server error while fetching profile data');
         }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-
     fetchUserProfile();
     return () => { isMounted = false; };
   }, []);
 
-  // Fetch user referrals from backend
+  // Fetch user referrals
   useEffect(() => {
     let isMounted = true;
     const fetchUserReferrals = async () => {
@@ -70,14 +62,14 @@ const Referrals = () => {
           setLoading(false);
           return;
         }
-        const response = await fetch(`${API_BASE_URL}/user/referrals`, {
+        // Use centralized API utility
+        const response = await api.get('/user/referrals', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data) && isMounted) {
-          setReferrals(data.data);
-        } else if (!data.success && isMounted) {
-          setError(data.message || 'Failed to fetch referrals');
+        if (response.data && Array.isArray(response.data.data) && isMounted) {
+          setReferrals(response.data.data);
+        } else if (isMounted) {
+          setError(response.data?.message || 'Failed to fetch referrals');
         }
       } catch (err) {
         if (isMounted) {

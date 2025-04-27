@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { FaHistory, FaShareAlt, FaCoins, FaWallet } from 'react-icons/fa';
 import AdminGamesGrid from '../components/Games/AdminGamesGrid';
 import GamesGrid from '../components/Games/GamesGrid';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../utils/api';
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -41,17 +41,12 @@ const Dashboard = () => {
         setError(null); // Clear any previous errors
         
         let token = localStorage.getItem('token');
-        if (token && (token.startsWith('"') || token.startsWith("'")) && (token.endsWith('"') || token.endsWith("'"))) {
-          token = token.substring(1, token.length - 1);
-        }
-        
         if (!token) {
           setError('Authentication token not found. Please log in again.');
           setLoading(false);
           return;
         }
         
-        const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
         const headers = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -60,7 +55,7 @@ const Dashboard = () => {
         // Fetch user profile with retry mechanism
         const makeRequest = async (endpoint) => {
           try {
-            return await axios.get(`${API_BASE_URL}${endpoint}`, { headers });
+            return await api.get(endpoint, { headers });
           } catch (error) {
             if (error.code === 'ERR_NETWORK' && retryCount < 3) {
               console.log(`Retrying request to ${endpoint} (attempt ${retryCount + 1})`);
@@ -72,8 +67,8 @@ const Dashboard = () => {
         };
 
         const [profileResponse, referralsResponse] = await Promise.all([
-          makeRequest('/api/user/profile'),
-          makeRequest('/api/user/referrals')
+          makeRequest('/user/profile'),
+          makeRequest('/user/referrals')
         ]).catch(async (error) => {
           if (error.code === 'ERR_NETWORK' && retryCount < 3) {
             // Retry the entire operation

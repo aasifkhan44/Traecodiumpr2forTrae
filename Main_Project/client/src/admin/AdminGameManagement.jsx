@@ -126,7 +126,7 @@ const AdminGameManagement = () => {
 
   const fetchGames = async () => {
     try {
-      const response = await api.get('/api/admin/games');
+      const response = await api.get('/admin/games');
       
       if (response.data?.success && Array.isArray(response.data.data)) {
         setGames(response.data.data);
@@ -167,7 +167,7 @@ const AdminGameManagement = () => {
         Object.entries(updates).filter(([_, value]) => value !== '')
       );
 
-      const response = await api.patch(`/api/admin/games/${encodeURIComponent(identifier)}`, cleanUpdates);
+      const response = await api.patch(`/admin/games/${encodeURIComponent(identifier)}`, cleanUpdates);
 
       if (response.data?.success) {
         setGames(prevGames => 

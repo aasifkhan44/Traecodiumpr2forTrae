@@ -82,7 +82,7 @@ const SiteSettings = () => {
     setSaving(true);
     
     try {
-      const response = await api.post('/admin/site-settings', settings);
+      const response = await api.put('/admin/site-settings', settings);
       
       if (response.data.success) {
         const serverData = response.data.data;

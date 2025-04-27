@@ -17,7 +17,7 @@ export default function AdminGamesGrid() {
     const fetchGames = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/api/admin/games');
+        const response = await api.get('/admin/games');
         if (response.data.success) {
           setGames(response.data.data);
         }
@@ -56,7 +56,7 @@ export default function AdminGamesGrid() {
         showToast('Game not found', 'error');
         return;
       }
-      const response = await api.patch(`/api/admin/games/${encodeURIComponent(game.identifier)}`, submissionData);
+      const response = await api.patch(`/admin/games/${encodeURIComponent(game.identifier)}`, submissionData);
       if (response.data.success) {
         setGames(games.map(g => g.identifier === game.identifier ? response.data.data : g));
         setEditingId(null);

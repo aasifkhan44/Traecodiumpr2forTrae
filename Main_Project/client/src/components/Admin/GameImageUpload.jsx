@@ -37,7 +37,7 @@ const GameImageUpload = ({ gameIdentifier, imageType, currentImageUrl, onImageUp
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/admin/games/${gameIdentifier}/image`,
+        `${API_BASE_URL}/admin/games/${gameIdentifier}/image`,
         formData,
         {
           headers: {

@@ -16,7 +16,7 @@ const AdminGamesContent = () => {
 
   const fetchGames = async () => {
     try {
-      const response = await api.get('/api/admin/games');
+      const response = await api.get('/admin/games');
       
       if (response.data && response.data.success && Array.isArray(response.data.data)) {
         setGames(response.data.data);
@@ -36,7 +36,7 @@ const AdminGamesContent = () => {
   const handleGameUpdate = async (identifier, updates) => {
     setIsUpdating(true);
     try {
-      const response = await api.patch(`/api/admin/games/${identifier}`, updates);
+      const response = await api.patch(`/admin/games/${identifier}`, updates);
 
       if (response.data && response.data.success) {
         setGames(games.map(game => 

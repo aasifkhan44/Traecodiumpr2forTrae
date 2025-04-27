@@ -19,7 +19,7 @@ const ReferralSettings = () => {
   const fetchCommissionSettings = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/admin/referral-settings');
+      const res = await api.get('/admin/referral-settings');
       
       if (res.data.success) {
         setCommissionSettings(res.data.data);
@@ -59,7 +59,7 @@ const ReferralSettings = () => {
   // Handle update submission
   const handleUpdateSubmit = async (id) => {
     try {
-      const res = await api.put(`/api/admin/referral-settings/${id}`, formData);
+      const res = await api.put(`/admin/referral-settings/${id}`, formData);
 
       if (res.data.success) {
         toast.success('Commission setting updated successfully');
@@ -89,7 +89,7 @@ const ReferralSettings = () => {
         return toast.error('Percentage must be between 0 and 100');
       }
       
-      const res = await api.post('/api/admin/referral-settings', formData);
+      const res = await api.post('/admin/referral-settings', formData);
 
       if (res.data.success) {
         toast.success('New commission setting created successfully');
@@ -111,7 +111,7 @@ const ReferralSettings = () => {
   // Handle toggle active status
   const handleToggleActive = async (id, currentStatus) => {
     try {
-      const res = await api.put(`/api/admin/referral-settings/${id}`, {
+      const res = await api.put(`/admin/referral-settings/${id}`, {
         isActive: !currentStatus
       });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaUsers, FaMoneyBillWave, FaChartLine } from 'react-icons/fa';
-import { API_BASE_URL } from '../utils/api';
+import api from '../utils/api';
 
 const ReferralCommissions = () => {
   const [referrals, setReferrals] = useState([]);
@@ -31,19 +31,13 @@ const ReferralCommissions = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
-      const response = await fetch(`${API_BASE_URL}/api/user/referrals`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const response = await api.get('/user/referrals', {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setReferrals(data.data);
+      if (response.data && response.data.success) {
+        setReferrals(response.data.data);
       } else {
-        setError(data.message || 'Failed to fetch referrals');
+        setError(response.data?.message || 'Failed to fetch referrals');
       }
     } catch (err) {
       setError('Server error while fetching referrals');
@@ -56,11 +50,9 @@ const ReferralCommissions = () => {
   // Fetch commission settings
   const fetchCommissionSettings = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/commission-settings`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setCommissionSettings(data.data.sort((a, b) => a.level - b.level));
+      const response = await api.get('/commission-settings');
+      if (response.data && response.data.success) {
+        setCommissionSettings(response.data.data.sort((a, b) => a.level - b.level));
       }
     } catch (err) {
       console.error('Error fetching commission settings:', err);
