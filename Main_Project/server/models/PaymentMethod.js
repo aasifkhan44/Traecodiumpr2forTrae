@@ -20,6 +20,10 @@ const PaymentMethodSchema = new mongoose.Schema({
     default: '',
     description: 'SVG image code for this payment method'
   },
+  imageUrl: {
+    type: String,
+    default: ''
+  },
   description: {
     type: String,
     default: ''

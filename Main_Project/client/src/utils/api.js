@@ -2,9 +2,15 @@ import axios from 'axios';
 
 // Ensure API_BASE_URL always ends with /api
 const getBaseUrl = () => {
-  let base = (typeof window !== 'undefined' && window.API_BASE_URL) ||
-    (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api')) ||
-    'http://localhost:5000/api';
+  let base;
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    if (import.meta.env.DEV && import.meta.env.VITE_API_BASE_URL_DEV) {
+      base = import.meta.env.VITE_API_BASE_URL_DEV;
+    } else if (import.meta.env.VITE_API_BASE_URL) {
+      base = import.meta.env.VITE_API_BASE_URL;
+    }
+  }
+  base = base || 'http://localhost:5000/api';
   if (!base.endsWith('/api')) {
     base = base.replace(/\/+$/, '') + '/api';
   }

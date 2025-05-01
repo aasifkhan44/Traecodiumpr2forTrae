@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaHistory, FaShareAlt, FaCoins, FaWallet } from 'react-icons/fa';
 import AdminGamesGrid from '../components/Games/AdminGamesGrid';
 import GamesGrid from '../components/Games/GamesGrid';
@@ -8,14 +8,17 @@ import api from '../utils/api';
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
   if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading user data...</div>;
+    return <div className="flex items-center justify-center min-h-[60vh] w-full text-base sm:text-lg">Loading user data...</div>;
   }
 
   if (!user) {
-    return <div className="flex items-center justify-center min-h-screen text-red-500">Authentication required. Please login.</div>;
+    navigate('/login');
+    return null;
   }
+
   const [userStats, setUserStats] = useState({
     balance: 0,
     totalGames: 45,
@@ -34,6 +37,9 @@ const Dashboard = () => {
     { id: 3, date: '2025-04-02', color: 'blue', result: 'win', amount: 25, payout: 47 }
   ]);
   
+  const [activeGames, setActiveGames] = useState([]);
+  const [gamesLoading, setGamesLoading] = useState(true);
+
   useEffect(() => {
     const fetchUserData = async (retryCount = 0) => {
       try {
@@ -122,6 +128,24 @@ const Dashboard = () => {
     
     // Fetch user data when component mounts
     fetchUserData();
+
+    // Fetch active games when component mounts
+    const fetchActiveGames = async () => {
+      setGamesLoading(true);
+      try {
+        const response = await api.get('/games/active');
+        if (response.data.success) {
+          setActiveGames(response.data.data);
+        } else {
+          setActiveGames([]);
+        }
+      } catch {
+        setActiveGames([]);
+      } finally {
+        setGamesLoading(false);
+      }
+    };
+    fetchActiveGames();
     
     // In a complete implementation, we would also fetch recent games here
   }, []);
@@ -156,68 +180,67 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary to-secondary text-white">
-      <div className="container mx-auto px-4 py-16">
-        <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
-        
-        {/* Modern compact user stats */}
-        <div className="flex flex-wrap gap-4 mb-8">
-          {/* Wallet */}
-          <div className="flex-1 min-w-[180px] max-w-xs bg-white shadow rounded-lg px-6 py-5 flex flex-col items-start justify-center gap-2 border border-gray-100">
-            <div className="flex items-center gap-2 mb-2">
-              <FaWallet className="text-primary text-2xl" />
-              <span className="text-xl font-bold text-gray-900">Wallet</span>
-            </div>
-            {loading ? (
-              <div className="animate-pulse w-full">
-                <div className="h-7 bg-gray-200 rounded w-2/3 mb-2"></div>
-              </div>
-            ) : error ? (
-              <div className="text-red-600 text-sm font-semibold">
-                <p>Could not load</p>
-                <button onClick={() => window.location.reload()} className="text-primary hover:underline mt-1">Refresh</button>
-              </div>
-            ) : (
-              <>
-                <span
-                  className="text-2xl font-extrabold text-primary break-all truncate max-w-full"
-                  style={{ wordBreak: 'break-all', overflowWrap: 'break-word', width: '100%', display: 'block' }}
-                  title={userStats.balance.toFixed(2)}
-                >
-                  ⚡{userStats.balance.toFixed(2)}
-                </span>
-                <Link to="/wallet/recharge" className="text-sm text-primary hover:underline mt-1 font-semibold">Add funds</Link>
-              </>
-            )}
+    <div className="w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-50 via-emerald-50 to-yellow-50 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center text-blue-800 drop-shadow">Welcome, {user.name || user.email}</h2>
+      <div className="flex flex-row gap-3 sm:gap-4 w-full mb-4">
+        <div
+          className="flex-1 min-w-0 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-xl shadow-lg p-3 sm:p-4 flex flex-col items-center cursor-pointer hover:scale-105 hover:shadow-2xl transition border-2 border-transparent hover:border-blue-700 focus-within:ring-2 focus-within:ring-blue-400"
+          onClick={() => navigate('/wallet/recharge')}
+          tabIndex={0}
+          role="button"
+          aria-label="Add Funds"
+          onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/wallet/recharge'); }}
+        >
+          <span className="text-xs sm:text-sm text-white font-semibold mb-1 drop-shadow">Balance</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-white drop-shadow">₹{userStats.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <button
+            className="mt-2 px-3 py-1 rounded bg-white text-blue-700 text-xs sm:text-sm font-bold shadow hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={e => { e.stopPropagation(); navigate('/wallet/recharge'); }}
+          >
+            Add Funds
+          </button>
+        </div>
+        <div
+          className="flex-1 min-w-0 bg-gradient-to-br from-yellow-400 via-orange-300 to-pink-200 rounded-xl shadow-lg p-3 sm:p-4 flex flex-col items-center cursor-pointer hover:scale-105 hover:shadow-2xl transition border-2 border-transparent hover:border-yellow-600 focus-within:ring-2 focus-within:ring-yellow-400"
+          onClick={() => navigate('/referrals')}
+          tabIndex={0}
+          role="button"
+          aria-label="Referral Details"
+          onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/referrals'); }}
+        >
+          <span className="text-xs sm:text-sm text-gray-800 font-semibold mb-1 drop-shadow">Referrals</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-gray-900 drop-shadow truncate">{userStats.referrals}</span>
+          <span className="text-xs sm:text-sm text-gray-800 font-semibold mt-1 drop-shadow">Earnings</span>
+          <span className="text-sm sm:text-lg font-bold text-green-700 drop-shadow truncate">₹{(userStats.referralEarnings || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-3">
+        <button onClick={() => navigate('/transactions')} className="w-full py-2 rounded bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white font-bold text-base shadow hover:scale-105 hover:shadow-lg transition">View Transactions</button>
+      </div>
+      {/* Active Games Section */}
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-2 text-center text-orange-700 drop-shadow">Active Games</h3>
+        {gamesLoading ? (
+          <div className="text-center text-blue-700 font-semibold">Loading games...</div>
+        ) : activeGames.length === 0 ? (
+          <div className="text-center text-gray-500">No active games found.</div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {activeGames.filter(game => game.isActive).map(game => (
+              <Link
+                to={`/games/${game.identifier}`}
+                key={game.identifier || game._id}
+                className="bg-gradient-to-br from-white via-green-50 to-yellow-100 rounded-xl shadow-md p-4 flex flex-col items-center hover:scale-105 hover:shadow-xl transition border-2 border-transparent hover:border-green-400"
+                style={{ textDecoration: 'none' }}
+              >
+                <span className="text-base font-bold mb-1 text-green-800 drop-shadow">{game.name || game.identifier}</span>
+                <span className="text-xs text-gray-700 mb-1">{game.description}</span>
+                <span className="text-xs text-green-700 font-semibold">Active</span>
+                <span className="text-primary mt-2 underline text-sm">Play Now</span>
+              </Link>
+            ))}
           </div>
-          {/* Referrals */}
-          <div className="flex-1 min-w-[180px] max-w-xs bg-white shadow rounded-lg px-6 py-5 flex flex-col items-start justify-center gap-2 border border-gray-100">
-            <div className="flex items-center gap-2 mb-2">
-              <FaShareAlt className="text-primary text-2xl" />
-              <span className="text-xl font-bold text-gray-900">Referrals</span>
-            </div>
-            <div className="flex flex-col gap-1 w-full">
-              <span className="text-sm text-gray-800 font-semibold">Total: <span className="font-bold text-lg text-primary">{userStats.referrals}</span></span>
-              <span className="text-sm text-gray-800 font-semibold">Earnings: <span className="font-bold text-lg text-green-600">₹{userStats.referralEarnings}</span></span>
-            </div>
-            <Link to="/referrals" className="text-sm text-primary hover:underline mt-1 font-semibold">Referral program</Link>
-          </div>
-        </div>
-        
-        {/* Games Grid - Shows games available according to settings */}
-        <div className="mb-8">
-          {user?.isAdmin ? <AdminGamesGrid /> : <GamesGrid />}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          
-          <Link to="/referrals" className="card bg-gradient-to-r from-accent to-purple-500 text-white p-6 transform transition-transform hover:scale-105">
-            <FaShareAlt className="text-4xl mb-4" />
-            <h3 className="text-xl font-bold mb-2">Invite Friends</h3>
-            <p>Earn commissions through our multi-level referral program!</p>
-          </Link>
-        </div>
+        )}
       </div>
     </div>
   );

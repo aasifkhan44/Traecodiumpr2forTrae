@@ -520,8 +520,8 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">User Management</h1>
+    <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">User Management</h2>
       
       {error && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">

@@ -97,7 +97,7 @@ export const NummaBetControls = ({
   handlePlaceBet, 
   betLoading 
 }) => {
-  const quickMultipliers = [1, 5, 10, 20, 50, 100];
+  const quickMultipliers = [5, 10, 20, 50, 100];
 
   return (
     <div className="flex flex-col items-center gap-4 mb-6">
@@ -166,7 +166,7 @@ export const NummaBetPopup = ({
 }) => {
   const defaultMultiplier = popupData?.defaultMultiplier;
   const [popupQuantity, setPopupQuantity] = useState(1);
-  const [popupMultiplier, setPopupMultiplier] = useState(defaultMultiplier ? `x${defaultMultiplier}` : 'x1');
+  const [popupMultiplier, setPopupMultiplier] = useState(defaultMultiplier ? `x${defaultMultiplier}` : 'x5');
   const [popupAgree, setPopupAgree] = useState(true);
 
   useEffect(() => {
@@ -174,7 +174,7 @@ export const NummaBetPopup = ({
   }, [defaultMultiplier]);
 
   const balanceChips = [1, 10, 100, 1000];
-  const popupMultipliers = ['x1', 'x5', 'x10', 'x20', 'x50', 'x100'];
+  const popupMultipliers = ['x5', 'x10', 'x20', 'x50', 'x100'];
 
   const getMultiplierValue = (mult) => {
     return Number(mult.replace('x', '')) || 1;

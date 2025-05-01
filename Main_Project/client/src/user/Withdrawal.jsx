@@ -366,16 +366,13 @@ const Withdrawal = () => {
   // Loading state
   if (loadingSettings) {
     return (
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Withdraw Funds</h1>
-          <Link to="/wallet/recharge" className="btn btn-outline btn-primary">
-            Recharge Wallet
-          </Link>
-        </div>
-        <div className="flex justify-center items-center p-8">
-          <FaSpinner className="animate-spin text-3xl text-primary" />
-          <p className="ml-2">Loading withdrawal options...</p>
+      <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+        <h1 className="text-2xl font-bold text-white drop-shadow mb-6 text-center flex items-center"><FaWallet className="mr-2" /> Withdraw Funds</h1>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-center items-center w-full min-h-[60px]">
+            <FaSpinner className="animate-spin text-3xl text-primary" />
+            <p className="ml-2 text-blue-800 text-base sm:text-lg font-medium whitespace-nowrap">Loading withdrawal options...</p>
+          </div>
         </div>
       </div>
     );
@@ -384,68 +381,14 @@ const Withdrawal = () => {
   // Error state
   if (errorSettings) {
     return (
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Withdraw Funds</h1>
-          <Link to="/wallet/recharge" className="btn btn-outline btn-primary">
-            Recharge Wallet
-          </Link>
-        </div>
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-          <p className="font-bold">Error</p>
-          <p>{errorSettings}</p>
-        </div>
-        <div className="flex space-x-4 mt-4 mb-4">
-          <button 
-            onClick={() => {
-              setErrorSettings(null);
-              setLoadingSettings(true);
-              
-              // Retry fetching withdrawal settings
-              const fetchWithdrawalSettings = async () => {
-                try {
-                  const response = await api.get('/withdrawal/options');
-                  
-                  if (response.data.success) {
-                    // Ensure imageUrl is properly set for all options
-                    if (response.data.data.upiOptions) {
-                      response.data.data.upiOptions = response.data.data.upiOptions.map(option => ({
-                        ...option,
-                        // Make sure imageUrl is a valid URL or empty string
-                        imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
-                      }));
-                    }
-                    
-                    if (response.data.data.cryptoOptions) {
-                      response.data.data.cryptoOptions = response.data.data.cryptoOptions.map(option => ({
-                        ...option,
-                        // Make sure imageUrl is a valid URL or empty string
-                        imageUrl: option.imageUrl && typeof option.imageUrl === 'string' ? option.imageUrl : ''
-                      }));
-                    }
-                    
-                    setPaymentSettings(response.data.data);
-                  } else {
-                    setErrorSettings('Failed to load withdrawal options');
-                  }
-                } catch (error) {
-                  console.error('Error fetching withdrawal settings:', error);
-                  setErrorSettings('Failed to load withdrawal options. Please try again.');
-                } finally {
-                  setLoadingSettings(false);
-                }
-              };
-              
-              fetchWithdrawalSettings();
-            }} 
-            className="btn btn-primary flex items-center"
-          >
-            <FaSpinner className={`mr-2 ${loadingSettings ? 'animate-spin' : 'hidden'}`} />
-            Retry
-          </button>
-          <Link to="/profile" className="btn btn-outline flex items-center">
-            <FaArrowLeft className="mr-1" /> Back to Profile
-          </Link>
+      <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+        <h1 className="text-2xl font-bold text-white drop-shadow mb-6 text-center flex items-center"><FaWallet className="mr-2" /> Withdraw Funds</h1>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex flex-col items-center justify-center w-full min-h-[60px] gap-1">
+            <FaExclamationTriangle className="text-red-500 text-2xl mb-2" />
+            <span className="text-red-700 font-semibold mb-2 text-center text-base sm:text-lg">{errorSettings}</span>
+            <button onClick={retryLoadingSettings} className="btn btn-primary mt-2 w-full max-w-xs">Retry</button>
+          </div>
         </div>
       </div>
     );
@@ -454,141 +397,83 @@ const Withdrawal = () => {
   // Success message
   if (success) {
     return (
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Withdraw Funds</h1>
-          <Link to="/wallet/recharge" className="btn btn-outline btn-primary">
-            Recharge Wallet
-          </Link>
-        </div>
-        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
-          <p className="font-bold flex items-center">
-            <FaCheck className="mr-2" /> Success!
-          </p>
-          <p>Your withdrawal request has been submitted successfully. Our team will review it shortly.</p>
-        </div>
-        
-        <div className="flex space-x-4 mb-8">
-          <button 
-            onClick={() => setSuccess(false)} 
-            className="btn btn-primary"
-          >
-            Make Another Request
-          </button>
-          <Link to="/profile" className="btn btn-secondary">
-            Back to Profile
-          </Link>
-        </div>
-        
-        {/* Recent Requests */}
-        <div>
-          <h2 className="text-xl font-bold mb-4">Recent Requests</h2>
-          {loadingHistory ? (
-            <p className="text-center p-4">
-              <FaSpinner className="animate-spin inline mr-2" />
-              Loading history...
+      <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+        <h1 className="text-2xl font-bold text-white drop-shadow mb-6 text-center flex items-center"><FaWallet className="mr-2" /> Withdraw Funds</h1>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+            <p className="font-bold flex items-center">
+              <FaCheck className="mr-2" /> Success!
             </p>
-          ) : requestHistory.length > 0 ? (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {requestHistory.map((request) => (
-                    <tr key={request._id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {new Date(request.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {request.finalAmount}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap capitalize">
-                        {request.withdrawalMode}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(request.status)}`}>
-                          {request.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-center p-4 bg-gray-50 rounded">No requests found</p>
-          )}
+            <p>Your withdrawal request has been submitted successfully.</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 mb-8">
+            <button 
+              onClick={() => setSuccess(false)} 
+              className="bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white px-4 py-2 rounded font-bold flex items-center shadow hover:scale-105 hover:shadow-lg transition w-full sm:w-auto"
+            >
+              Make Another Request
+            </button>
+            <Link to="/profile" className="btn btn-secondary w-full sm:w-auto">
+              Back to Profile
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Withdraw Funds</h1>
-        <Link to="/wallet/recharge" className="btn btn-outline btn-primary">
-          Recharge Wallet
-        </Link>
-      </div>
-      
-      {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-          <p>{error}</p>
-        </div>
-      )}
-      
-      {/* Instructions */}
+    <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <h1 className="text-2xl font-bold text-white drop-shadow mb-6 text-center flex items-center"><FaWallet className="mr-2" /> Withdraw Funds</h1>
       {paymentSettings?.withdrawalInstructions && (
-        <div className="bg-blue-50 p-4 rounded-lg mb-6">
-          <h2 className="text-lg font-bold text-blue-800 mb-2">Instructions</h2>
-          <p className="text-blue-700">{paymentSettings.withdrawalInstructions}</p>
+        <>
+          <div className="flex items-center justify-end mb-6 mt-0">
+            <Link
+              to="/wallet/recharge"
+              className="bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white font-bold px-6 py-2 rounded-lg flex items-center shadow hover:scale-105 hover:shadow-lg transition min-w-[160px] justify-center border-2 border-yellow-400"
+              style={{ minHeight: '48px' }}
+            >
+              <FaWallet className="mr-2 text-lg" /> Recharge
+            </Link>
+          </div>
+          <div className="bg-blue-50 p-4 rounded-lg mb-6">
+            <span className="block text-blue-900 text-sm whitespace-pre-line">{paymentSettings.withdrawalInstructions}</span>
+          </div>
+        </>
+      )}
+      {error && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-4">
+          <div className="flex justify-center items-center">
+            <FaExclamationTriangle className="text-yellow-500 text-2xl mr-2" />
+            <span className="text-yellow-700">{error}</span>
+          </div>
         </div>
       )}
-      
       {!showConfirmation ? (
         /* Step 1: Withdrawal Form */
-        <form onSubmit={handleConfirmation} className="bg-white p-6 rounded-lg shadow-md mb-8">
-          {/* Withdrawal Mode Selection */}
+        <form onSubmit={handleConfirmation} className="space-y-4 bg-white rounded-lg shadow-md p-6 mb-8">
+          {/* Payment Mode Selection */}
           <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Select Withdrawal Method
-            </label>
+            <label className="block text-white text-sm font-bold mb-2">Select Withdrawal Mode</label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                className={`p-4 rounded-lg border-2 flex flex-col items-center justify-center transition-colors ${
-                  withdrawalMode === 'upi' 
-                    ? 'border-primary bg-primary bg-opacity-10' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => handleWithdrawalModeChange('upi')}
+                className={`p-4 rounded-lg border-2 flex flex-col items-center justify-center transition-colors ${withdrawalMode === 'upi' ? 'bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white border-blue-500 shadow-lg' : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'}`}
+                onClick={() => setWithdrawalMode('upi')}
               >
-                <FaCreditCard className={`text-2xl mb-2 ${withdrawalMode === 'upi' ? 'text-primary' : 'text-gray-500'}`} />
-                <span className={`font-medium ${withdrawalMode === 'upi' ? 'text-primary' : 'text-gray-700'}`}>UPI</span>
+                <FaCreditCard className={`text-2xl mb-2 ${withdrawalMode === 'upi' ? 'text-white' : 'text-gray-500'}`} />
+                <span className={`font-medium ${withdrawalMode === 'upi' ? 'text-white' : 'text-gray-700'}`}>UPI</span>
               </button>
-              
               <button
                 type="button"
-                className={`p-4 rounded-lg border-2 flex flex-col items-center justify-center transition-colors ${
-                  withdrawalMode === 'crypto' 
-                    ? 'border-primary bg-primary bg-opacity-10' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => handleWithdrawalModeChange('crypto')}
+                className={`p-4 rounded-lg border-2 flex flex-col items-center justify-center transition-colors ${withdrawalMode === 'crypto' ? 'bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white border-yellow-500 shadow-lg' : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'}`}
+                onClick={() => setWithdrawalMode('crypto')}
               >
-                <FaBitcoin className={`text-2xl mb-2 ${withdrawalMode === 'crypto' ? 'text-primary' : 'text-gray-500'}`} />
-                <span className={`font-medium ${withdrawalMode === 'crypto' ? 'text-primary' : 'text-gray-700'}`}>Crypto</span>
+                <FaBitcoin className={`text-2xl mb-2 ${withdrawalMode === 'crypto' ? 'text-white' : 'text-gray-500'}`} />
+                <span className={`font-medium ${withdrawalMode === 'crypto' ? 'text-white' : 'text-gray-700'}`}>Crypto</span>
               </button>
             </div>
           </div>
-          
           {/* Amount */}
           <div className="mb-6">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="amount">
@@ -614,10 +499,9 @@ const Withdrawal = () => {
               </p>
             )}
           </div>
-          
           {/* Fee and Conversion Information - Only shown after option selection */}
           {amount && ((withdrawalMode === 'upi' && selectedUpiOption) || (withdrawalMode === 'crypto' && selectedCrypto)) && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-6 p-3 sm:p-6 bg-gray-50 rounded-lg">
               <h3 className="font-medium text-gray-700 mb-2">Fee & Conversion Information</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -675,7 +559,19 @@ const Withdrawal = () => {
               </div>
             </div>
           )}
-          
+          {/* Total Payable Section (matches Recharge page) */}
+          {withdrawalMode === 'crypto' && selectedCrypto && amount && (
+            <div className="mt-2 text-sm">
+              <span className="text-gray-600">Total Payable: </span>
+              <span className="font-medium text-red-600">{Number(convertedAmount).toFixed(2)} {selectedCrypto.currency}</span>
+            </div>
+          )}
+          {withdrawalMode === 'upi' && selectedUpiOption && amount && (
+            <div className="mt-2 text-sm">
+              <span className="text-gray-600">Total Payable: </span>
+              <span className="font-medium text-red-600">{Number(convertedAmount).toFixed(2)} INR</span>
+            </div>
+          )}
           {/* UPI ID Input - Only shown after UPI option selection */}
           {withdrawalMode === 'upi' && selectedUpiOption && (
             <div className="mb-4">
@@ -690,7 +586,6 @@ const Withdrawal = () => {
               />
             </div>
           )}
-
           {/* Crypto Address Input - Only shown after crypto selection */}
           {withdrawalMode === 'crypto' && selectedCrypto && (
             <div className="mb-4">
@@ -707,59 +602,53 @@ const Withdrawal = () => {
               />
             </div>
           )}
-          
           {/* UPI Options */}
           {withdrawalMode === 'upi' && (
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-bold mb-2">Select UPI Option</label>
               {paymentSettings?.upiOptions && paymentSettings.upiOptions.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  {paymentSettings.upiOptions.map((option, index) => {
-                    // Debug the imageUrl for this option
-                    console.log(`Rendering UPI option ${option.name} with imageUrl:`, option.imageUrl);
-                    
-                    return (
-                      <button
-                        key={index}
-                        type="button"
-                        className={`p-3 rounded-lg border text-left transition-colors ${
-                          selectedUpiOption === option 
-                            ? 'border-primary bg-primary bg-opacity-5' 
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => handleUpiOptionSelect(option)}
-                      >
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
-                            {option.imageUrl ? (
-                              <img 
-                                src={option.imageUrl} 
-                                alt={option.name} 
-                                className="w-6 h-6 object-contain" 
-                                onError={(e) => {
-                                  console.log(`Failed to load image for ${option.name}:`, option.imageUrl);
-                                  e.target.onerror = null;
-                                  e.target.src = 'https://via.placeholder.com/24?text=' + encodeURIComponent(option.name.charAt(0));
-                                }}
-                              />
-                            ) : (
-                              <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
-                                {option.name.charAt(0).toUpperCase()}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium">{option.name}</div>
-                            {option.withdrawalFee > 0 && (
-                              <div className="text-sm text-gray-600">
-                                Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
-                              </div>
-                            )}
-                          </div>
+                  {paymentSettings.upiOptions.map((option, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className={`p-3 rounded-lg border text-left transition-colors ${
+                        selectedUpiOption === option 
+                          ? 'border-primary bg-primary bg-opacity-5' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleUpiOptionSelect(option)}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-full">
+                          {option.imageUrl ? (
+                            <img 
+                              src={option.imageUrl} 
+                              alt={option.name} 
+                              className="w-6 h-6 object-contain" 
+                              onError={(e) => {
+                                console.log(`Failed to load image for ${option.name}:`, option.imageUrl);
+                                e.target.onerror = null;
+                                e.target.src = 'https://via.placeholder.com/24?text=' + encodeURIComponent(option.name.charAt(0));
+                              }}
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
+                              {option.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                      </button>
-                    );
-                  })}
+                        <div>
+                          <div className="font-medium">{option.name}</div>
+                          {option.withdrawalFee > 0 && (
+                            <div className="text-sm text-gray-600">
+                              Fee: {option.feeType === 'percent' ? `${option.withdrawalFee}%` : `₹${option.withdrawalFee}`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               ) : (
                 <div className="bg-yellow-50 p-4 rounded-lg text-center">
@@ -774,7 +663,6 @@ const Withdrawal = () => {
               )}
             </div>
           )}
-
           {/* Crypto Options */}
           {withdrawalMode === 'crypto' && (
             <>
@@ -834,11 +722,10 @@ const Withdrawal = () => {
               </div>
             </>
           )}
-          
-          <div className="mt-6">
+          <div className="flex flex-col sm:flex-row gap-2 mt-6">
             <button 
               type="submit" 
-              className="btn btn-primary w-full"
+              className="bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white px-4 py-2 rounded font-bold flex items-center shadow hover:scale-105 hover:shadow-lg transition w-full sm:w-auto"
               disabled={!amount || (withdrawalMode === 'upi' && !upiId) || (withdrawalMode === 'crypto' && (!selectedCrypto || !cryptoAddress))}
             >
               Proceed to Confirmation
@@ -847,10 +734,9 @@ const Withdrawal = () => {
         </form>
       ) : (
         /* Step 2: Confirmation */
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-xl font-bold mb-4">Confirm Withdrawal</h2>
-          
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-blue-800 flex items-center"><FaLock className="mr-2" /> Confirm Withdrawal</h2>
+          <div className="bg-gray-50 p-3 sm:p-6 rounded-lg mb-6">
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Withdrawal Method:</span>
               <span className="font-medium capitalize">{withdrawalMode}</span>
@@ -925,26 +811,22 @@ const Withdrawal = () => {
               ) : null}
             </div>
           </div>
-          
-          <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-            <p className="text-yellow-700 flex items-center">
-              <FaExclamationTriangle className="mr-2" />
-              Please verify all details carefully. Once submitted, withdrawal requests cannot be modified.
-            </p>
+          <div className="bg-yellow-50 p-4 rounded-lg mb-6 flex items-start">
+            <FaExclamationTriangle className="text-yellow-600 mt-1 mr-2 flex-shrink-0" />
+            <p className="text-yellow-800 text-sm">Please verify all details carefully. Once submitted, withdrawal requests cannot be modified.</p>
           </div>
-          
           <div className="flex justify-between">
             <button 
               type="button" 
               onClick={handleBackToForm} 
-              className="btn btn-secondary"
+              className="btn btn-secondary w-full sm:w-auto"
             >
               Back to Form
             </button>
             <button 
               type="button" 
               onClick={handleSubmit} 
-              className="btn btn-primary"
+              className="bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white px-4 py-2 rounded font-bold flex items-center shadow hover:scale-105 hover:shadow-lg transition w-full sm:w-auto"
               disabled={loading}
             >
               {loading ? (

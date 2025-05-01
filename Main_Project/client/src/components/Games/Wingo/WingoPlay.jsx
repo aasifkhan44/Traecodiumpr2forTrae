@@ -3,10 +3,12 @@ import PropTypes from 'prop-types';
 import api, { API_BASE_URL } from '../../../utils/api';
 import { WS_URL } from '../../../utils/ws';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useSiteSettings } from '../../../contexts/SiteSettingsContext';
 import { toast } from 'react-hot-toast';
 
 export default function WingoPlay() {
   const { user, setUser } = useAuth();
+  const { siteSettings } = useSiteSettings();
   const [userProfile, setUserProfile] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(1); // Default to 1 minute
   const [activeRounds, setActiveRounds] = useState({});
@@ -18,7 +20,7 @@ export default function WingoPlay() {
   const [betLoading, setBetLoading] = useState(false);
   const [error, setError] = useState(null);
   const [recentBets, setRecentBets] = useState([]);
-  const [recentResults, setRecentResults] = useState([]);
+  const [recentResults, setRecentResults] = useState([]); // Fix recent results not showing
   const [currentPage, setCurrentPage] = useState(1);
   const [resultsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState('bets'); // 'bets' or 'results'
@@ -335,15 +337,18 @@ export default function WingoPlay() {
       
       if (response.data && response.data.results) {
         setResults(response.data.results);
+        setRecentResults(response.data.results); // Fix recent results not showing
         setTotalPages(response.data.totalPages || 1);
         setTotalCount(response.data.totalCount || 0);
       } else {
         setResults([]);
+        setRecentResults([]); // Fix recent results not showing
         setTotalPages(1);
         setTotalCount(0);
       }
     } catch (error) {
       setResults([]);
+      setRecentResults([]); // Fix recent results not showing
       setTotalPages(1);
       setTotalCount(0);
       
@@ -416,266 +421,210 @@ export default function WingoPlay() {
   const currentResults = recentResults;
 
   return (
-    <Fragment>
-      <div className="p-2 md:p-4 mx-auto max-w-md">
-        <div className="bg-white rounded-xl shadow-md p-2 md:p-3 mb-2 md:mb-3">
-          <div className="flex justify-between items-center">
-            <h2 className="text-base md:text-lg font-bold">Your Balance</h2>
-            <div className="flex items-center space-x-1">
-              <span className="text-base md:text-lg font-bold">🪙</span>
-              {userProfile || user ? (
-                <span className="text-base md:text-lg font-bold">{userBalance.toFixed(2)}</span>
-              ) : (
-                <span className="text-sm md:text-base text-red-500">Please log in to view your balance</span>
-              )}
-            </div>
-          </div>
+    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-2 sm:px-4 py-2 sm:py-4">
+      {/* Header: Logo + Game Name */}
+      <div className="w-full max-w-2xl flex flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+        <div className="flex items-center gap-2">
+          {/* Logo */}
+          {siteSettings?.logoUrl && (
+            <img
+              src={siteSettings.logoUrl}
+              alt="Logo"
+              className="w-10 h-10 rounded-lg shadow bg-white object-contain"
+              style={{ background: '#fff' }}
+            />
+          )}
+          {/* Game Name */}
+          <span className="font-bold text-lg sm:text-2xl text-gray-900 dark:text-white select-none">Wingo</span>
         </div>
-
-        <div className="mb-2 md:mb-3">
-          <h2 className="text-base md:text-lg font-bold mb-1 md:mb-2">Select Round Duration</h2>
-          <div className="flex justify-between space-x-2">
-            {durations.map((duration) => (
-              <button
-                key={duration.value}
-                onClick={() => handleDurationChange(duration.value)}
-                className={`relative flex-1 min-w-[72px] py-0.5 px-2 rounded-md transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md ${
-                  selectedDuration === duration.value
-                    ? `bg-gradient-to-r from-pink-500 to-pink-700 text-white shadow-lg hover:shadow-xl relative after:absolute after:inset-1 after:rounded-md after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100`
-                    : `bg-gradient-to-r from-pink-100 to-pink-300 text-gray-800 hover:shadow-lg hover:from-pink-200 hover:to-pink-400`
-                }`}
-              >
-                <span className="relative z-10">{duration.label}</span>
-              </button>
-            ))}
-          </div>
+        <div className="flex-1 flex flex-col sm:flex-row items-center gap-1 sm:gap-4">
+          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-300 text-center sm:text-left">Color & Number Prediction</span>
         </div>
-
-        <div className="bg-white rounded-xl shadow-md p-3 md:p-6">
-          {/* Numma-style Round info and countdown */}
-          <div className="w-full max-w-xs sm:max-w-sm bg-gradient-to-br from-blue-50 to-white shadow-lg p-2 sm:p-3 rounded-2xl mb-3 flex flex-row items-center justify-between border border-blue-100 mx-auto">
-            <div className="flex flex-row items-center gap-1 sm:gap-3 mb-1 sm:mb-0">
-              <span className="font-bold text-blue-700 text-xs sm:text-base">Round:</span>
-              <span className="font-mono text-blue-900 text-xs sm:text-base bg-blue-100 px-2 py-0.5 rounded">
-                {currentRound ? currentRound.roundNumber : '--'}
-              </span>
-              <span className="font-mono text-gray-700 bg-gray-50 px-2 py-0.5 rounded text-xs sm:text-base">
-                {currentRound ? currentRound.duration : '--'} min
-              </span>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {waitingForNextRound ? (
-                <span className="font-mono text-base sm:text-lg text-gray-500 animate-pulse" style={{ minWidth: '60px', textAlign: 'center' }}>Wait..</span>
-              ) : (
-                <span className={`font-mono text-base sm:text-lg ${localTimeRemaining <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}
-                  style={{ minWidth: '60px', textAlign: 'center' }}>
-                  {localTimeRemaining !== null ? `${Math.floor(localTimeRemaining/60)}:${(localTimeRemaining%60).toString().padStart(2,'0')}` : '--:--'}
-                </span>
-              )}
-            </div>
-          </div>
-          
-          <div className="mb-4 md:mb-6">
-            <h4 className="text-sm md:text-md font-medium mb-2">Select Color</h4>
-            <div className="grid grid-cols-3 gap-2 md:gap-3">
-              {colors.map((color) => (
-                <button
-                  key={color.value}
-                  onClick={() => handleBetTypeSelect('color', color.value)}
-                  className={`relative flex-1 py-1 px-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md ${
-                    color.value === 'Red'
-                      ? `bg-red-500 text-white hover:shadow-xl hover:from-red-600 hover:to-red-800 ${
-                        selectedBetType === 'color' && selectedBetValue === color.value
-                          ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                          : ''
-                      }`
-                      : color.value === 'Violet'
-                        ? `bg-purple-500 text-white hover:shadow-xl hover:from-purple-600 hover:to-purple-800 ${
-                          selectedBetType === 'color' && selectedBetValue === color.value
-                            ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                            : ''
-                        }`
-                        : `bg-green-500 text-white hover:shadow-xl hover:from-green-600 hover:to-green-800 ${
-                          selectedBetType === 'color' && selectedBetValue === color.value
-                            ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                            : ''
-                        }`
-                  }`}
-                >
-                  <span className="relative z-10">{color.value}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-4 md:mb-6">
-            <h4 className="text-sm md:text-md font-medium mb-2">Select Number</h4>
-            <div className="grid grid-cols-5 gap-2 md:gap-3">
-              {numbers.map(number => (
-                <button
-                  key={number}
-                  onClick={() => handleBetTypeSelect('number', number.toString())}
-                  className={`relative flex-1 py-1 px-2 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm hover:shadow-md ${
-                    number === 0
-                      ? `bg-gradient-to-r from-purple-500 to-red-500 text-white hover:shadow-xl hover:from-purple-600 hover:to-red-600 ${
-                        selectedBetType === 'number' && selectedBetValue === number.toString()
-                          ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                          : ''
-                      }`
-                      : number === 5
-                        ? `bg-gradient-to-r from-green-500 to-purple-500 text-white hover:shadow-xl hover:from-green-600 hover:to-purple-600 ${
-                          selectedBetType === 'number' && selectedBetValue === number.toString()
-                            ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                            : ''
-                        }`
-                        : [2, 4, 6, 8].includes(number)
-                          ? `bg-gradient-to-r from-red-500 to-red-700 text-white hover:shadow-xl hover:from-red-600 hover:to-red-800 ${
-                            selectedBetType === 'number' && selectedBetValue === number.toString()
-                              ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                              : ''
-                          }`
-                          : [1, 3, 7, 9].includes(number)
-                            ? `bg-gradient-to-r from-green-500 to-green-700 text-white hover:shadow-xl hover:from-green-600 hover:to-green-800 ${
-                              selectedBetType === 'number' && selectedBetValue === number.toString()
-                                ? 'relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100'
-                                : ''
-                            }`
-                            : selectedBetType === 'number' && selectedBetValue === number.toString()
-                              ? `bg-gradient-to-r from-pink-500 to-pink-700 text-white shadow-lg hover:shadow-xl relative after:absolute after:inset-1 after:rounded-lg after:border-2 after:border-gold-500 after:opacity-100 after:transition-all after:duration-200 after:scale-95 hover:after:scale-100`
-                              : `bg-gradient-to-r from-pink-100 to-pink-300 text-gray-800 hover:shadow-lg hover:from-pink-200 hover:to-pink-400`
-                  }`}
-                >
-                  <span className="relative z-10">{number}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-4 md:mb-6">
-            <h4 className="text-sm md:text-md font-medium mb-2">Bet Amount</h4>
-            <div className="relative">
-              <input
-                type="number"
-                value={betAmount}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === '') {
-                    setBetAmount('10');
-                  } else if (/^\d+$/.test(value) && Number(value) > 0) {
-                    setBetAmount(value);
-                  }
-                }}
-                className="w-full px-3 py-2.5 text-center text-lg md:text-xl font-medium bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded-lg pr-10 pl-10"
-                placeholder="Enter amount"
-              />
-              <div className="absolute inset-y-0 left-0 flex items-center">
-                <button
-                  onClick={() => setBetAmount(prev => Math.max(10, Number(prev) - 10))}
-                  className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
-                >
-                  <span className="text-lg">-</span>
-                </button>
-              </div>
-              <div className="absolute inset-y-0 right-0 flex items-center">
-                <button
-                  onClick={() => setBetAmount(prev => Number(prev) + 10)}
-                  className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-200"
-                >
-                  <span className="text-lg">+</span>
-                </button>
-              </div>
-            </div>
-            <div className="flex justify-center space-x-2 mt-2">
-              <button
-                onClick={() => setBetAmount(prev => Number(prev) * 10)}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
-              >
-                10X
-              </button>
-              <button
-                onClick={() => setBetAmount(prev => Number(prev) * 20)}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
-              >
-                20X
-              </button>
-              <button
-                onClick={() => setBetAmount(prev => Number(prev) * 50)}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded-lg hover:from-pink-600 hover:to-pink-800 transition-all duration-200 text-sm"
-              >
-                50X
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-3 md:mt-4.5">
+        <div className="rounded-xl px-4 sm:px-6 py-2 shadow text-base sm:text-lg font-bold flex items-center bg-gradient-to-r from-blue-100 to-green-100 border border-blue-200 text-blue-900 min-w-[120px]">
+          ⚡{userProfile?.balance?.toLocaleString() || '0'}
+        </div>
+      </div>
+      <div className="h-2 sm:h-4" />
+      {/* Duration Selector and Timer */}
+      <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+        <div className="flex w-full gap-2 justify-center">
+          {durations.map(d => (
             <button
-              onClick={handlePlaceBet}
-              className="w-full py-2.5 md:py-3.5 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-pink-500 to-pink-700 text-white hover:from-pink-600 hover:to-pink-800 text-sm md:text-base"
+              key={d.value}
+              className={`flex-1 min-w-0 px-0 py-1 sm:px-0 sm:py-1.5 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg border-none focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gradient-to-b ${selectedDuration === d.value ? 'from-purple-700 to-purple-400 text-white ring-2 ring-yellow-400 scale-105' : 'from-black to-gray-800 text-white hover:brightness-110 opacity-90'} tracking-wide relative active:scale-95`}
+              style={{ boxShadow: '0 4px 16px #000a', textShadow: '0 1px 2px #fff3' }}
+              onClick={() => setSelectedDuration(d.value)}
             >
-              {betLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-1.5"></div>
-                  Placing Bet...
-                </div>
-              ) : (
-                'Place Bet'
-              )}
+              {d.label}
             </button>
-          </div>
+          ))}
+        </div>
+        <div className="flex flex-row items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 shadow font-mono text-base sm:text-lg">
+          <span className="text-blue-700 font-bold">Round:</span>
+          <span className="bg-blue-100 px-2 py-0.5 rounded">{activeRounds[selectedDuration]?.roundNumber || '--'}</span>
+          <span className="bg-gray-50 px-2 py-0.5 rounded text-gray-700">{selectedDuration} min</span>
+          <span className={`font-mono text-base sm:text-lg ${localTimeRemaining <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}>{formatTime(localTimeRemaining)}</span>
         </div>
       </div>
-      
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <RecentBets 
-          bets={recentBets} 
-          results={results}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          currentPage={currentPage}
-          resultsPerPage={resultsPerPage}
-          handlePageChange={handlePageChange}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          search={search}
-          setSearch={setSearch}
-        />
-      </div>
-    </Fragment>
-  );
-}
-
-function RecentBets({ bets, results, viewMode, setViewMode, currentPage, resultsPerPage, handlePageChange, totalCount, totalPages, search, setSearch }) {
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
+      <div className="h-2 sm:h-4" />
+      {/* Betting Controls Section */}
+      <div className="w-full max-w-2xl flex flex-col items-center gap-2 sm:gap-4">
+        {/* Color Selection */}
+        <div className="flex gap-2 sm:gap-4 mb-2 w-full max-w-xs sm:max-w-sm justify-center">
+          {colors.map(opt => (
+            <button
+              key={opt.value}
+              className={`flex-1 min-w-0 h-8 sm:h-10 max-w-[110px] rounded-lg flex items-center justify-center font-semibold text-base sm:text-lg cursor-pointer relative overflow-hidden border transition-all duration-200 px-2 sm:px-3 text-white select-none ${selectedBetType === 'color' && selectedBetValue === opt.value ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10' : ''} ${opt.className}`}
+              style={{
+                boxShadow: '0 4px 16px #222b',
+                textShadow: '0 1px 2px #fff8',
+                fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+                letterSpacing: '0.5px',
+              }}
+              onClick={() => {
+                setSelectedBetType('color');
+                setSelectedBetValue(opt.value);
+              }}
+            >
+              <span className="relative z-10 select-none w-full text-center truncate" style={{lineHeight: 1.1}}>{opt.value}</span>
+            </button>
+          ))}
+        </div>
+        <div className="h-2 sm:h-4" />
+        {/* Number Grid */}
+        <div className="grid grid-cols-5 gap-y-4 gap-x-4 mb-2 sm:mb-4 w-full max-w-xs sm:max-w-sm">
+          {numbers.map(n => {
+            let bg = '';
+            let text = 'text-white';
+            // Color logic: 0=red+violet, 5=green+violet, 1,3,7,9=green, 2,4,6,8=red
+            if (n === 0) {
+              bg = 'bg-gradient-to-br from-red-500 to-purple-500';
+            } else if (n === 5) {
+              bg = 'bg-gradient-to-br from-green-500 to-purple-500';
+            } else if ([1,3,7,9].includes(n)) {
+              bg = 'bg-green-500';
+            } else if ([2,4,6,8].includes(n)) {
+              bg = 'bg-red-500';
+            } else {
+              bg = 'bg-gray-200';
+              text = 'text-gray-900';
+            }
+            // Gradient effect for 3
+           
+            // Selected style
+            let selected = selectedBetType === 'number' && selectedBetValue === n
+              ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10 bg-yellow-100 text-gray-900'
+              : `border-gray-300 ${bg} ${text} hover:opacity-80 hover:scale-105 hover:ring-2 hover:ring-yellow-300`;
+            return (
+              <button
+                key={n}
+                className={`w-16 h-8 sm:w-20 sm:h-10 rounded-lg flex items-center justify-center font-bold text-lg sm:text-xl border-2 transition-all duration-200 focus:outline-none select-none ${selected}`}
+                style={{
+                  boxShadow: '0 4px 16px #222b',
+                  textShadow: 'none',
+                  fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+                  letterSpacing: '0.5px',
+                }}
+                onClick={() => {
+                  setSelectedBetType('number');
+                  setSelectedBetValue(n);
+                }}
+              >
+                <span className="relative z-10 select-none">{n}</span>
+              </button>
+            );
+          })}
+        </div>
+        {/* Bet Amount and Place Bet */}
+        <div className="flex flex-col sm:flex-row w-full max-w-xs sm:max-w-sm gap-2 sm:gap-4 items-center justify-center mb-2">
+          <input
+            type="number"
+            min={1}
+            value={betAmount}
+            onChange={e => setBetAmount(e.target.value)}
+            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-base sm:text-lg font-bold text-center focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+            placeholder="Bet Amount"
+          />
           <button
+            className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all text-base sm:text-lg"
+            onClick={handlePlaceBet}
+            disabled={betLoading}
+          >
+            {betLoading ? 'Placing...' : 'Place Bet'}
+          </button>
+        </div>
+        {betError && <div className="text-red-500 text-xs mb-2">{betError}</div>}
+      </div>
+
+      {/* Recent Bets / Results Tabs */}
+      <div className="w-full max-w-2xl bg-white rounded-t-xl shadow flex flex-col mt-4">
+        <div className="flex justify-center gap-4 py-2 border-b">
+          <button
+            className={`px-4 py-2 font-bold text-sm rounded-t-lg transition-colors ${viewMode === 'bets' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             onClick={() => setViewMode('bets')}
-            className={`px-4 py-2 rounded-lg ${
-              viewMode === 'bets' 
-                ? 'bg-purple-50 text-purple-700 font-semibold'
-                : 'bg-gray-50 text-gray-600'
-            }`}
           >
             Recent Bets
           </button>
           <button
+            className={`px-4 py-2 font-bold text-sm rounded-t-lg transition-colors ${viewMode === 'results' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             onClick={() => setViewMode('results')}
-            className={`px-4 py-2 rounded-lg ${
-              viewMode === 'results' 
-                ? 'bg-purple-50 text-purple-700 font-semibold'
-                : 'bg-gray-50 text-gray-600'
-            }`}
           >
             Recent Results
           </button>
         </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 rounded-full bg-red-500"></div>
-          <div className="w-4 h-4 rounded-full bg-violet-500"></div>
-          <div className="w-4 h-4 rounded-full bg-green-500"></div>
-        </div>
+        <RecentBets
+          bets={recentBets}
+          results={recentResults}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          currentPage={currentPage}
+          resultsPerPage={resultsPerPage}
+          handlePageChange={setCurrentPage}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          search={search}
+          setSearch={setSearch}
+          hideTabs
+        />
       </div>
+    </div>
+  );
+}
+
+function RecentBets({ bets, results, viewMode, setViewMode, currentPage, resultsPerPage, handlePageChange, totalCount, totalPages, search, setSearch, hideTabs }) {
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {!hideTabs && (
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setViewMode('bets')}
+              className={`px-4 py-2 rounded-lg ${
+                viewMode === 'bets' 
+                  ? 'bg-purple-50 text-purple-700 font-semibold'
+                  : 'bg-gray-50 text-gray-600'
+              }`}
+            >
+              Recent Bets
+            </button>
+            <button
+              onClick={() => setViewMode('results')}
+              className={`px-4 py-2 rounded-lg ${
+                viewMode === 'results' 
+                  ? 'bg-purple-50 text-purple-700 font-semibold'
+                  : 'bg-gray-50 text-gray-600'
+              }`}
+            >
+              Recent Results
+            </button>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 rounded-full bg-red-500"></div>
+            <div className="w-4 h-4 rounded-full bg-violet-500"></div>
+            <div className="w-4 h-4 rounded-full bg-green-500"></div>
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto rounded-lg">
         {viewMode === 'bets' ? (
           bets && bets.length > 0 ? (
@@ -869,31 +818,34 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
               )}
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Total Results: {totalCount}</span>
-            <div className="flex justify-center gap-4">
+          {/* Modern mobile pagination */}
+          <div className="flex flex-wrap justify-between items-center gap-2 mt-2">
+            <span className="text-gray-600 text-xs sm:text-sm">Total Results: {totalCount}</span>
+            <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`px-4 py-2 rounded-lg ${
+                className={`px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-base font-semibold transition-colors shadow-sm border border-gray-200 ${
                   currentPage === 1
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-purple-700 hover:bg-purple-50'
                 }`}
               >
-                Previous
+                &#8592; Prev
               </button>
-              <span className="text-gray-600">Page {currentPage} of {totalPages || 1}</span>
+              <span className="text-gray-600 text-xs sm:text-sm px-1 sm:px-2 flex items-center">
+                Page {currentPage} / {totalPages || 1}
+              </span>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`px-4 py-2 rounded-lg ${
+                className={`px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-base font-semibold transition-colors shadow-sm border border-gray-200 ${
                   currentPage === totalPages || totalPages === 0
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-purple-700 hover:bg-purple-50'
                 }`}
               >
-                Next
+                Next &#8594;
               </button>
             </div>
           </div>

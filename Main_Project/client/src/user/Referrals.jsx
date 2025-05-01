@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaShareAlt, FaCopy, FaUsers, FaDollarSign } from 'react-icons/fa';
+import { FaShareAlt, FaCopy, FaUsers, FaDollarSign, FaSpinner, FaUserFriends, FaExclamationTriangle } from 'react-icons/fa';
 import { useContext } from 'react';
 import SiteSettingsContext from '../contexts/SiteSettingsContext.jsx';
 import api from '../utils/api';
@@ -100,15 +100,38 @@ const Referrals = () => {
     setCopySuccess(true);
     setTimeout(() => setCopySuccess(false), 2000);
   };
-  
+
+  if (loading) {
+    return (
+      <div className="referrals-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-white drop-shadow flex items-center"><FaUserFriends className="mr-2" /> Referrals</h1>
+        </div>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-center items-center">
+            <FaSpinner className="animate-spin text-3xl text-primary" />
+            <p className="ml-2 text-blue-800">Loading referral data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Referral Program</h1>
-      
+    <div className="referrals-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-white drop-shadow flex items-center"><FaUserFriends className="mr-2" /> Referrals</h1>
+      </div>
+      {error && (
+        <div className="bg-white rounded-lg shadow-md p-6 flex items-center justify-center">
+          <FaExclamationTriangle className="text-red-500 text-2xl mr-2" />
+          <span className="text-red-700">{error}</span>
+        </div>
+      )}
       {/* Modern compact referral card */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         {/* Referral Link */}
-        <div className="flex-1 min-w-[220px] max-w-lg bg-white shadow rounded-lg px-4 py-3 flex flex-col justify-center border border-gray-100">
+        <div className="flex-1 min-w-[220px] max-w-lg bg-white rounded-lg shadow-md p-6 border border-gray-100">
           <div className="flex items-center justify-between mb-1">
             <span className="text-base font-semibold">Your Referral Link</span>
             <FaShareAlt className="text-primary text-lg" />
@@ -121,10 +144,9 @@ const Referrals = () => {
               {copySuccess ? 'Copied!' : <FaCopy />}
             </button>
           </div>
-          {error && <div className="text-xs text-red-500 mt-2">{error}</div>}
         </div>
         {/* Earnings summary */}
-        <div className="flex-1 min-w-[160px] max-w-xs bg-gray-50 dark:bg-gray-800 rounded-lg px-4 py-3 flex flex-col justify-center border border-gray-100">
+        <div className="flex-1 min-w-[160px] max-w-xs bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-100">
           <div className="flex items-center text-primary mb-1">
             <FaDollarSign className="mr-2 text-base" />
             <span className="font-semibold text-base">Your Earnings</span>
@@ -135,44 +157,32 @@ const Referrals = () => {
           </div>
         </div>
       </div>
-      
       {/* Referrals Table - Only show original data */}
-      <div className="card">
-        <h2 className="text-xl font-bold mb-4">Your Referrals</h2>
-        {referrals.length === 0 ? (
-          <div className="text-center py-8">
-            <FaUsers className="mx-auto text-4xl text-gray-300 dark:text-gray-600 mb-2" />
-            <p className="text-gray-500 dark:text-gray-400">
-              You haven't referred anyone yet. Share your referral code to start earning!
-            </p>
-          </div>
+      <div className="overflow-x-auto">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-center text-white drop-shadow">Your Referrals</h2>
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[30vh] w-full text-base text-white">Loading...</div>
+        ) : error ? (
+          <div className="text-red-200 text-center">{error}</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Level
-                  </th>
+          <table className="min-w-full text-xs sm:text-sm bg-white rounded-lg shadow-md overflow-hidden">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="px-2 py-2">Name</th>
+                <th className="px-2 py-2">Email</th>
+                <th className="px-2 py-2">Joined</th>
+              </tr>
+            </thead>
+            <tbody>
+              {referrals.map((ref) => (
+                <tr key={ref._id} className="even:bg-gray-50">
+                  <td className="px-2 py-2 whitespace-nowrap">{ref.name}</td>
+                  <td className="px-2 py-2 whitespace-nowrap">{ref.email}</td>
+                  <td className="px-2 py-2 whitespace-nowrap">{new Date(ref.createdAt).toLocaleDateString()}</td>
                 </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-700 divide-y divide-gray-200 dark:divide-gray-600">
-                {referrals.map((referral) => (
-                  <tr key={referral.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {referral.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                      Level {referral.level}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

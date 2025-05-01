@@ -46,68 +46,28 @@ const AdminDashboard = () => {
   }, []);
   
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Users</h2>
-            <FaUsers className="text-secondary text-2xl" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">Total Users</p>
-              <p className="text-2xl font-bold">{stats.totalUsers}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">Active Users</p>
-              <p className="text-2xl font-bold">{stats.activeUsers}</p>
-            </div>
-          </div>
-          <Link to="/admin/users" className="text-primary hover:underline mt-4 inline-block">
-            View all users
-          </Link>
+    <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center">Admin Dashboard</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+          <span className="text-xs text-gray-500 mb-1">Total Users</span>
+          <span className="text-2xl font-semibold text-primary">{stats.totalUsers}</span>
         </div>
-        
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Games</h2>
-            <FaGamepad className="text-secondary text-2xl" />
-          </div>
-          <div>
-            <p className="text-gray-600 dark:text-gray-400">Total Games</p>
-            <p className="text-2xl font-bold">{stats.totalGames}</p>
-          </div>
-          <Link to="/admin/games" className="text-primary hover:underline mt-4 inline-block">
-            View game history
-          </Link>
+        <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+          <span className="text-xs text-gray-500 mb-1">Total Games</span>
+          <span className="text-2xl font-semibold text-primary">{stats.totalGames}</span>
         </div>
-        
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Revenue</h2>
-            <FaMoneyBill className="text-secondary text-2xl" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">Total Volume</p>
-              <p className="text-2xl font-bold">${stats.totalVolume.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-gray-600 dark:text-gray-400">Profit</p>
-              <p className="text-2xl font-bold">${stats.profit.toLocaleString()}</p>
-            </div>
-          </div>
-          <Link to="/admin/transactions" className="text-primary hover:underline mt-4 inline-block">
-            View all transactions
-          </Link>
+        <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+          <span className="text-xs text-gray-500 mb-1">Total Volume</span>
+          <span className="text-2xl font-semibold text-primary">${stats.totalVolume.toLocaleString()}</span>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+          <span className="text-xs text-gray-500 mb-1">Profit</span>
+          <span className="text-2xl font-semibold text-green-600">${stats.profit.toLocaleString()}</span>
         </div>
       </div>
-      
       {/* Recent Games */}
-      <div className="card mb-8">
+      <div className="card mb-8 mt-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Recent Games</h2>
           <Link to="/admin/games" className="text-primary hover:underline">
@@ -177,7 +137,6 @@ const AdminDashboard = () => {
           </table>
         </div>
       </div>
-      
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link to="/admin/settings" className="card bg-gradient-to-r from-primary to-secondary text-white p-6 transform transition-transform hover:scale-105">

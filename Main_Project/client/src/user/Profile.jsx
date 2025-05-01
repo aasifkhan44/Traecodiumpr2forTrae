@@ -280,8 +280,8 @@ const Profile = () => {
   };
 
   return (
-    <div className="py-6 px-4">
-      <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+    <div className="w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center text-white drop-shadow">My Profile</h2>
       
       {/* Confirmation Dialog */}
       <Modal show={showConfirmation} onHide={handleCloseConfirmation} centered>
@@ -307,36 +307,21 @@ const Profile = () => {
       </Modal>
       
       {/* Wallet Card */}
-      <div className="mb-6 p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-xl font-bold mb-4 flex items-center">
-          <FaWallet className="mr-2 text-primary" /> My Wallet
-        </h2>
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-gray-600">Current Balance</p>
-            <p className="text-3xl font-bold">
-              {loading ? (
-                <span className="animate-pulse">Loading...</span>
-              ) : profile.balance !== undefined ? (
-                profile.balance.toFixed(2)
-              ) : (
-                '0.00'
-              )}
-            </p>
-          </div>
-          <Link 
-            to="/wallet/recharge" 
-            className="btn btn-primary flex items-center"
-          >
-            <FaPlusCircle className="mr-2" /> Add Funds
-          </Link>
+      <div className="flex flex-row gap-3 sm:gap-4 w-full mb-4">
+        <div className="flex-1 min-w-0 bg-gradient-to-br from-yellow-400 via-orange-300 to-pink-200 rounded-xl shadow-lg p-3 sm:p-4 flex flex-col items-center">
+          <span className="text-xs sm:text-sm text-gray-800 font-semibold mb-1 drop-shadow">Balance</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-gray-900 drop-shadow">₹{profile.balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div className="flex-1 min-w-0 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-xl shadow-lg p-3 sm:p-4 flex flex-col items-center">
+          <span className="text-xs sm:text-sm text-white font-semibold mb-1 drop-shadow">Mobile</span>
+          <span className="text-xl sm:text-2xl font-extrabold text-white drop-shadow truncate">{profile.countryCode} {profile.mobile}</span>
         </div>
       </div>
       
       <div className="mt-6 flex">
         <button
           type="button"
-          className={`mr-4 py-2 px-4 rounded-md transition-colors ${activeTab === 'profile' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          className={`mr-4 py-2 px-4 rounded-md transition-colors ${activeTab === 'profile' ? 'bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
           onClick={() => setActiveTab('profile')}
         >
           <FaUser className="inline mr-2" />
@@ -344,7 +329,7 @@ const Profile = () => {
         </button>
         <button
           type="button"
-          className={`py-2 px-4 rounded-md transition-colors ${activeTab === 'password' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          className={`py-2 px-4 rounded-md transition-colors ${activeTab === 'password' ? 'bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
           onClick={() => setActiveTab('password')}
         >
           <FaLock className="inline mr-2" />
@@ -362,193 +347,65 @@ const Profile = () => {
           {/* Profile Info Form */}
           {activeTab === 'profile' && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold mb-4">Personal Information</h2>
-              <form>
+              <h2 className="text-xl font-bold mb-4 text-blue-800">Personal Information</h2>
+              <form onSubmit={updateProfile}>
                 <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">Full Name</label>
+                  <label className="block text-sm font-medium mb-1 text-blue-800">Name</label>
                   <input
                     type="text"
                     name="name"
                     value={profile.name}
                     onChange={handleProfileChange}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
                     required
                   />
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">
-                    <FaPhone className="inline mr-2" /> Mobile Number
-                  </label>
-                  <div className="flex">
-                    <select
-                      name="countryCode"
-                      value={profile.countryCode}
-                      onChange={handleProfileChange}
-                      className="p-2 border rounded-l w-24 focus:outline-none focus:ring-2 focus:ring-primary"
-                      required
-                    >
-                      <option value="">Code</option>
-                      {countryCodes.map(country => (
-                        <option key={country.code} value={country.code}>
-                          {country.code} {country.country}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      name="mobile"
-                      value={profile.mobile}
-                      onChange={handleProfileChange}
-                      className="flex-1 p-2 border border-l-0 rounded-r focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="Mobile Number"
-                      required
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Your mobile number is used for login and account recovery
-                  </p>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">
-                    <FaEnvelope className="inline mr-2" /> Email Address
-                  </label>
+                  <label className="block text-sm font-medium mb-1 text-blue-800">Email</label>
                   <input
                     type="email"
                     name="email"
                     value={profile.email}
                     onChange={handleProfileChange}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="example@email.com"
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Optional: Add your email for notifications and updates
-                  </p>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1 text-blue-800">Country Code</label>
+                  <select
+                    name="countryCode"
+                    value={profile.countryCode}
+                    onChange={handleProfileChange}
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    required
+                  >
+                    <option value="">Select Country Code</option>
+                    {countryCodes.map(({ code, country }) => (
+                      <option key={code} value={code}>{code} ({country})</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1 text-blue-800">Mobile</label>
+                  <input
+                    type="text"
+                    name="mobile"
+                    value={profile.mobile}
+                    onChange={handleProfileChange}
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    required
+                  />
                 </div>
                 
                 <div className="flex justify-end">
                   <button
-                    type="button" 
-                    className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark flex items-center"
+                    type="submit"
+                    className="bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white px-4 py-2 rounded font-bold flex items-center shadow hover:scale-105 hover:shadow-lg transition"
                     disabled={saving}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.log('Save button clicked - with direct API call');
-                      
-                      // Basic validation before API call
-                      if (!profile.name) {
-                        toast.error('Name is required');
-                        return;
-                      }
-                      if (!profile.mobile) {
-                        toast.error('Mobile number is required');
-                        return;
-                      }
-                      if (!profile.countryCode) {
-                        toast.error('Country code is required');
-                        return;
-                      }
-                      if (profile.email && !isValidEmail(profile.email)) {
-                        toast.error(`Invalid email format: ${profile.email}. Please check for typos.`);
-                        return;
-                      }
-                      
-                      // Set saving state
-                      setSaving(true);
-                      
-                      // Prepare data
-                      const profileData = {
-                        name: profile.name.trim(),
-                        countryCode: profile.countryCode,
-                        mobile: profile.mobile.trim(),
-                        email: (profile.email || '').trim()
-                      };
-                      
-                      console.log('Direct sending profile data:', JSON.stringify(profileData));
-                      
-                      // Show saving toast
-                      toast.info('Saving profile changes...', {
-                        position: "top-center",
-                        autoClose: 1000
-                      });
-                      
-                      // Make direct API call with fetch instead of axios
-                      console.log('Sending profile update request to:', `${API_BASE_URL}/user/profile`);
-                      console.log('With profile data:', JSON.stringify(profileData));
-                      
-                      fetch(`${API_BASE_URL}/user/profile`, {
-                        method: 'PUT',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify(profileData)
-                      })
-                      .then(response => {
-                        console.log('Got initial response:', response.status, response.statusText);
-                        if (!response.ok) {
-                          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-                        }
-                        return response.json();
-                      })
-                      .then(data => {
-                        console.log('Profile update success response data:', data);
-                        if (data.success) {
-                          // Show confirmation dialog
-                          setConfirmationMessage(data.message || 'Profile updated successfully!');
-                          setConfirmationType('profile');
-                          setShowConfirmation(true);
-                          
-                          // Update profile data if returned
-                          const updatedProfile = data.data;
-                          if (updatedProfile) {
-                            console.log('Setting profile with updated data:', updatedProfile);
-                            setProfile({
-                              name: updatedProfile.name || '',
-                              countryCode: updatedProfile.countryCode || '',
-                              mobile: updatedProfile.mobile || '',
-                              email: updatedProfile.email || ''
-                            });
-                          }
-                        } else {
-                          console.error('Server returned success:false', data);
-                          toast.error(data.message || 'Unknown error updating profile');
-                        }
-                      })
-                      .catch(error => {
-                        console.error('Error updating profile:', error);
-                        console.error('Error name:', error.name);
-                        console.error('Error message:', error.message);
-                        
-                        // More descriptive error message based on error type
-                        let errorMessage = 'Error updating profile';
-                        
-                        if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
-                          errorMessage = 'Network error: Check your connection';
-                        } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                          errorMessage = 'Server connection failed - is the server running?';
-                        } else if (error.message.includes('Server returned')) {
-                          errorMessage = error.message;
-                        }
-                        
-                        toast.error(errorMessage, {
-                          position: "top-center",
-                          autoClose: 5000
-                        });
-                        
-                        // Try logging the entire error object
-                        try {
-                          console.error('Full error object:', JSON.stringify(error));
-                        } catch (e) {
-                          console.error('Could not stringify error object');
-                        }
-                      })
-                      .finally(() => {
-                        console.log('Setting saving state to false');
-                        setSaving(false);
-                      });
-                    }}
                   >
                     {saving ? (
                       <>
@@ -570,28 +427,28 @@ const Profile = () => {
           {/* Password Change Form */}
           {activeTab === 'password' && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold mb-4">Change Password</h2>
+              <h2 className="text-xl font-bold mb-4 text-blue-800">Change Password</h2>
               <form onSubmit={updatePassword}>
                 <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">Current Password</label>
+                  <label className="block text-sm font-medium mb-1 text-blue-800">Current Password</label>
                   <input
                     type="password"
                     name="currentPassword"
                     value={passwordData.currentPassword}
                     onChange={handlePasswordChange}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
                     required
                   />
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">New Password</label>
+                  <label className="block text-sm font-medium mb-1 text-blue-800">New Password</label>
                   <input
                     type="password"
                     name="newPassword"
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
                     minLength="6"
                     required
                   />
@@ -601,13 +458,13 @@ const Profile = () => {
                 </div>
                 
                 <div className="mb-4">
-                  <label className="block text-gray-700 font-medium mb-2">Confirm New Password</label>
+                  <label className="block text-sm font-medium mb-1 text-blue-800">Confirm New Password</label>
                   <input
                     type="password"
                     name="confirmPassword"
                     value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
                     required
                   />
                 </div>
@@ -615,7 +472,7 @@ const Profile = () => {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark flex items-center"
+                    className="bg-gradient-to-r from-blue-600 via-green-400 to-yellow-400 text-white px-4 py-2 rounded font-bold flex items-center shadow hover:scale-105 hover:shadow-lg transition"
                     disabled={saving}
                   >
                     {saving ? (

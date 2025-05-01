@@ -16,6 +16,7 @@ const PaymentSettings = () => {
     identifier: '',
     description: '',
     imageUrl: '',
+    svgCode: '',
     currency: '',
     conversionRate: 1.0,
     isActive: true
@@ -93,6 +94,7 @@ const PaymentSettings = () => {
           identifier: '',
           description: '',
           imageUrl: '',
+          svgCode: '',
           currency: activeTab === 'upi' ? 'INR' : 'USDT',
           conversionRate: 1.0,
           isActive: true
@@ -114,6 +116,7 @@ const PaymentSettings = () => {
       identifier: method.identifier,
       description: method.description || '',
       imageUrl: method.imageUrl || '',
+      svgCode: method.svgCode || '',
       currency: method.currency,
       conversionRate: method.conversionRate || 1.0,
       isActive: method.isActive
@@ -256,6 +259,7 @@ const PaymentSettings = () => {
                   name: '',
                   identifier: '',
                   description: '',
+                  imageUrl: '',
                   svgCode: '',
                   currency: activeTab === 'upi' ? 'INR' : 'USDT',
                   conversionRate: 1.0,
@@ -357,43 +361,33 @@ const PaymentSettings = () => {
                     className="w-full p-2 border rounded"
                   />
                 </div>
-                <div className="mb-2 col-span-1 md:col-span-2">
+                <div className="mb-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
+                    Image URL (PNG/JPG/SVG)
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="imageUrl"
-                      value={formData.imageUrl || ''}
-                      onChange={handleChange}
-                      placeholder="Enter image URL here (optional)"
-                      className="w-full p-2 border rounded"
-                    />
-                    {formData.imageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setFormData({...formData, imageUrl: ''})}
-                        className="absolute top-2 right-2 bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"
-                        title="Clear image URL"
-                      >
-                        <FaTimes />
-                      </button>
-                    )}
-                  </div>
-                  {formData.imageUrl && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500 mb-1">Preview:</p>
-                      <div className="w-[250px] h-[250px] border rounded p-4 flex items-center justify-center bg-white">
-                        <img 
-                          src={formData.imageUrl} 
-                          alt="Payment method" 
-                          className="max-w-full max-h-full object-contain"
-                          onError={(e) => e.target.src = 'https://via.placeholder.com/150?text=Invalid+Image+URL'}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <input
+                    type="text"
+                    name="imageUrl"
+                    value={formData.imageUrl}
+                    onChange={handleChange}
+                    placeholder="https://yourdomain.com/path/to/image.png or .svg"
+                    className="w-full p-2 border rounded"
+                  />
+                  <small className="text-gray-500">Leave blank if you want to use SVG code below instead.</small>
+                </div>
+                <div className="mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SVG Code (optional, overrides Image URL)
+                  </label>
+                  <textarea
+                    name="svgCode"
+                    value={formData.svgCode || ''}
+                    onChange={handleChange}
+                    placeholder="Paste SVG code here if you want to use a custom icon"
+                    className="w-full p-2 border rounded"
+                    rows={3}
+                  />
+                  <small className="text-gray-500">If you enter SVG code, it will be used instead of the image URL above.</small>
                 </div>
                 <div className="mb-2 md:col-span-2 flex items-center">
                   <input

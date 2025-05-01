@@ -61,27 +61,26 @@ const AdminLayout = ({ onLogout }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
       {/* Header */}
-      <header className="bg-secondary text-white py-4 shadow">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <header className="bg-secondary text-white py-3 shadow w-full">
+        <div className="w-full flex justify-between items-center px-4 md:px-8">
           <div className="flex items-center">
             {siteSettings.logoUrl && (
               <img 
                 src={siteSettings.logoUrl} 
                 alt={siteSettings.siteName || 'Site Logo'} 
-                className="h-8 mr-2"
+                className="h-8 mr-2 object-contain max-w-[120px] sm:max-w-[160px]"
                 onError={(e) => e.target.style.display = 'none'}
               />
             )}
-            <h1 className="text-xl font-bold">Admin Dashboard - {siteSettings.siteName || 'Color Prediction Game'}</h1>
+            <h1 className="text-lg sm:text-xl font-bold truncate max-w-[100px] sm:max-w-xs">Admin Dashboard - {siteSettings.siteName || 'Color Prediction Game'}</h1>
           </div>
-          
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-4">
+          <nav className="hidden md:flex items-center space-x-2 lg:space-x-4">
             <button 
               onClick={toggleDarkMode} 
-              className="text-white hover:text-gray-300"
+              className="text-white hover:text-gray-300 text-base sm:text-lg"
               title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {darkMode ? <FaSun className="text-xl" /> : <FaMoon className="text-xl" />}
@@ -91,79 +90,67 @@ const AdminLayout = ({ onLogout }) => {
                 onLogout();
                 navigate('/login');
               }}
-              className="text-white hover:text-gray-300"
+              className="text-white hover:text-gray-300 text-base sm:text-lg"
               title="Logout"
             >
               <FaSignOutAlt className="text-xl" />
             </button>
           </nav>
-          
           {/* Mobile menu button */}
           <button 
             onClick={toggleMobileMenu} 
-            className="md:hidden text-white"
+            className="md:hidden text-white focus:outline-none"
+            aria-label="Open menu"
           >
             <FaBars className="text-2xl" />
           </button>
         </div>
       </header>
-
-      <div className="flex flex-1">
+      <div className="flex flex-1 w-full">
         {/* Sidebar - Always visible for admin */}
-        <div className={`
-          fixed inset-y-0 left-0 z-30 w-64 bg-secondary text-white transform transition-transform duration-300 ease-in-out
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} 
-          md:relative md:translate-x-0
-        `}>
+        <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-secondary text-white transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
           {/* Close button for mobile */}
           <div className="md:hidden flex justify-end p-4">
             <button onClick={toggleMobileMenu} className="text-white">
               <FaTimes className="text-2xl" />
             </button>
           </div>
-
           {/* Sidebar Content */}
           <nav className="mt-8">
-            <ul className="space-y-2 px-4">
+            <ul className="space-y-2 px-2 sm:px-4">
               <li>
                 <NavLink 
                   to="/admin" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaHome className="mr-2" /> Dashboard
+                  <FaHome className="mr-1 sm:mr-2" /> Dashboard
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/users" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaUsers className="mr-2" /> Users
+                  <FaUsers className="mr-1 sm:mr-2" /> Users
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/games" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaGamepad className="mr-2" /> Games
+                  <FaGamepad className="mr-1 sm:mr-2" /> Games
                 </NavLink>
               </li>
               <li className="group relative">
                 <button
-                  className="flex items-center px-3 py-2 rounded-md w-full text-left hover:bg-secondary focus:outline-none focus:bg-secondary"
+                  className="flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md w-full text-left hover:bg-secondary focus:outline-none focus:bg-secondary text-sm sm:text-base"
                   type="button"
                 >
-                  <FaDice className="mr-2" />
+                  <FaDice className="mr-1 sm:mr-2" />
                   Result
                   <svg className="ml-2 w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.585l3.71-3.354a.75.75 0 111.04 1.08l-4.25 3.85a.75.75 0 01-1.04 0l-4.25-3.85a.75.75 0 01.02-1.06z" clipRule="evenodd" />
@@ -173,9 +160,7 @@ const AdminLayout = ({ onLogout }) => {
                   <li>
                     <NavLink
                       to="/admin/wingo-result-management"
-                      className={({ isActive }) =>
-                        `block px-4 py-2 hover:bg-primary rounded ${isActive ? 'bg-primary text-white' : 'text-white'}`
-                      }
+                      className={({ isActive }) => `block px-4 py-2 hover:bg-primary rounded text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white'}`}
                       onClick={toggleMobileMenu}
                     >
                       Wingo Results
@@ -184,9 +169,7 @@ const AdminLayout = ({ onLogout }) => {
                   <li>
                     <NavLink
                       to="/admin/numma-result-manager"
-                      className={({ isActive }) =>
-                        `block px-4 py-2 hover:bg-primary rounded ${isActive ? 'bg-primary text-white' : 'text-white'}`
-                      }
+                      className={({ isActive }) => `block px-4 py-2 hover:bg-primary rounded text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white'}`}
                       onClick={toggleMobileMenu}
                     >
                       Numma Result Manager
@@ -197,120 +180,98 @@ const AdminLayout = ({ onLogout }) => {
               <li>
                 <NavLink 
                   to="/admin/transactions" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaExchangeAlt className="mr-2" /> Transactions
+                  <FaExchangeAlt className="mr-1 sm:mr-2" /> Transactions
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/referral-commission-settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaShareAlt className="mr-2" /> Referral & Commission
+                  <FaShareAlt className="mr-1 sm:mr-2" /> Referral & Commission
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/payment-settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaCreditCard className="mr-2" /> Payment Settings
+                  <FaCreditCard className="mr-1 sm:mr-2" /> Payment Settings
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/withdrawal-requests" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaExchangeAlt className="mr-2" /> Withdrawal Requests
+                  <FaExchangeAlt className="mr-1 sm:mr-2" /> Withdrawal Requests
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/withdrawal-settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaMoneyBill className="mr-2" /> Withdrawal Settings
+                  <FaMoneyBill className="mr-1 sm:mr-2" /> Withdrawal Settings
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/deposit-requests" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaMoneyBillWave className="mr-2" /> Deposit Requests
+                  <FaMoneyBillWave className="mr-1 sm:mr-2" /> Deposit Requests
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/smtp-settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaEnvelope className="mr-2" /> Email Settings
+                  <FaEnvelope className="mr-1 sm:mr-2" /> Email Settings
                 </NavLink>
               </li>
-
               <li>
                 <NavLink 
                   to="/admin/email-templates" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaCode className="mr-2" /> Email Templates
+                  <FaCode className="mr-1 sm:mr-2" /> Email Templates
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/site-settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaImage className="mr-2" /> Site Logo & Name
+                  <FaImage className="mr-1 sm:mr-2" /> Site Logo & Name
                 </NavLink>
               </li>
               <li>
                 <NavLink 
                   to="/admin/settings" 
-                  className={({isActive}) => 
-                    `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`
-                  }
+                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base ${isActive ? 'bg-primary text-white' : 'text-white hover:bg-secondary'}`}
                   onClick={toggleMobileMenu}
                 >
-                  <FaCog className="mr-2" /> Settings
+                  <FaCog className="mr-1 sm:mr-2" /> Settings
                 </NavLink>
               </li>
             </ul>
           </nav>
         </div>
-
         {/* Main Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto w-full px-2 py-4 sm:px-4 sm:py-6">
           <Outlet />
         </div>
       </div>

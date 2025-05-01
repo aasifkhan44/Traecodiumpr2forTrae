@@ -1,0 +1,90 @@
+<svg width="300" height="300" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Radial gradients for petals -->
+    <radialGradient id="grad1" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ff9ec4"/>
+      <stop offset="100%" stop-color="#ff4f81"/>
+    </radialGradient>
+    <radialGradient id="grad2" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#a0f1ff"/>
+      <stop offset="100%" stop-color="#3388ff"/>
+    </radialGradient>
+    <radialGradient id="grad3" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#d8f6ff"/>
+      <stop offset="100%" stop-color="#6198ff"/>
+    </radialGradient>
+    <radialGradient id="grad4" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#eaffc0"/>
+      <stop offset="100%" stop-color="#4cb040"/>
+    </radialGradient>
+    <radialGradient id="grad5" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fff5ba"/>
+      <stop offset="100%" stop-color="#ffdd57"/>
+    </radialGradient>
+    <radialGradient id="grad6" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#fad0c4"/>
+      <stop offset="100%" stop-color="#fcb69f"/>
+    </radialGradient>
+    <radialGradient id="grad7" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#c2ffd8"/>
+      <stop offset="100%" stop-color="#465e9c"/>
+    </radialGradient>
+    <radialGradient id="grad8" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#d4fc79"/>
+      <stop offset="100%" stop-color="#96e6a1"/>
+    </radialGradient>
+
+    <!-- 3D colorful center gradient -->
+    <radialGradient id="centerGrad" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#ffd700"/>
+      <stop offset="100%" stop-color="#ff6f00"/>
+    </radialGradient>
+
+    <style>
+      <![CDATA[
+        .flower {
+          animation: rotateFlower 8s linear infinite;
+          transform-origin: 100px 100px;
+        }
+
+        @keyframes rotateFlower {
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      ]]>
+    </style>
+  </defs>
+
+  <g class="flower">
+    <!-- 8 Petals -->
+    <g transform="rotate(0,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad1)" />
+    </g>
+    <g transform="rotate(45,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad2)" />
+    </g>
+    <g transform="rotate(90,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad3)" />
+    </g>
+    <g transform="rotate(135,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad4)" />
+    </g>
+    <g transform="rotate(180,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad5)" />
+    </g>
+    <g transform="rotate(225,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad6)" />
+    </g>
+    <g transform="rotate(270,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad7)" />
+    </g>
+    <g transform="rotate(315,100,100)">
+      <ellipse cx="100" cy="50" rx="25" ry="50" fill="url(#grad8)" />
+    </g>
+
+    <!-- Colorful 3D Center Circle -->
+    <circle cx="100" cy="100" r="18" fill="url(#centerGrad)" stroke="#333" stroke-width="1" />
+  </g>
+</svg>

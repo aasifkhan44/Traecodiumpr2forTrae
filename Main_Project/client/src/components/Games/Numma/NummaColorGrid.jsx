@@ -171,7 +171,7 @@ export const NummaMultiplier = ({
   selectedMultiplier, 
   setSelectedMultiplier 
 }) => {
-  const multipliers = ['x1', 'x5', 'x10', 'x20', 'x50', 'x100'];
+  const multipliers = ['x5', 'x10', 'x20', 'x50', 'x100'];
 
   return (
     <div className="flex flex-wrap gap-2 justify-center mb-4">
