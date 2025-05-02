@@ -194,7 +194,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
               </label>
               <div className="flex">
                 <select
-                  className={`${inputClass} mr-2 w-1/3`}
+                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
                   id="countryCode"
                   name="countryCode"
                   value={countryCode}
@@ -208,7 +208,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   ))}
                 </select>
                 <input
-                  className={`${inputClass} w-2/3`}
+                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
                   type="tel"
                   id="mobile"
                   name="mobile"
@@ -224,7 +224,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 Password
               </label>
               <input
-                className={inputClass}
+                className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
                 type="password"
                 id="password"
                 name="password"
@@ -286,7 +286,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 </label>
                 <div className="flex">
                   <select
-                    className="input mr-2 w-1/3"
+                    className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
                     id="countryCode"
                     name="countryCode"
                     value={countryCode}
@@ -300,7 +300,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                     ))}
                   </select>
                   <input
-                    className="input w-2/3"
+                    className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
                     type="tel"
                     id="mobile"
                     name="mobile"
@@ -317,7 +317,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   Password
                 </label>
                 <input
-                  className="input"
+                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
                   type="password"
                   id="password"
                   name="password"

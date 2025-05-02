@@ -186,7 +186,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
     }
   };
 
-  const inputClass = `input ${isModal ? 'text-gray-900 placeholder-gray-400' : ''}`;
+  const inputClass = `w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`;
 
   return (
     isModal ? (
@@ -219,7 +219,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
             </label>
             <div className="flex">
               <select
-                className={`${inputClass} mr-2 w-1/3`}
+                className={inputClass + ' mr-2 w-1/3'}
                 id="countryCode"
                 name="countryCode"
                 value={countryCode}
@@ -233,7 +233,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 ))}
               </select>
               <input
-                className={`${inputClass} w-2/3`}
+                className={inputClass + ' w-2/3'}
                 type="tel"
                 id="mobile"
                 name="mobile"
@@ -332,7 +332,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 Full Name
               </label>
               <input
-                className="input"
+                className={inputClass}
                 type="text"
                 id="name"
                 name="name"
@@ -349,7 +349,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
               </label>
               <div className="flex">
                 <select
-                  className="input mr-2 w-1/3"
+                  className={inputClass + ' mr-2 w-1/3'}
                   id="countryCode"
                   name="countryCode"
                   value={countryCode}
@@ -363,7 +363,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   ))}
                 </select>
                 <input
-                  className="input w-2/3"
+                  className={inputClass + ' w-2/3'}
                   type="tel"
                   id="mobile"
                   name="mobile"
@@ -380,7 +380,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 Password
               </label>
               <input
-                className="input"
+                className={inputClass}
                 type="password"
                 id="password"
                 name="password"
@@ -397,7 +397,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 Confirm Password
               </label>
               <input
-                className="input"
+                className={inputClass}
                 type="password"
                 id="confirmPassword"
                 name="confirmPassword"
@@ -414,7 +414,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 Referral Code (Optional)
               </label>
               <input
-                className="input"
+                className={inputClass}
                 type="text"
                 id="referralCode"
                 name="referralCode"

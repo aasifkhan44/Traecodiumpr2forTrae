@@ -268,165 +268,124 @@ export default function Numma({ gameData }) {
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-2 sm:px-4 py-2 sm:py-4">
-      {/* Fullscreen Countdown Overlay */}
-      {showCountdownOverlay && overlaySeconds > 0 && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0,0,0,0.85)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'opacity 0.2s',
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14vw',
-              color: '#FFD700',
-              fontWeight: 'bold',
-              textShadow: '0 0 32px #fff, 0 0 128px #FFD700',
-              animation: 'flash 0.6s alternate infinite',
-              filter: 'drop-shadow(0 0 32px #FFD700)',
-              userSelect: 'none',
-            }}
-          >
-            {overlaySeconds}
-          </span>
-          <style>{`
-            @keyframes flash {
-              0% { opacity: 1; }
-              100% { opacity: 0.3; }
-            }
-          `}</style>
-        </div>
-      )}
-      {/* Game Header and Wallet */}
-      <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4 mb-2 sm:mb-4">
-        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-start">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={gameData?.name || 'Numma'}
-              className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-xl border border-gray-200 bg-white shadow"
-            />
-          ) : (
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-full w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center shadow-lg">
-              <span className="text-3xl font-extrabold text-white">N</span>
-            </div>
-          )}
-          <div className="flex flex-col items-center sm:items-start">
-            <span className="font-bold text-lg sm:text-2xl text-gray-800 dark:text-gray-100">{gameData?.name || 'Numma'}</span>
+    <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <div className="w-full rounded-2xl">
+        {/* Header: Logo + Game Name */}
+        <div className="w-full max-w-2xl flex flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+          <div className="flex items-center gap-2">
+            {/* Logo */}
+            {logoUrl && (
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="w-10 h-10 rounded-lg shadow bg-white object-contain"
+                style={{ background: '#fff' }}
+              />
+            )}
+            {/* Game Name */}
+            <span className="font-bold text-lg sm:text-2xl text-gray-900 dark:text-white select-none">Numma</span>
+          </div>
+          <div className="flex-1 flex flex-col sm:flex-row items-center gap-1 sm:gap-4">
             <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-300 text-center sm:text-left">{gameData?.description}</span>
           </div>
         </div>
         <NummaWallet walletBalance={numma.walletBalance} walletLoading={numma.walletLoading} />
-      </div>
-
-      {/* Game Modes and Round Info */}
-      <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
-        <NummaGameModes selectedMode={numma.selectedMode} setSelectedMode={numma.setSelectedMode} />
-        <NummaRoundInfo 
-          activeRound={numma.activeRound} 
-          timer={numma.timer} 
-          formattedTime={numma.formattedTime} 
-          waitingForNextRound={numma.waitingForNextRound}
-        />
-      </div>
-
-      {/* Main Game Controls Section (Color, Big/Small, Number) */}
-      <div className="w-full max-w-2xl flex flex-col items-center">
-        <NummaColorSelection 
-          selectedColor={numma.selectedColor} 
-          setSelectedColor={(color) => {
-            numma.setSelectedColor(color);
-            numma.setSelectedNumber(null);
-            numma.setBigSmall(null);
-          }} 
-          handleShowPopup={numma.handleShowPopup} 
-        />
-        <NummaBigSmall 
-          bigSmall={numma.bigSmall} 
-          setBigSmall={(value) => {
-            numma.setBigSmall(value);
-            numma.setSelectedColor(null);
-            numma.setSelectedNumber(null);
-          }} 
-          handleShowPopup={numma.handleShowPopup} 
-        />
-        <div className="flex w-full justify-center">
-          <NummaNumberGrid 
-            selectedNumber={numma.selectedNumber} 
-            setSelectedNumber={(number) => {
-              numma.setSelectedNumber(number);
-              numma.setSelectedColor(null);
+        {/* Game Modes and Round Info */}
+        <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
+          <NummaGameModes selectedMode={numma.selectedMode} setSelectedMode={numma.setSelectedMode} />
+          <NummaRoundInfo 
+            activeRound={numma.activeRound} 
+            timer={numma.timer} 
+            formattedTime={numma.formattedTime} 
+            waitingForNextRound={numma.waitingForNextRound}
+          />
+        </div>
+        {/* Main Game Controls Section (Color, Big/Small, Number) */}
+        <div className="w-full max-w-2xl flex flex-col items-center">
+          <NummaColorSelection 
+            selectedColor={numma.selectedColor} 
+            setSelectedColor={(color) => {
+              numma.setSelectedColor(color);
+              numma.setSelectedNumber(null);
               numma.setBigSmall(null);
             }} 
             handleShowPopup={numma.handleShowPopup} 
           />
+          <NummaBigSmall 
+            bigSmall={numma.bigSmall} 
+            setBigSmall={(value) => {
+              numma.setBigSmall(value);
+              numma.setSelectedColor(null);
+              numma.setSelectedNumber(null);
+            }} 
+            handleShowPopup={numma.handleShowPopup} 
+          />
+          <div className="flex w-full justify-center">
+            <NummaNumberGrid 
+              selectedNumber={numma.selectedNumber} 
+              setSelectedNumber={(number) => {
+                numma.setSelectedNumber(number);
+                numma.setSelectedColor(null);
+                numma.setBigSmall(null);
+              }} 
+              handleShowPopup={numma.handleShowPopup} 
+            />
+          </div>
+          <NummaBetControls 
+            betAmount={numma.betAmount} 
+            setBetAmount={numma.setBetAmount} 
+            handlePlaceBet={handlePlaceBet} 
+            betLoading={numma.betLoading} 
+          />
         </div>
-        <NummaBetControls 
-          betAmount={numma.betAmount} 
-          setBetAmount={numma.setBetAmount} 
-          handlePlaceBet={handlePlaceBet} 
-          betLoading={numma.betLoading} 
+        {/* Tabs for History/Chart/My History */}
+        <div className="w-full max-w-2xl bg-white rounded-2xl shadow flex flex-col mt-4">
+          <NummaHistoryTabs 
+            activeTab={numma.activeTab} 
+            setActiveTab={numma.setActiveTab} 
+          />
+          {numma.activeTab === 'history' && (
+            <NummaGameHistory 
+              activeTab={numma.activeTab}
+              currentPage={numma.currentPage}
+              setCurrentPage={numma.setCurrentPage}
+              selectedDuration={numma.selectedDuration}
+            />
+          )}
+          {numma.activeTab === 'chart' && (
+            <NummaChart 
+              chartData={
+                (numma.historyRounds || numma.rounds || []).filter(r => r.result && typeof r.result.number === 'number').map(r => ({
+                  period: r.period || r.roundNumber || r._id || '',
+                  number: r.result.number
+                }))
+              }
+              currentPage={numma.currentPage}
+              setCurrentPage={numma.setCurrentPage}
+              totalPages={1}
+            />
+          )}
+          {numma.activeTab === 'my' && (
+            <NummaUserHistory 
+              activeTab={numma.activeTab}
+              currentPage={numma.currentPage}
+              setCurrentPage={numma.setCurrentPage}
+              user={numma.user}
+            />
+          )}
+        </div>
+        {/* Bet Confirmation Popup */}
+        <NummaBetPopup 
+          showPopup={numma.showPopup}
+          setShowPopup={numma.setShowPopup}
+          popupData={{
+            ...numma.popupData,
+            defaultMultiplier: numma.betAmount && [1,5,10,20,50,100].includes(Number(numma.betAmount)) ? Number(numma.betAmount) : 1
+          }}
+          walletBalance={numma.walletBalance}
+          handlePlaceBet={handlePlaceBet}
         />
       </div>
-
-      {/* Tabs for History/Chart/My History */}
-      <div className="w-full max-w-2xl bg-white rounded-t-xl shadow flex flex-col mt-4">
-        <NummaHistoryTabs 
-          activeTab={numma.activeTab} 
-          setActiveTab={numma.setActiveTab} 
-        />
-        {numma.activeTab === 'history' && (
-          <NummaGameHistory 
-            activeTab={numma.activeTab}
-            currentPage={numma.currentPage}
-            setCurrentPage={numma.setCurrentPage}
-            selectedDuration={numma.selectedDuration}
-          />
-        )}
-        {numma.activeTab === 'chart' && (
-          <NummaChart 
-            chartData={
-              (numma.historyRounds || numma.rounds || []).filter(r => r.result && typeof r.result.number === 'number').map(r => ({
-                period: r.period || r.roundNumber || r._id || '',
-                number: r.result.number
-              }))
-            }
-            currentPage={numma.currentPage}
-            setCurrentPage={numma.setCurrentPage}
-            totalPages={1}
-          />
-        )}
-        {numma.activeTab === 'my' && (
-          <NummaUserHistory 
-            activeTab={numma.activeTab}
-            currentPage={numma.currentPage}
-            setCurrentPage={numma.setCurrentPage}
-            user={numma.user}
-          />
-        )}
-      </div>
-
-      {/* Bet Confirmation Popup */}
-      <NummaBetPopup 
-        showPopup={numma.showPopup}
-        setShowPopup={numma.setShowPopup}
-        popupData={{
-          ...numma.popupData,
-          defaultMultiplier: numma.betAmount && [1,5,10,20,50,100].includes(Number(numma.betAmount)) ? Number(numma.betAmount) : 1
-        }}
-        walletBalance={numma.walletBalance}
-        handlePlaceBet={handlePlaceBet}
-      />
     </div>
   );
 }

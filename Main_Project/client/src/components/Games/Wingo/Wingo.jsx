@@ -68,14 +68,14 @@ export default function Wingo() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-2 sm:px-4 py-2 sm:py-4">
-      <div className="w-full max-w-2xl flex flex-col items-center gap-4 mb-8">
-        <h1 className="text-2xl sm:text-4xl font-bold text-primary mb-2 text-center">Welcome to Wingo</h1>
-        <p className="text-base sm:text-lg text-gray-600 mb-2 text-center">
+    <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <div className="w-full flex flex-col items-center gap-4 mb-8">
+        <h1 className="text-2xl sm:text-4xl font-bold text-white drop-shadow mb-2 text-center">Welcome to Wingo</h1>
+        <p className="text-base sm:text-lg text-blue-50 mb-2 text-center">
           Experience the thrill of predicting winning numbers and win big rewards!
         </p>
-        <div className="game-status bg-gray-100 p-4 rounded-lg inline-block text-center w-full max-w-xs">
-          <p className="text-md">Game Status: {gameData.isActive ? 'Active' : 'Inactive'}</p>
+        <div className="game-status bg-blue-50 p-4 rounded-lg inline-block text-center w-full max-w-xs">
+          <p className="text-md text-blue-900">Game Status: {gameData.isActive ? 'Active' : 'Inactive'}</p>
           {gameData.isDefault && (
             <span className="bg-green-500 text-white px-2 py-1 rounded text-sm ml-2">
               Default Game
@@ -83,9 +83,8 @@ export default function Wingo() {
           )}
         </div>
       </div>
-
-      <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden flex flex-col md:flex-row">
-        <div className="h-40 w-full md:w-48 bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
+      <div className="w-full mx-auto bg-white rounded-lg shadow-md overflow-hidden flex flex-col md:flex-row mb-8">
+        <div className="h-40 w-full md:w-48 bg-gradient-to-r from-blue-400 to-cyan-300 flex items-center justify-center">
           {/* Game icon or animation can be added here */}
         </div>
         <div className="p-4 sm:p-8 flex-1">

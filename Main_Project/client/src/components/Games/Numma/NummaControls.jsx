@@ -10,7 +10,12 @@ export const NummaGameModes = ({ selectedMode, setSelectedMode }) => {
 
   return (
     <div className="flex flex-col items-center mb-2">
-      <h3 className="text-xs sm:text-sm text-gray-500 font-semibold mb-1 tracking-wide uppercase">Select Game Duration</h3>
+      <h3
+        className="text-xs sm:text-sm font-semibold mb-1 tracking-wide uppercase"
+        style={{ color: '#fff', textShadow: '0 1px 8px #000, 0 0 2px #000', WebkitTextStroke: '0.5px #222' }}
+      >
+        Select Game Duration
+      </h3>
       <div className="flex flex-wrap gap-2 justify-center">
         {gameModes.map(mode => (
           <button

@@ -356,7 +356,7 @@ const Profile = () => {
                     name="name"
                     value={profile.name}
                     onChange={handleProfileChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                     required
                   />
                 </div>
@@ -368,8 +368,7 @@ const Profile = () => {
                     name="email"
                     value={profile.email}
                     onChange={handleProfileChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
-                    required
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                   />
                 </div>
                 
@@ -379,7 +378,7 @@ const Profile = () => {
                     name="countryCode"
                     value={profile.countryCode}
                     onChange={handleProfileChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                     required
                   >
                     <option value="">Select Country Code</option>
@@ -396,7 +395,7 @@ const Profile = () => {
                     name="mobile"
                     value={profile.mobile}
                     onChange={handleProfileChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                     required
                   />
                 </div>
@@ -436,7 +435,7 @@ const Profile = () => {
                     name="currentPassword"
                     value={passwordData.currentPassword}
                     onChange={handlePasswordChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                     required
                   />
                 </div>
@@ -448,7 +447,7 @@ const Profile = () => {
                     name="newPassword"
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                     minLength="6"
                     required
                   />
@@ -464,7 +463,7 @@ const Profile = () => {
                     name="confirmPassword"
                     value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
-                    className="w-full rounded border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-blue-50/70"
+                    className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                     required
                   />
                 </div>

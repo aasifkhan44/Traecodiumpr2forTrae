@@ -652,7 +652,7 @@ const WalletRecharge = () => {
             <input
               type="text"
               id="amount"
-              className="input w-full"
+              className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
               value={amount}
               onChange={handleAmountChange}
               placeholder={`Min: ${paymentSettings?.minimumDepositAmount || 100}, Max: ${paymentSettings?.maximumDepositAmount || 10000}`}
@@ -690,7 +690,7 @@ const WalletRecharge = () => {
             <input
               type="text"
               id="referenceNumber"
-              className="input w-full"
+              className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
               placeholder={paymentMode === 'upi' ? 'Enter 12-digit UTR number' : 'Enter transaction reference/hash'}

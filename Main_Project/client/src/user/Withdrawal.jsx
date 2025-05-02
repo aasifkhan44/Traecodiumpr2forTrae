@@ -485,7 +485,7 @@ const Withdrawal = () => {
                 id="amount"
                 value={amount}
                 onChange={handleAmountChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full p-3 rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                 placeholder="Enter amount"
                 required
               />
@@ -581,7 +581,7 @@ const Withdrawal = () => {
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
                 placeholder="Enter your UPI ID (e.g., name@upi)"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+                className="w-full p-3 rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                 required
               />
             </div>
@@ -597,7 +597,7 @@ const Withdrawal = () => {
                 value={cryptoAddress}
                 onChange={(e) => setCryptoAddress(e.target.value)}
                 placeholder={`Enter your ${selectedCrypto.currency} wallet address`}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary"
+                className="w-full p-3 rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-800 shadow"
                 required
               />
             </div>

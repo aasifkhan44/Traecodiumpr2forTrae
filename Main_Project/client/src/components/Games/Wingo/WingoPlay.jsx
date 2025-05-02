@@ -410,182 +410,194 @@ export default function WingoPlay() {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl relative" role="alert">
           <span className="block sm:inline">{error}</span>
         </div>
       </div>
     );
   }
 
-  const currentRound = activeRounds[selectedDuration];
-  const currentResults = recentResults;
-
   return (
-    <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-2 sm:px-4 py-2 sm:py-4">
-      {/* Header: Logo + Game Name */}
-      <div className="w-full max-w-2xl flex flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
-        <div className="flex items-center gap-2">
-          {/* Logo */}
-          {siteSettings?.logoUrl && (
-            <img
-              src={siteSettings.logoUrl}
-              alt="Logo"
-              className="w-10 h-10 rounded-lg shadow bg-white object-contain"
-              style={{ background: '#fff' }}
-            />
-          )}
-          {/* Game Name */}
-          <span className="font-bold text-lg sm:text-2xl text-gray-900 dark:text-white select-none">Wingo</span>
-        </div>
-        <div className="flex-1 flex flex-col sm:flex-row items-center gap-1 sm:gap-4">
-          <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-300 text-center sm:text-left">Color & Number Prediction</span>
-        </div>
-        <div className="rounded-xl px-4 sm:px-6 py-2 shadow text-base sm:text-lg font-bold flex items-center bg-gradient-to-r from-blue-100 to-green-100 border border-blue-200 text-blue-900 min-w-[120px]">
-          ⚡{userProfile?.balance?.toLocaleString() || '0'}
-        </div>
-      </div>
-      <div className="h-2 sm:h-4" />
-      {/* Duration Selector and Timer */}
-      <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
-        <div className="flex w-full gap-2 justify-center">
-          {durations.map(d => (
-            <button
-              key={d.value}
-              className={`flex-1 min-w-0 px-0 py-1 sm:px-0 sm:py-1.5 rounded-full font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg border-none focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gradient-to-b ${selectedDuration === d.value ? 'from-purple-700 to-purple-400 text-white ring-2 ring-yellow-400 scale-105' : 'from-black to-gray-800 text-white hover:brightness-110 opacity-90'} tracking-wide relative active:scale-95`}
-              style={{ boxShadow: '0 4px 16px #000a', textShadow: '0 1px 2px #fff3' }}
-              onClick={() => setSelectedDuration(d.value)}
+    <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 py-4 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      <div className="w-full rounded-2xl">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-2xl relative mb-4" role="alert">
+            <span className="block">{error}</span>
+          </div>
+        )}
+        <div className="w-full min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center px-2 py-2 rounded-2xl">
+          {/* Header: Logo + Game Name */}
+          <div className="w-full flex flex-row items-center gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              {/* Logo */}
+              {siteSettings?.logoUrl && (
+                <img
+                  src={siteSettings.logoUrl}
+                  alt="Logo"
+                  className="w-10 h-10 rounded-lg shadow bg-white object-contain"
+                  style={{ background: '#fff' }}
+                />
+              )}
+              {/* Game Name */}
+              <span className="font-bold text-lg text-gray-900 dark:text-white select-none">Wingo</span>
+            </div>
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-300 text-center">Color & Number Prediction</span>
+            </div>
+            <div className="rounded-2xl px-4 py-2 shadow text-base font-bold flex items-center bg-gradient-to-r from-blue-100 to-green-100 border border-blue-200 text-blue-900 min-w-[120px]">
+              ⚡{userProfile?.balance?.toLocaleString() || '0'}
+            </div>
+          </div>
+          <div className="h-2" />
+          {/* Duration Selector and Timer */}
+          <div className="w-full flex flex-col items-center gap-2 mb-2">
+            <label
+              className="block font-bold text-base mb-1 text-center w-full"
+              style={{ color: '#fff', textShadow: '0 1px 8px #000, 0 0 2px #000', letterSpacing: '0.5px', WebkitTextStroke: '0.5px #222' }}
             >
-              {d.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-row items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 shadow font-mono text-base sm:text-lg">
-          <span className="text-blue-700 font-bold">Round:</span>
-          <span className="bg-blue-100 px-2 py-0.5 rounded">{activeRounds[selectedDuration]?.roundNumber || '--'}</span>
-          <span className="bg-gray-50 px-2 py-0.5 rounded text-gray-700">{selectedDuration} min</span>
-          <span className={`font-mono text-base sm:text-lg ${localTimeRemaining <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}>{formatTime(localTimeRemaining)}</span>
-        </div>
-      </div>
-      <div className="h-2 sm:h-4" />
-      {/* Betting Controls Section */}
-      <div className="w-full max-w-2xl flex flex-col items-center gap-2 sm:gap-4">
-        {/* Color Selection */}
-        <div className="flex gap-2 sm:gap-4 mb-2 w-full max-w-xs sm:max-w-sm justify-center">
-          {colors.map(opt => (
-            <button
-              key={opt.value}
-              className={`flex-1 min-w-0 h-8 sm:h-10 max-w-[110px] rounded-lg flex items-center justify-center font-semibold text-base sm:text-lg cursor-pointer relative overflow-hidden border transition-all duration-200 px-2 sm:px-3 text-white select-none ${selectedBetType === 'color' && selectedBetValue === opt.value ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10' : ''} ${opt.className}`}
-              style={{
-                boxShadow: '0 4px 16px #222b',
-                textShadow: '0 1px 2px #fff8',
-                fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-                letterSpacing: '0.5px',
-              }}
-              onClick={() => {
-                setSelectedBetType('color');
-                setSelectedBetValue(opt.value);
-              }}
-            >
-              <span className="relative z-10 select-none w-full text-center truncate" style={{lineHeight: 1.1}}>{opt.value}</span>
-            </button>
-          ))}
-        </div>
-        <div className="h-2 sm:h-4" />
-        {/* Number Grid */}
-        <div className="grid grid-cols-5 gap-y-4 gap-x-4 mb-2 sm:mb-4 w-full max-w-xs sm:max-w-sm">
-          {numbers.map(n => {
-            let bg = '';
-            let text = 'text-white';
-            // Color logic: 0=red+violet, 5=green+violet, 1,3,7,9=green, 2,4,6,8=red
-            if (n === 0) {
-              bg = 'bg-gradient-to-br from-red-500 to-purple-500';
-            } else if (n === 5) {
-              bg = 'bg-gradient-to-br from-green-500 to-purple-500';
-            } else if ([1,3,7,9].includes(n)) {
-              bg = 'bg-green-500';
-            } else if ([2,4,6,8].includes(n)) {
-              bg = 'bg-red-500';
-            } else {
-              bg = 'bg-gray-200';
-              text = 'text-gray-900';
-            }
-            // Gradient effect for 3
-           
-            // Selected style
-            let selected = selectedBetType === 'number' && selectedBetValue === n
-              ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10 bg-yellow-100 text-gray-900'
-              : `border-gray-300 ${bg} ${text} hover:opacity-80 hover:scale-105 hover:ring-2 hover:ring-yellow-300`;
-            return (
-              <button
-                key={n}
-                className={`w-16 h-8 sm:w-20 sm:h-10 rounded-lg flex items-center justify-center font-bold text-lg sm:text-xl border-2 transition-all duration-200 focus:outline-none select-none ${selected}`}
-                style={{
-                  boxShadow: '0 4px 16px #222b',
-                  textShadow: 'none',
-                  fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
-                  letterSpacing: '0.5px',
-                }}
-                onClick={() => {
-                  setSelectedBetType('number');
-                  setSelectedBetValue(n);
-                }}
-              >
-                <span className="relative z-10 select-none">{n}</span>
-              </button>
-            );
-          })}
-        </div>
-        {/* Bet Amount and Place Bet */}
-        <div className="flex flex-col sm:flex-row w-full max-w-xs sm:max-w-sm gap-2 sm:gap-4 items-center justify-center mb-2">
-          <input
-            type="number"
-            min={1}
-            value={betAmount}
-            onChange={e => setBetAmount(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-base sm:text-lg font-bold text-center focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-            placeholder="Bet Amount"
-          />
-          <button
-            className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-bold hover:bg-primary-dark transition-all text-base sm:text-lg"
-            onClick={handlePlaceBet}
-            disabled={betLoading}
-          >
-            {betLoading ? 'Placing...' : 'Place Bet'}
-          </button>
-        </div>
-        {betError && <div className="text-red-500 text-xs mb-2">{betError}</div>}
-      </div>
+              Select Game Duration
+            </label>
+            <div className="flex w-full gap-2 justify-center">
+              {durations.map(d => (
+                <button
+                  key={d.value}
+                  className={`flex-1 min-w-0 px-0 py-1 rounded-full font-bold text-xs transition-all duration-200 shadow-lg border-none focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-gradient-to-b ${selectedDuration === d.value ? 'from-purple-700 to-purple-400 text-white ring-2 ring-yellow-400 scale-105' : 'from-black to-gray-800 text-white hover:brightness-110 opacity-90'} tracking-wide relative active:scale-95`}
+                  style={{ boxShadow: '0 4px 16px #000a', textShadow: '0 1px 2px #fff3' }}
+                  onClick={() => setSelectedDuration(d.value)}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-row items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-2 shadow font-mono text-base mt-2">
+              <span className="text-blue-700 font-bold">Round:</span>
+              <span className="bg-blue-100 px-2 py-0.5 rounded-2xl">{activeRounds[selectedDuration]?.roundNumber || '--'}</span>
+              <span className="bg-gray-50 px-2 py-0.5 rounded-2xl text-gray-700">{selectedDuration} min</span>
+              <span className={`font-mono text-base ${localTimeRemaining <= 10 ? 'text-red-600 animate-pulse' : 'text-green-700'}`}>{formatTime(localTimeRemaining)}</span>
+            </div>
+          </div>
+          <div className="h-2" />
+          {/* Betting Controls Section */}
+          <div className="w-full flex flex-col items-center gap-2">
+            {/* Color Selection */}
+            <div className="flex gap-2 mb-2 w-full max-w-xs justify-center">
+              {colors.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`flex-1 min-w-0 h-8 rounded-2xl flex items-center justify-center font-semibold text-base cursor-pointer relative overflow-hidden border transition-all duration-200 px-2 text-white select-none ${selectedBetType === 'color' && selectedBetValue === opt.value ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10' : ''} ${opt.className}`}
+                  style={{
+                    boxShadow: '0 4px 16px #222b',
+                    textShadow: '0 1px 2px #fff8',
+                    fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+                    letterSpacing: '0.5px',
+                  }}
+                  onClick={() => {
+                    setSelectedBetType('color');
+                    setSelectedBetValue(opt.value);
+                  }}
+                >
+                  <span className="relative z-10 select-none w-full text-center truncate" style={{lineHeight: 1.1}}>{opt.value}</span>
+                </button>
+              ))}
+            </div>
+            <div className="h-2" />
+            {/* Number Grid */}
+            <div className="grid grid-cols-5 gap-y-4 gap-x-4 mb-2 w-full max-w-xs">
+              {numbers.map(n => {
+                let bg = '';
+                let text = 'text-white';
+                // Color logic: 0=red+violet, 5=green+violet, 1,3,7,9=green, 2,4,6,8=red
+                if (n === 0) {
+                  bg = 'bg-gradient-to-br from-red-500 to-purple-500';
+                } else if (n === 5) {
+                  bg = 'bg-gradient-to-br from-green-500 to-purple-500';
+                } else if ([1,3,7,9].includes(n)) {
+                  bg = 'bg-green-500';
+                } else if ([2,4,6,8].includes(n)) {
+                  bg = 'bg-red-500';
+                } else {
+                  bg = 'bg-gray-200';
+                  text = 'text-gray-900';
+                }
+                // Gradient effect for 3
+               
+                // Selected style
+                let selected = selectedBetType === 'number' && selectedBetValue === n
+                  ? 'border-yellow-400 ring-2 ring-yellow-200 scale-105 z-10 bg-yellow-100 text-gray-900 rounded-2xl'
+                  : `border-gray-300 ${bg} ${text} hover:opacity-80 hover:scale-105 hover:ring-2 hover:ring-yellow-300 rounded-2xl`;
+                return (
+                  <button
+                    key={n}
+                    className={`w-16 h-8 flex items-center justify-center font-bold text-lg border-2 transition-all duration-200 focus:outline-none select-none ${selected}`}
+                    style={{
+                      boxShadow: '0 4px 16px #222b',
+                      textShadow: 'none',
+                      fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+                      letterSpacing: '0.5px',
+                    }}
+                    onClick={() => {
+                      setSelectedBetType('number');
+                      setSelectedBetValue(n);
+                    }}
+                  >
+                    <span className="relative z-10 select-none">{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Bet Amount and Place Bet */}
+            <div className="flex flex-col w-full max-w-xs gap-2 items-center justify-center mb-2">
+               <input
+                 type="number"
+                 min={1}
+                 value={betAmount}
+                 onChange={e => setBetAmount(e.target.value)}
+                 className="flex-1 px-3 py-2 rounded-2xl border border-gray-300 text-base font-bold text-center focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                 placeholder="Bet Amount"
+               />
+               <button
+                 className="flex-1 px-4 py-2 rounded-2xl bg-primary text-white font-bold hover:bg-primary-dark transition-all text-base"
+                 onClick={handlePlaceBet}
+                 disabled={betLoading}
+               >
+                 {betLoading ? 'Placing...' : 'Place Bet'}
+               </button>
+             </div>
+            {betError && <div className="text-red-500 text-xs mb-2">{betError}</div>}
+          </div>
 
-      {/* Recent Bets / Results Tabs */}
-      <div className="w-full max-w-2xl bg-white rounded-t-xl shadow flex flex-col mt-4">
-        <div className="flex justify-center gap-4 py-2 border-b">
-          <button
-            className={`px-4 py-2 font-bold text-sm rounded-t-lg transition-colors ${viewMode === 'bets' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            onClick={() => setViewMode('bets')}
-          >
-            Recent Bets
-          </button>
-          <button
-            className={`px-4 py-2 font-bold text-sm rounded-t-lg transition-colors ${viewMode === 'results' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            onClick={() => setViewMode('results')}
-          >
-            Recent Results
-          </button>
+          {/* Recent Bets / Results Tabs */}
+          <div className="w-full bg-white rounded-2xl shadow flex flex-col mt-4">
+            <div className="flex justify-center gap-4 py-2 border-b rounded-t-2xl">
+              <button
+                className={`px-4 py-2 font-bold text-sm rounded-t-2xl transition-colors ${viewMode === 'bets' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                onClick={() => setViewMode('bets')}
+              >
+                Recent Bets
+              </button>
+              <button
+                className={`px-4 py-2 font-bold text-sm rounded-t-2xl transition-colors ${viewMode === 'results' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                onClick={() => setViewMode('results')}
+              >
+                Recent Results
+              </button>
+            </div>
+            <RecentBets
+              bets={recentBets}
+              results={recentResults}
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              currentPage={currentPage}
+              resultsPerPage={resultsPerPage}
+              handlePageChange={setCurrentPage}
+              totalCount={totalCount}
+              totalPages={totalPages}
+              search={search}
+              setSearch={setSearch}
+              hideTabs
+            />
+          </div>
         </div>
-        <RecentBets
-          bets={recentBets}
-          results={recentResults}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          currentPage={currentPage}
-          resultsPerPage={resultsPerPage}
-          handlePageChange={setCurrentPage}
-          totalCount={totalCount}
-          totalPages={totalPages}
-          search={search}
-          setSearch={setSearch}
-          hideTabs
-        />
       </div>
     </div>
   );
@@ -599,7 +611,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setViewMode('bets')}
-              className={`px-4 py-2 rounded-lg ${
+              className={`px-4 py-2 rounded-2xl ${
                 viewMode === 'bets' 
                   ? 'bg-purple-50 text-purple-700 font-semibold'
                   : 'bg-gray-50 text-gray-600'
@@ -609,7 +621,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
             </button>
             <button
               onClick={() => setViewMode('results')}
-              className={`px-4 py-2 rounded-lg ${
+              className={`px-4 py-2 rounded-2xl ${
                 viewMode === 'results' 
                   ? 'bg-purple-50 text-purple-700 font-semibold'
                   : 'bg-gray-50 text-gray-600'
@@ -625,11 +637,11 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
           </div>
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg">
+      <div className="overflow-x-auto rounded-2xl">
         {viewMode === 'bets' ? (
           bets && bets.length > 0 ? (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gradient-to-r from-purple-100 to-pink-100">
+            <table className="min-w-full divide-y divide-gray-200 rounded-2xl">
+              <thead className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-t-2xl">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Time</th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Bet Value</th>
@@ -639,7 +651,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                   <th className="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase tracking-wider">Round</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 rounded-b-2xl">
                 {bets.map((bet) => (
                   <tr key={bet._id} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -701,8 +713,8 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
           )
         ) : (
           results && results.length > 0 ? (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 rounded-2xl">
+              <thead className="bg-gray-50 rounded-t-2xl">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Round ID
@@ -721,7 +733,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 rounded-b-2xl">
                 {results.map((round) => (
                   <tr key={round._id} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -788,7 +800,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                   }
                 }}
                 placeholder="Search by round number, ID, or status..."
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                className="w-full px-4 py-2 rounded-2xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
               <p className="text-xs text-gray-500 mt-1">
                 You can search by round number, full round ID (e.g., 67feca30353ed45a275bcadc), or status.
@@ -801,7 +813,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                     handlePageChange(1); // Reset to page 1 when searching
                   }
                 }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="px-4 py-2 bg-purple-600 text-white rounded-2xl hover:bg-purple-700 transition-colors"
               >
                 Search
               </button>
@@ -811,7 +823,7 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
                     setSearch('');
                     handlePageChange(1);
                   }}
-                  className="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="ml-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-2xl hover:bg-gray-300 transition-colors"
                 >
                   Clear
                 </button>
@@ -820,12 +832,12 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
           </div>
           {/* Modern mobile pagination */}
           <div className="flex flex-wrap justify-between items-center gap-2 mt-2">
-            <span className="text-gray-600 text-xs sm:text-sm">Total Results: {totalCount}</span>
-            <div className="flex gap-1 sm:gap-2">
+            <span className="text-gray-600 text-xs">Total Results: {totalCount}</span>
+            <div className="flex gap-1">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className={`px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-base font-semibold transition-colors shadow-sm border border-gray-200 ${
+                className={`px-2 py-1 rounded-2xl text-xs font-semibold transition-colors shadow-sm border border-gray-200 ${
                   currentPage === 1
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-white text-purple-700 hover:bg-purple-50'
@@ -833,13 +845,13 @@ function RecentBets({ bets, results, viewMode, setViewMode, currentPage, results
               >
                 &#8592; Prev
               </button>
-              <span className="text-gray-600 text-xs sm:text-sm px-1 sm:px-2 flex items-center">
+              <span className="text-gray-600 text-xs px-1 flex items-center">
                 Page {currentPage} / {totalPages || 1}
               </span>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-base font-semibold transition-colors shadow-sm border border-gray-200 ${
+                className={`px-2 py-1 rounded-2xl text-xs font-semibold transition-colors shadow-sm border border-gray-200 ${
                   currentPage === totalPages || totalPages === 0
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-white text-purple-700 hover:bg-purple-50'
