@@ -233,6 +233,17 @@ const Dashboard = () => {
                 className="bg-gradient-to-br from-white via-green-50 to-yellow-100 rounded-xl shadow-md p-4 flex flex-col items-center hover:scale-105 hover:shadow-xl transition border-2 border-transparent hover:border-green-400"
                 style={{ textDecoration: 'none' }}
               >
+                {/* Show card image if available, else fallback */}
+                {game.thumbnailUrl ? (
+                  <img
+                    src={game.thumbnailUrl}
+                    alt={game.name || 'Game'}
+                    className="w-16 h-16 object-contain mb-2 rounded shadow"
+                    onError={e => { e.target.onerror = null; e.target.src = '/fallback-image.png'; }}
+                  />
+                ) : (
+                  <div className="w-16 h-16 flex items-center justify-center bg-gray-200 rounded mb-2 text-gray-500 text-2xl">🎮</div>
+                )}
                 <span className="text-base font-bold mb-1 text-green-800 drop-shadow">{game.name || game.identifier}</span>
                 <span className="text-xs text-gray-700 mb-1">{game.description}</span>
                 <span className="text-xs text-green-700 font-semibold">Active</span>
