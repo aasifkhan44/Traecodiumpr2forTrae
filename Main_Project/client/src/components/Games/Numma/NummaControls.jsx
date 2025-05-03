@@ -170,7 +170,7 @@ export const NummaBetPopup = ({
   handlePlaceBet 
 }) => {
   const defaultMultiplier = popupData?.defaultMultiplier;
-  const [popupQuantity, setPopupQuantity] = useState(1);
+  const [popupQuantity, setPopupQuantity] = useState(10);
   const [popupMultiplier, setPopupMultiplier] = useState(defaultMultiplier ? `x${defaultMultiplier}` : 'x5');
   const [popupAgree, setPopupAgree] = useState(true);
 
@@ -178,7 +178,7 @@ export const NummaBetPopup = ({
     if (defaultMultiplier) setPopupMultiplier(`x${defaultMultiplier}`);
   }, [defaultMultiplier]);
 
-  const balanceChips = [1, 10, 100, 1000];
+  const balanceChips = [10, 50, 100, 500];
   const popupMultipliers = ['x5', 'x10', 'x20', 'x50', 'x100'];
 
   const getMultiplierValue = (mult) => {
@@ -198,11 +198,13 @@ export const NummaBetPopup = ({
     <div className="fixed inset-0 z-50">
       {/* Overlay: 50% opacity, blocks pointer events */}
       <div className="absolute inset-0 bg-black opacity-50 pointer-events-auto" />
-      <div className="fixed bottom-0 left-0 w-full max-w-md mx-auto bg-white rounded-t-2xl shadow-lg p-4 sm:p-6 animate-slide-up z-10"
+      <div className="fixed bottom-0 left-0 w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-4 sm:p-6 animate-slide-up z-10"
         style={{
           borderTopLeftRadius: '1.5rem',
           borderTopRightRadius: '1.5rem',
-          marginBottom: 0,
+          borderBottomLeftRadius: '1.5rem',
+          borderBottomRightRadius: '1.5rem',
+          marginBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
           minHeight: '260px',
           transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
           left: '50%',
@@ -252,9 +254,9 @@ export const NummaBetPopup = ({
             <span className="text-gray-600 text-sm sm:text-base">Quantity</span>
             <input
               type="number"
-              min={1}
+              min={10}
               value={popupQuantity}
-              onChange={e => setPopupQuantity(Number(e.target.value) || 1)}
+              onChange={e => setPopupQuantity(Math.max(10, Number(e.target.value)))}
               className="w-16 sm:w-20 px-2 py-1 border rounded text-center font-bold text-sm sm:text-base"
             />
           </div>

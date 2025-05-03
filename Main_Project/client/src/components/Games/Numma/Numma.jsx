@@ -267,8 +267,48 @@ export default function Numma({ gameData }) {
     };
   }, []);
 
+  // --- Countdown Overlay Component ---
+  function CountdownOverlay({ seconds }) {
+    useEffect(() => {
+      if (seconds === 5) {
+        const audio = new window.Audio('/sounds/countdown-beep.mp3');
+        audio.play().catch(() => {});
+      }
+    }, [seconds]);
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0,0,0,0.85)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        transition: 'background 0.3s',
+      }}>
+        <span style={{
+          color: '#fff',
+          fontSize: '9vw',
+          fontWeight: 900,
+          letterSpacing: '0.1em',
+          textShadow: '0 4px 32px #000a',
+          marginBottom: '1.5vw',
+          fontFamily: 'Inter, Segoe UI, Arial, sans-serif'
+        }}>{seconds}</span>
+        <span style={{color:'#fff',fontSize:'2vw',marginTop:'0.5vw',opacity:0.7}}>Get Ready!</span>
+      </div>
+    );
+  }
+
   return (
     <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
+      {showCountdownOverlay && overlaySeconds <= 5 && overlaySeconds > 0 && (
+        <CountdownOverlay seconds={overlaySeconds} />
+      )}
       <div className="w-full rounded-2xl">
         {/* Header: Logo + Game Name */}
         <div className="w-full max-w-2xl flex flex-row items-center gap-2 sm:gap-4 mb-2 sm:mb-4">
