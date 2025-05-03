@@ -151,12 +151,12 @@ const DepositRequests = () => {
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Deposit Requests</h1>
+    <div className="p-2 sm:p-4 max-w-7xl mx-auto">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center sm:text-left">Deposit Requests</h1>
       
       {error && (
-        <div className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
-          <p className="flex items-center">
+        <div className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 rounded">
+          <p className="flex items-center text-sm sm:text-base">
             <FaExclamationCircle className="mr-2" />
             {error}
           </p>
@@ -164,98 +164,82 @@ const DepositRequests = () => {
       )}
       
       {/* Status Filter */}
-      <div className="mb-6">
-        <div className="flex space-x-2">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-wrap gap-2">
           <button
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              statusFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium ${statusFilter === 'all' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
             onClick={() => setStatusFilter('all')}
-          >
-            All
-          </button>
+          >All</button>
           <button
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              statusFilter === 'pending' ? 'bg-yellow-500 text-white' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-            }`}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium ${statusFilter === 'pending' ? 'bg-yellow-500 text-white' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'}`}
             onClick={() => setStatusFilter('pending')}
-          >
-            Pending
-          </button>
+          >Pending</button>
           <button
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              statusFilter === 'approved' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800 hover:bg-green-200'
-            }`}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium ${statusFilter === 'approved' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
             onClick={() => setStatusFilter('approved')}
-          >
-            Approved
-          </button>
+          >Approved</button>
           <button
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              statusFilter === 'rejected' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-800 hover:bg-red-200'
-            }`}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium ${statusFilter === 'rejected' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
             onClick={() => setStatusFilter('rejected')}
-          >
-            Rejected
-          </button>
+          >Rejected</button>
         </div>
       </div>
       
       {/* Requests Table */}
       {loading ? (
-        <div className="flex justify-center items-center p-8">
-          <FaSpinner className="animate-spin text-3xl text-primary mr-2" />
-          <p>Loading deposit requests...</p>
+        <div className="flex flex-col items-center justify-center p-6 sm:p-8">
+          <FaSpinner className="animate-spin text-2xl sm:text-3xl text-primary mb-2" />
+          <p className="text-sm sm:text-base">Loading deposit requests...</p>
         </div>
       ) : filteredRequests.length > 0 ? (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="bg-white shadow-md rounded-lg overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">User</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Mode</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="px-2 sm:px-4 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRequests.map((request) => (
                 <tr key={request._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                        <FaUser className="text-gray-500" />
+                  <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <FaUser className="text-gray-500 text-lg sm:text-xl" />
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{request.user.name}</div>
-                        <div className="text-sm text-gray-500">{request.user.mobile}</div>
+                      <div>
+                        <div className="text-xs sm:text-sm font-medium text-gray-900">{request.user.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{request.user.mobile}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-medium">🪙 {request.amount}</div>
+                  <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
+                    <div className="text-xs sm:text-sm text-gray-900 font-medium">🪙 {request.amount}</div>
                     {request.paymentMode === 'crypto' && request.convertedAmount && (
-                      <div className="text-xs text-gray-500">
+                      <div className="text-[10px] sm:text-xs text-gray-500">
                         ({request.convertedAmount} {request.cryptoCurrency})
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
                     <span className="capitalize">{request.paymentMode}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                     {formatDate(request.createdAt)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-2 sm:px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(request.status)}`}>
                       {request.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-2 sm:px-4 py-3 whitespace-nowrap text-xs sm:text-sm font-medium">
                     <button
-                      className="text-primary hover:text-primary-dark mr-3"
+                      className="text-primary hover:text-primary-dark mr-2 sm:mr-3"
                       onClick={() => handleViewRequest(request)}
                     >
                       View Details
@@ -267,18 +251,18 @@ const DepositRequests = () => {
           </table>
         </div>
       ) : (
-        <div className="bg-gray-50 p-8 rounded-lg text-center">
-          <FaExclamationTriangle className="mx-auto text-gray-400 text-2xl mb-2" />
-          <p className="text-gray-500">No deposit requests found{statusFilter !== 'all' ? ` with status "${statusFilter}"` : ''}.</p>
+        <div className="bg-gray-50 p-6 sm:p-8 rounded-lg text-center">
+          <FaExclamationTriangle className="mx-auto text-gray-400 text-xl sm:text-2xl mb-2" />
+          <p className="text-gray-500 text-sm sm:text-base">No deposit requests found{statusFilter !== 'all' ? ` with status "${statusFilter}"` : ''}.</p>
         </div>
       )}
       
       {/* Modal for Request Details */}
       {showModal && selectedRequest && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl overflow-hidden max-w-2xl w-full max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">Deposit Request Details</h3>
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-0">
+          <div className="bg-white rounded-lg shadow-xl overflow-hidden max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900">Deposit Request Details</h3>
               <button 
                 onClick={handleCloseModal}
                 className="text-gray-500 hover:text-gray-700"
@@ -289,104 +273,90 @@ const DepositRequests = () => {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
+            <div className="p-4 sm:p-6 overflow-y-auto">
               {/* Request Information */}
-              <div className="mb-6">
-                <h4 className="text-md font-bold mb-2 border-b pb-2">Request Information</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4 sm:mb-6">
+                <h4 className="text-sm sm:text-md font-bold mb-2 border-b pb-2">Request Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Amount</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Amount</p>
                     <p className="font-medium">🪙 {selectedRequest.amount}</p>
                   </div>
-                  
                   <div>
-                    <p className="text-sm text-gray-600">Payment Mode</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Payment Mode</p>
                     <p className="font-medium capitalize">{selectedRequest.paymentMode}</p>
                   </div>
-                  
                   <div>
-                    <p className="text-sm text-gray-600">Date</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Date</p>
                     <p className="font-medium">{formatDate(selectedRequest.createdAt)}</p>
                   </div>
-                  
                   <div>
-                    <p className="text-sm text-gray-600">Status</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Status</p>
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(selectedRequest.status)}`}>
                       {selectedRequest.status}
                     </span>
                   </div>
-                  
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-600">Reference Number</p>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs sm:text-sm text-gray-600">Reference Number</p>
                     <p className="font-medium break-all">{selectedRequest.referenceNumber}</p>
                   </div>
-                  
                   {selectedRequest.paymentMode === 'upi' && (
                     <>
                       <div>
-                        <p className="text-sm text-gray-600">UPI ID</p>
+                        <p className="text-xs sm:text-sm text-gray-600">UPI ID</p>
                         <p className="font-medium">{selectedRequest.upiId || 'N/A'}</p>
                       </div>
-                      
                       <div>
-                        <p className="text-sm text-gray-600">Payment App</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Payment App</p>
                         <p className="font-medium">{selectedRequest.paymentApp || 'N/A'}</p>
                       </div>
-                      
                       <div>
-                        <p className="text-sm text-gray-600 font-bold">Paid</p>
+                        <p className="text-xs sm:text-sm text-gray-600 font-bold">Paid</p>
                         <p className="font-bold text-red-600">₹{selectedRequest.amount}</p>
                       </div>
                     </>
                   )}
-                  
                   {selectedRequest.paymentMode === 'crypto' && (
                     <>
                       <div>
-                        <p className="text-sm text-gray-600">Cryptocurrency</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Cryptocurrency</p>
                         <p className="font-medium">{selectedRequest.cryptoCurrency || 'N/A'}</p>
                       </div>
-                      
                       <div>
-                        <p className="text-sm text-gray-600 font-bold">Paid</p>
+                        <p className="text-xs sm:text-sm text-gray-600 font-bold">Paid</p>
                         <p className="font-bold text-red-600">{selectedRequest.convertedAmount} {selectedRequest.cryptoCurrency}</p>
                       </div>
-                      
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-600">Crypto Address</p>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs sm:text-sm text-gray-600">Crypto Address</p>
                         <p className="font-medium break-all">{selectedRequest.cryptoAddress || 'N/A'}</p>
                       </div>
                     </>
                   )}
                 </div>
               </div>
-              
               {/* User Information */}
-              <div className="mb-6">
-                <h4 className="text-md font-bold mb-2 border-b pb-2">User Information</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="mb-4 sm:mb-6">
+                <h4 className="text-sm sm:text-md font-bold mb-2 border-b pb-2">User Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Name</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Name</p>
                     <p className="font-medium">{selectedRequest.user.name}</p>
                   </div>
-                  
                   <div>
-                    <p className="text-sm text-gray-600">Mobile</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Mobile</p>
                     <p className="font-medium flex items-center">
                       <FaMobile className="mr-1 text-gray-500" />
                       {selectedRequest.user.countryCode} {selectedRequest.user.mobile}
                     </p>
                   </div>
-                  
                   {userDetails[selectedRequest.user._id] && (
                     <>
                       <div>
-                        <p className="text-sm text-gray-600">Current Balance</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Current Balance</p>
                         <p className="font-medium">🪙 {userDetails[selectedRequest.user._id].balance || 0}</p>
                       </div>
-                      
                       <div>
-                        <p className="text-sm text-gray-600">Member Since</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Member Since</p>
                         <p className="font-medium">
                           {new Date(userDetails[selectedRequest.user._id].createdAt).toLocaleDateString()}
                         </p>
@@ -395,43 +365,32 @@ const DepositRequests = () => {
                   )}
                 </div>
               </div>
-              
               {selectedRequest.status === 'pending' && (
-                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                  <p className="text-yellow-800 flex items-center">
+                <div className="mt-4 sm:mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-3 sm:p-4">
+                  <p className="text-yellow-800 flex items-center text-xs sm:text-sm">
                     <FaExclamationTriangle className="mr-2" />
                     Please verify the payment details before approving or rejecting this request.
                   </p>
                 </div>
               )}
             </div>
-            
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
               <button
                 onClick={handleCloseModal}
-                className="btn btn-secondary mr-2"
-              >
-                Close
-              </button>
-              
+                className="btn btn-secondary order-2 sm:order-1"
+              >Close</button>
               {selectedRequest.status === 'pending' && (
                 <>
                   <button
                     onClick={() => handleProcessRequest(selectedRequest._id, 'rejected')}
-                    className="btn btn-danger mr-2"
+                    className="btn btn-danger order-1 sm:order-2"
                     disabled={processingAction}
-                  >
-                    {processingAction ? <FaSpinner className="animate-spin mr-2" /> : <FaTimesCircle className="mr-2" />}
-                    Reject
-                  </button>
+                  >{processingAction ? <FaSpinner className="animate-spin mr-2" /> : <FaTimesCircle className="mr-2" />}Reject</button>
                   <button
                     onClick={() => handleProcessRequest(selectedRequest._id, 'approved')}
-                    className="btn btn-success"
+                    className="btn btn-success order-1 sm:order-2"
                     disabled={processingAction}
-                  >
-                    {processingAction ? <FaSpinner className="animate-spin mr-2" /> : <FaCheckCircle className="mr-2" />}
-                    Approve
-                  </button>
+                  >{processingAction ? <FaSpinner className="animate-spin mr-2" /> : <FaCheckCircle className="mr-2" />}Approve</button>
                 </>
               )}
             </div>
