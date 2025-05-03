@@ -131,6 +131,8 @@ function App() {
                 <Route path="/admin/email-templates" element={<EmailTemplates />} />
                 <Route path="/admin/site-settings" element={<SiteSettings />} />
                 <Route path="/admin/deposit-requests" element={<DepositRequests />} />
+                {/* Redirect all other /admin routes to /admin */}
+                <Route path="/admin/*" element={<Navigate to="/admin" />} />
               </Route>
             ) : isAuthenticated ? (
               // User Routes
@@ -142,7 +144,6 @@ function App() {
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/referrals" element={<Referrals />} />
                 <Route path="/referral-commissions" element={<ReferralCommissions />} />
-                
                 {/* Game Routes - dynamically loaded based on active games */}
                 <Route path="/games/wingo" element={
                   <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading game...</div>}>
@@ -184,7 +185,6 @@ function App() {
                     <FortuneWheelGame />
                   </Suspense>
                 } />
-                
                 <Route path="*" element={<Navigate to="/dashboard" />} />
               </Route>
             ) : (

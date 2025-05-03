@@ -186,7 +186,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
     }
   };
 
-  const inputClass = `w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`;
+  const inputClass = `w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`;
 
   return (
     isModal ? (
@@ -219,7 +219,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
             </label>
             <div className="flex">
               <select
-                className={inputClass + ' mr-2 w-1/3'}
+                className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow"
                 id="countryCode"
                 name="countryCode"
                 value={countryCode}
@@ -349,7 +349,7 @@ const Register = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
               </label>
               <div className="flex">
                 <select
-                  className={inputClass + ' mr-2 w-1/3'}
+                  className="w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow"
                   id="countryCode"
                   name="countryCode"
                   value={countryCode}

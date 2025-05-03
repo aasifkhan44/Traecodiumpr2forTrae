@@ -194,7 +194,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
               </label>
               <div className="flex">
                 <select
-                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
+                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`}
                   id="countryCode"
                   name="countryCode"
                   value={countryCode}
@@ -208,7 +208,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   ))}
                 </select>
                 <input
-                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
+                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`}
                   type="tel"
                   id="mobile"
                   name="mobile"
@@ -224,7 +224,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 Password
               </label>
               <input
-                className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
+                className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`}
                 type="password"
                 id="password"
                 name="password"
@@ -286,7 +286,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                 </label>
                 <div className="flex">
                   <select
-                    className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
+                    className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`}
                     id="countryCode"
                     name="countryCode"
                     value={countryCode}
@@ -300,7 +300,7 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                     ))}
                   </select>
                   <input
-                    className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
+                    className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`}
                     type="tel"
                     id="mobile"
                     name="mobile"
@@ -311,13 +311,12 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   />
                 </div>
               </div>
-              
               <div className="mb-6">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
                   Password
                 </label>
                 <input
-                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 bg-white text-gray-900 dark:bg-gray-800 dark:text-white shadow`}
+                  className={`w-full rounded-xl border-blue-200 px-3 py-2 text-base focus:ring-2 focus:ring-blue-400 !bg-white !text-black shadow`}
                   type="password"
                   id="password"
                   name="password"
@@ -328,7 +327,6 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   minLength="6"
                 />
               </div>
-              
               <div className="flex items-center justify-between mb-4">
                 <button
                   type="submit"
@@ -348,7 +346,6 @@ const Login = ({ setIsAuthenticated, setIsAdmin, isModal }) => {
                   )}
                 </button>
               </div>
-              
               <p className="text-center text-gray-600 text-sm">
                 Don't have an account?{' '}
                 <Link to="/register" className="text-primary hover:text-primary/80">

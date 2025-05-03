@@ -1,308 +1,139 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useSiteSettings } from '../contexts/SiteSettingsContext';
-import { 
-  FaHome, 
-  FaUsers, 
-  FaGamepad, 
-  FaHistory, 
-  FaCog, 
-  FaBars, 
-  FaTimes, 
-  FaSun, 
-  FaMoon, 
-  FaSignOutAlt, 
-  FaExchangeAlt, 
-  FaShareAlt,
-  FaCreditCard,
-  FaEnvelope,
-  FaCode,
-  FaImage,
-  FaMoneyBillWave,
-  FaUserFriends,
-  FaGlobe,
-  FaMoneyBill,
-  FaDice
-} from 'react-icons/fa';
+import { FaBars } from 'react-icons/fa';
+
+const adminNavItems = [
+  { label: 'Dashboard', to: '/admin' },
+  { label: 'Users', to: '/admin/users' },
+  { label: 'Games', to: '/admin/games' },
+  { label: 'Wingo Results', to: '/admin/wingo-result-management' },
+  { label: 'Numma Result Manager', to: '/admin/numma-result-manager' },
+  { label: 'Transactions', to: '/admin/transactions' },
+  { label: 'Referral & Commission', to: '/admin/referral-commission-settings' },
+  { label: 'Payment Settings', to: '/admin/payment-settings' },
+  { label: 'Withdrawal Requests', to: '/admin/withdrawal-requests' },
+  { label: 'Withdrawal Settings', to: '/admin/withdrawal-settings' },
+  { label: 'Deposit Requests', to: '/admin/deposit-requests' },
+  { label: 'Email Settings', to: '/admin/smtp-settings' },
+  { label: 'Email Templates', to: '/admin/email-templates' },
+  { label: 'Site Logo & Name', to: '/admin/site-settings' },
+  { label: 'Settings', to: '/admin/settings' },
+];
 
 const AdminLayout = ({ onLogout }) => {
   const navigate = useNavigate();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const { siteSettings } = useSiteSettings();
-
-  console.log('AdminLayout rendered');
-  console.log('Current navigation links:', [
-    '/admin',
-    '/admin/users',
-    '/admin/games',
-    '/admin/transactions',
-    '/admin/referral-settings',
-    '/admin/commission-settings',
-    '/admin/payment-settings',
-    '/admin/settings',
-    '/admin/smtp-settings',
-    '/admin/email-templates'
-  ]);
-
-  // Log localStorage admin status
-  useEffect(() => {
-    const isAdminStatus = localStorage.getItem('isAdmin');
-    console.log('Is Admin from localStorage:', isAdminStatus);
-  }, []);
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const handleLogout = () => {
+    if (typeof onLogout === 'function') onLogout();
+    navigate('/login');
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 w-full">
-      {/* Header */}
-      <header className="bg-secondary text-white py-3 shadow w-full sticky top-0 z-40">
-        <div className="w-full flex justify-between items-center px-4 md:px-8">
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Modern Responsive Navbar */}
+      <nav className="w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur shadow-md sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+          {/* Logo and Site Name */}
+          <div className="flex items-center gap-3">
             {siteSettings.logoUrl && (
-              <img 
-                src={siteSettings.logoUrl} 
-                alt={siteSettings.siteName || 'Site Logo'} 
-                className="h-10 w-auto mr-2 object-contain max-w-[120px] sm:max-w-[160px] rounded-lg bg-white p-1 shadow-md"
-                onError={(e) => e.target.style.display = 'none'}
+              <img
+                src={siteSettings.logoUrl}
+                alt={siteSettings.siteName || 'Logo'}
+                className="h-10 w-10 rounded bg-gray-100 dark:bg-gray-800 shadow"
+                onError={e => (e.target.style.display = 'none')}
               />
             )}
-            <h1 className="text-lg sm:text-xl font-bold truncate max-w-[100px] sm:max-w-xs drop-shadow-md">Admin Dashboard - {siteSettings.siteName || 'Color Prediction Game'}</h1>
+            <span className="font-extrabold text-2xl tracking-tight text-primary dark:text-white drop-shadow-md">
+              {siteSettings.siteName || 'Admin Panel'}
+            </span>
           </div>
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-2 lg:space-x-4">
-            <button 
-              onClick={toggleDarkMode} 
-              className="text-white hover:text-yellow-300 text-base sm:text-lg transition-colors duration-200"
-              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          {/* Desktop Nav Links */}
+          <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
+            {adminNavItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/60
+                  ${isActive ? 'bg-primary text-white shadow-md' : 'text-gray-700 dark:text-gray-100 hover:bg-primary/10 hover:text-primary'}`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
+          {/* Mobile Hamburger */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="text-2xl text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/60 rounded"
+              aria-label="Open menu"
             >
-              {darkMode ? <FaSun className="text-xl" /> : <FaMoon className="text-xl" />}
-            </button>
-            <button 
-              onClick={() => {
-                onLogout();
-                navigate('/login');
-              }}
-              className="text-white hover:text-red-400 text-base sm:text-lg transition-colors duration-200"
-              title="Logout"
-            >
-              <FaSignOutAlt className="text-xl" />
-            </button>
-          </nav>
-          {/* Mobile menu button */}
-          <button 
-            onClick={toggleMobileMenu} 
-            className="md:hidden text-white focus:outline-none"
-            aria-label="Open menu"
-          >
-            <FaBars className="text-2xl" />
-          </button>
-        </div>
-      </header>
-      <div className="flex flex-1 w-full">
-        {/* Sidebar - Always visible for admin */}
-        <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-secondary via-secondary/95 to-gray-900 text-white transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 shadow-2xl md:shadow-none`}>
-          {/* Close button for mobile */}
-          <div className="md:hidden flex justify-end p-4">
-            <button onClick={toggleMobileMenu} className="text-white">
-              <FaTimes className="text-2xl" />
+              <FaBars />
             </button>
           </div>
-          {/* Sidebar Content */}
-          <nav className="mt-8">
-            <ul className="space-y-1 md:space-y-2 px-1 sm:px-2 md:px-0 w-64 overflow-hidden">
-              <li>
-                <NavLink 
-                  to="/admin" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaHome className="mr-1 sm:mr-2" /> Dashboard
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/users" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaUsers className="mr-1 sm:mr-2" /> Users
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/games" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaGamepad className="mr-1 sm:mr-2" /> Games
-                </NavLink>
-              </li>
-              <li className="group relative">
-                <button
-                  className="flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-left hover:bg-secondary focus:outline-none focus:bg-secondary text-sm sm:text-base"
-                  type="button"
-                >
-                  <FaDice className="mr-1 sm:mr-2" />
-                  Result
-                  <svg className="ml-2 w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.585l3.71-3.354a.75.75 0 111.04 1.08l-4.25 3.85a.75.75 0 01-1.04 0l-4.25-3.85a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                <ul className="absolute left-0 mt-1 w-56 bg-secondary text-white rounded shadow-lg z-50 hidden group-hover:block group-focus-within:block">
-                  <li>
-                    <NavLink
-                      to="/admin/wingo-result-management"
-                      className={({ isActive }) => `block px-4 py-2 hover:bg-primary rounded text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                      style={{maxWidth:'16rem'}}
-                      onClick={toggleMobileMenu}
-                    >
-                      Wingo Results
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink
-                      to="/admin/numma-result-manager"
-                      className={({ isActive }) => `block px-4 py-2 hover:bg-primary rounded text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                      style={{maxWidth:'16rem'}}
-                      onClick={toggleMobileMenu}
-                    >
-                      Numma Result Manager
-                    </NavLink>
-                  </li>
-                </ul>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/transactions" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaExchangeAlt className="mr-1 sm:mr-2" /> Transactions
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/referral-commission-settings" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaShareAlt className="mr-1 sm:mr-2" /> Referral & Commission
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/payment-settings" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaCreditCard className="mr-1 sm:mr-2" /> Payment Settings
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/withdrawal-requests" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaExchangeAlt className="mr-1 sm:mr-2" /> Withdrawal Requests
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/withdrawal-settings" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaMoneyBill className="mr-1 sm:mr-2" /> Withdrawal Settings
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/deposit-requests" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaMoneyBillWave className="mr-1 sm:mr-2" /> Deposit Requests
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/smtp-settings" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaEnvelope className="mr-1 sm:mr-2" /> Email Settings
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/email-templates" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaCode className="mr-1 sm:mr-2" /> Email Templates
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/site-settings" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaImage className="mr-1 sm:mr-2" /> Site Logo & Name
-                </NavLink>
-              </li>
-              <li>
-                <NavLink 
-                  to="/admin/settings" 
-                  className={({isActive}) => `flex items-center px-2 py-1 sm:px-3 sm:py-2 rounded-md text-sm sm:text-base transition-all duration-200 ${isActive ? 'bg-primary text-white shadow-md ring-2 ring-primary/60 md:ring-0 md:shadow-none md:bg-primary/90 z-10' : 'text-white hover:bg-secondary/80'} overflow-hidden`} 
-                  style={{maxWidth:'16rem'}}
-                  onClick={toggleMobileMenu}
-                >
-                  <FaCog className="mr-1 sm:mr-2" /> Settings
-                </NavLink>
-              </li>
-              <li className="mt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof onLogout === 'function') onLogout();
-                    navigate('/login');
-                  }}
-                  className="flex items-center px-3 py-2 rounded-md text-base hover:bg-red-500/80 transition-colors duration-200 w-full text-left"
-                  title="Logout"
-                >
-                  <FaSignOutAlt className="mr-2" /> Logout
-                </button>
-              </li>
-            </ul>
-          </nav>
+          {/* Logout Button */}
+          <div className="hidden md:flex items-center ml-4">
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-sm shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+            >
+              Logout
+            </button>
+          </div>
         </div>
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto w-full px-2 py-4 sm:px-4 sm:py-6">
-          <Outlet />
-        </div>
-      </div>
+        {/* Mobile Sidebar Menu with Overlay */}
+        {/* Sidebar appears from left, overlay covers rest. */}
+        {menuOpen && (
+          <>
+            {/* Overlay */}
+            <div
+              className="fixed inset-0 z-40 bg-black/40 md:hidden animate-fade-in"
+              onClick={() => setMenuOpen(false)}
+              aria-hidden="true"
+            />
+            {/* Sidebar */}
+            <div className="fixed top-0 left-0 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-xl z-50 flex flex-col transform transition-transform duration-300 animate-slide-in">
+              <div className="flex flex-col items-start px-4 py-6 gap-1 flex-1 overflow-y-auto">
+                {adminNavItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `w-full text-left px-3 py-2 rounded-md font-medium text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/60
+                      ${isActive ? 'bg-primary text-white shadow-md' : 'text-gray-700 dark:text-gray-100 hover:bg-primary/10 hover:text-primary'}
+                      ${isActive ? '' : 'cursor-pointer'}`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+              <div className="px-4 pb-4">
+                <button
+                  onClick={() => { setMenuOpen(false); handleLogout(); }}
+                  className="w-full px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-base shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </nav>
+      <main className="max-w-7xl mx-auto p-4 w-full">
+        <Outlet />
+      </main>
+      {/* Animations for fade and slide */}
+      <style>{`
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fade-in 0.2s ease; }
+        @keyframes slide-in { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .animate-slide-in { animation: slide-in 0.25s cubic-bezier(.4,1.3,.5,1); }
+      `}</style>
     </div>
   );
 };

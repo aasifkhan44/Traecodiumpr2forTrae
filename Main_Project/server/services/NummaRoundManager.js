@@ -289,6 +289,17 @@ class NummaRoundManager {
       // Update round with total payout
       round.totalPayout = totalPayout;
       await round.save();
+
+      // Fallback: Force any remaining pending bets to 'lost'
+      const pendingBets = await NummaBet.find({ roundId: round._id, status: 'pending' });
+      if (pendingBets.length > 0) {
+        for (const bet of pendingBets) {
+          bet.status = 'lost';
+          bet.winAmount = 0;
+          await bet.save();
+        }
+        console.warn(`[Numma] Forced ${pendingBets.length} bets to 'lost' after result processing for round ${round.roundNumber}`);
+      }
     } catch (error) {
       console.error(`Error processing bets for round ${round.roundNumber}:`, error);
     }
