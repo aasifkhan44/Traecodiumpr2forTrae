@@ -722,7 +722,7 @@ router.get('/payment-methods', adminMiddleware, async (req, res) => {
 // @access  Private/Admin
 router.post('/payment-methods', adminMiddleware, async (req, res) => {
   try {
-    const { type, name, identifier, description, currency, isActive, svgCode, conversionRate } = req.body;
+    const { type, name, identifier, description, currency, isActive, svgCode, conversionRate, imageUrl } = req.body;
 
     // Check for existing identifier
     const existingMethod = await PaymentMethod.findOne({ type, identifier });
@@ -741,7 +741,8 @@ router.post('/payment-methods', adminMiddleware, async (req, res) => {
       currency,
       isActive,
       svgCode,
-      conversionRate
+      conversionRate,
+      imageUrl
     });
 
     await newPaymentMethod.save();
@@ -765,11 +766,11 @@ router.post('/payment-methods', adminMiddleware, async (req, res) => {
 router.put('/payment-methods/:id', adminMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, name, identifier, description, currency, isActive, svgCode, conversionRate } = req.body;
+    const { type, name, identifier, description, currency, isActive, svgCode, conversionRate, imageUrl } = req.body;
 
     const updatedMethod = await PaymentMethod.findByIdAndUpdate(
       id,
-      { type, name, identifier, description, currency, isActive, svgCode, conversionRate },
+      { type, name, identifier, description, currency, isActive, svgCode, conversionRate, imageUrl },
       { new: true, runValidators: true }
     );
 

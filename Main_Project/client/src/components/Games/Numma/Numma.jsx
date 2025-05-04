@@ -15,15 +15,24 @@ import { toast } from 'react-hot-toast';
 import api from '../../../utils/api';
 import { useSiteSettings } from '../../../contexts/SiteSettingsContext';
 
+const beepAudio = typeof window !== 'undefined' ? new Audio('/sounds/countdown-beep.mp3') : null;
+
 export default function Numma({ gameData }) {
   const { siteSettings } = useSiteSettings();
   
   // Initialize error state to avoid "setError is not defined" errors
   const [error, setError] = useState(null);
   
-  // Fullscreen countdown overlay state
-  const [showCountdownOverlay, setShowCountdownOverlay] = useState(false);
-  const [overlaySeconds, setOverlaySeconds] = useState(null);
+  // Result popup state
+  const [showResultPopup, setShowResultPopup] = useState(false);
+  const [popupResult, setPopupResult] = useState(null);
+
+  // Use popup state for countdown/result
+  const [showCountdownPopup, setShowCountdownPopup] = useState(false);
+  const [popupCountdownSeconds, setPopupCountdownSeconds] = useState(null);
+  const [popupShowResult, setPopupShowResult] = useState(false);
+  const [popupResultCountdown, setPopupResultCountdown] = useState(null);
+  const [popupLoading, setPopupLoading] = useState(false);
 
   // Get all core functionality from NummaCore
   const numma = NummaCore();
@@ -31,37 +40,126 @@ export default function Numma({ gameData }) {
   // Get card image URL from gameData if available, fallback to site logo
   const logoUrl = gameData?.cardImageUrl || siteSettings.logoUrl;
   
-  // Effect to control countdown overlay
+  // Effect to control countdown popup and result
   useEffect(() => {
     if (numma.timer <= 6 && numma.timer > 0) {
-      setOverlaySeconds(numma.timer);
-      setShowCountdownOverlay(true);
-    } else {
-      setShowCountdownOverlay(false);
+      setPopupCountdownSeconds(numma.timer);
+      setShowCountdownPopup(true);
+      setPopupShowResult(false);
+      setPopupResultCountdown(null);
+      setPopupLoading(false);
+      // Play beep for last 5 seconds
+      if (numma.timer <= 5 && beepAudio) {
+        beepAudio.currentTime = 0;
+        beepAudio.play().catch(() => {});
+      }
+    } else if (numma.timer === 0 && showCountdownPopup && !popupShowResult) {
+      const roundNumber = numma.activeRound?.roundNumber || numma.activeRound?.number;
+      if (roundNumber) {
+        setPopupLoading(true);
+        const fetchResult = (retry = 0) => {
+          api.get('/numma/rounds/history', {
+            params: { duration: numma.activeRound?.duration || numma.selectedDuration, page: 1 }
+          })
+          .then(res => {
+            if (res.data.success && Array.isArray(res.data.data.rounds)) {
+              const found = res.data.data.rounds.find(r => 
+                r.roundNumber === roundNumber || r.number === roundNumber
+              );
+              if (found) {
+                // Flatten result fields for popup display
+                let number = '';
+                let color = '';
+                let bigSmall = '';
+                if (found.result) {
+                  number = found.result.number;
+                  if ([0,2,4,6,8].includes(number)) {
+                    color = 'Red';
+                    if (number === 0) color = 'Red, Violet';
+                  } else if ([1,3,5,7,9].includes(number)) {
+                    color = 'Green';
+                    if (number === 5) color = 'Green, Violet';
+                  }
+                  bigSmall = (number >= 5 && number <= 9) ? 'Big' : (number >= 0 && number <= 4) ? 'Small' : '-';
+                }
+                setPopupShowResult(true);
+                setPopupResultCountdown({
+                  ...found,
+                  number,
+                  color,
+                  bigSmall,
+                });
+                setPopupCountdownSeconds(0);
+                setPopupLoading(false);
+                setTimeout(() => {
+                  setShowCountdownPopup(false);
+                  setPopupShowResult(false);
+                  setPopupResultCountdown(null);
+                  setPopupLoading(false);
+                }, 2000);
+                return;
+              }
+            }
+            // Retry up to 12 times (~10 seconds)
+            if (retry < 12) {
+              setTimeout(() => fetchResult(retry + 1), 850);
+            } else {
+              setPopupShowResult(false);
+              setPopupResultCountdown(null);
+              setPopupCountdownSeconds(0);
+              setPopupLoading(false);
+            }
+          })
+          .catch(() => {
+            if (retry < 12) {
+              setTimeout(() => fetchResult(retry + 1), 850);
+            } else {
+              setPopupShowResult(false);
+              setPopupResultCountdown(null);
+              setPopupCountdownSeconds(0);
+              setPopupLoading(false);
+            }
+          });
+        };
+        fetchResult();
+      } else {
+        setPopupShowResult(false);
+        setPopupResultCountdown(null);
+        setPopupCountdownSeconds(0);
+        setPopupLoading(false);
+      }
     }
-  }, [numma.timer]);
+    // Do not auto-close on timer > 6, let popup auto-close after result
+  }, [numma.timer, showCountdownPopup, popupShowResult, numma.activeRound]);
+
+  // Handler to close overlay after result
+  const handleOverlayClose = () => {
+    setShowCountdownPopup(false);
+    setPopupShowResult(false);
+    setPopupResultCountdown(null);
+  };
 
   // Handle bet placement with proper error handling
   const handlePlaceBet = async (amount, multiplier = 1) => {
     if (!numma.user) {
-      toast.error('Please login to place a bet', { duration: 2000 });
+      toast.error('Please login to place a bet', { duration: 1000 });
       return;
     }
     
     if (!numma.activeRound) {
-      toast.error('No active round available', { duration: 2000 });
+      toast.error('No active round available', { duration: 1000 });
       return;
     }
     
     const betAmount = amount || numma.betAmount;
     if (!betAmount || isNaN(betAmount) || betAmount <= 0) {
-      toast.error('Please enter a valid bet amount', { duration: 2000 });
+      toast.error('Please enter a valid bet amount', { duration: 1000 });
       return;
     }
     
     // Check if user has enough balance
     if (betAmount > numma.walletBalance) {
-      toast.error('Insufficient balance', { duration: 2000 });
+      toast.error('Insufficient balance', { duration: 1000 });
       setError('Insufficient balance. Please add funds to your wallet.');
       return;
     }
@@ -78,7 +176,7 @@ export default function Numma({ gameData }) {
       betType = 'bigsmall';
       betValue = numma.bigSmall;
     } else {
-      toast.error('Please select a bet option', { duration: 2000 });
+      toast.error('Please select a bet option', { duration: 1000 });
       return;
     }
     
@@ -99,7 +197,7 @@ export default function Numma({ gameData }) {
         console.log('MOCK MODE: Would send to API:', {
           userId: numma.user?.id || numma.user?._id || 'mock-user-id',
           roundId: numma.activeRound?._id || 'mock-round-id',
-          duration: numma.selectedDuration,
+          duration: numma.activeRound?.duration || numma.selectedDuration,
           betType,
           betValue,
           amount: Number(betAmount),
@@ -108,7 +206,7 @@ export default function Numma({ gameData }) {
         });
         
         // Show success message
-        toast.success(`Bet placed: ${betType} on ${betValue} for ⚡${betAmount} (x${multiplier})`, { duration: 2000 });
+        toast.success(`Bet placed: ${betType} on ${betValue} for ⚡${betAmount} (x${multiplier})`, { duration: 1000 });
         
         // Simulate win/loss after a delay (for demo purposes)
         if (Math.random() > 0.5) { // 50% chance of winning
@@ -126,7 +224,7 @@ export default function Numma({ gameData }) {
           
           // Simulate a delay before showing the win
           setTimeout(() => {
-            toast.success(`You won ⚡${winAmount}!`, { duration: 2000 });
+            toast.success(`You won ⚡${winAmount}!`, { duration: 1000 });
             numma.updateWalletBalance(winAmount);
           }, 5000 + Math.random() * 5000); // Random delay between 5-10 seconds
         }
@@ -185,7 +283,7 @@ export default function Numma({ gameData }) {
         const payload = {
           // userId, // REMOVE userId, backend will use authenticated user
           roundId,
-          duration: numma.selectedDuration,
+          duration: numma.activeRound?.duration || numma.selectedDuration,
           betType,
           betValue: formattedBetValue,
           amount: Number(betAmount),
@@ -204,7 +302,7 @@ export default function Numma({ gameData }) {
         const response = await api.post('/numma/bet', payload);
         
         if (response.data.success) {
-          toast.success('Bet placed successfully!', { duration: 2000 });
+          toast.success('Bet placed successfully!', { duration: 1000 });
           
           // Refresh wallet balance from backend
           await numma.fetchWalletBalance();
@@ -224,11 +322,11 @@ export default function Numma({ gameData }) {
         
         // Check if we have a response with error details
         if (apiError.response?.data?.error) {
-          toast.error(apiError.response.data.error, { duration: 2000 });
+          toast.error(apiError.response.data.error, { duration: 1000 });
           setError(apiError.response.data.error);
         } else {
           // Show the error message
-          toast.error(apiError.message || 'Failed to place bet', { duration: 2000 });
+          toast.error(apiError.message || 'Failed to place bet', { duration: 1000 });
           setError(apiError.message || 'Failed to place bet');
         }
       }
@@ -243,7 +341,7 @@ export default function Numma({ gameData }) {
       
     } catch (err) {
       setError(err.message || 'Failed to place bet');
-      toast.error(err.message || 'Failed to place bet', { duration: 2000 });
+      toast.error(err.message || 'Failed to place bet', { duration: 1000 });
     } finally {
       numma.setBetLoading(false);
     }
@@ -267,14 +365,27 @@ export default function Numma({ gameData }) {
     };
   }, []);
 
-  // --- Countdown Overlay Component ---
-  function CountdownOverlay({ seconds }) {
-    useEffect(() => {
-      if (seconds === 5) {
-        const audio = new window.Audio('/sounds/countdown-beep.mp3');
-        audio.play().catch(() => {});
-      }
-    }, [seconds]);
+  // Countdown/Result Popup Component
+  function CountdownResultPopup({ seconds, showResult, result, open, onClose, loading }) {
+    if (!open) return null;
+    const showPeriod = result?.period || result?.roundNumber || result?.number;
+    const showNumber = result?.number ?? result?.resultNumber ?? result?.roundNumber;
+    const showColors = result?.color || result?.resultColors || result?.colors;
+    const showBigSmall = result?.bigSmall ?? result?.bigsmall ?? result?.BigSmall;
+    // Color theme for result
+    const colorMap = {
+      'Red': '#ef4444',
+      'Green': '#22c55e',
+      'Violet': '#a21caf',
+      'Red, Violet': 'linear-gradient(90deg, #ef4444 50%, #a21caf 50%)',
+      'Green, Violet': 'linear-gradient(90deg, #22c55e 50%, #a21caf 50%)',
+    };
+    let colorStyle = {};
+    if (showColors && colorMap[showColors]) {
+      colorStyle = colorMap[showColors].startsWith('linear')
+        ? { background: colorMap[showColors], WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+        : { color: colorMap[showColors] };
+    }
     return (
       <div style={{
         position: 'fixed',
@@ -282,32 +393,134 @@ export default function Numma({ gameData }) {
         left: 0,
         width: '100vw',
         height: '100vh',
-        background: 'rgba(0,0,0,0.85)',
-        zIndex: 9999,
+        background: 'rgba(0,0,0,0.25)',
+        zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        flexDirection: 'column',
-        transition: 'background 0.3s',
       }}>
-        <span style={{
-          color: '#fff',
-          fontSize: '9vw',
-          fontWeight: 900,
-          letterSpacing: '0.1em',
-          textShadow: '0 4px 32px #000a',
-          marginBottom: '1.5vw',
-          fontFamily: 'Inter, Segoe UI, Arial, sans-serif'
-        }}>{seconds}</span>
-        <span style={{color:'#fff',fontSize:'2vw',marginTop:'0.5vw',opacity:0.7}}>Get Ready!</span>
+        <div style={{
+          background: 'linear-gradient(135deg, #f0f9ff 60%, #a5b4fc 100%)',
+          borderRadius: '2.5rem 1.2rem 2.5rem 1.2rem',
+          boxShadow: '0 12px 40px #6366f1aa, 0 2px 8px #0002',
+          padding: '2.7rem 2.5rem 2.2rem 2.5rem',
+          minWidth: 350,
+          maxWidth: '95vw',
+          textAlign: 'center',
+          position: 'relative',
+          border: '4px solid #6366f1',
+          overflow: 'hidden',
+        }}>
+          <button onClick={onClose} style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            background: 'none',
+            border: 'none',
+            fontSize: 28,
+            color: '#6366f1',
+            cursor: 'pointer',
+            fontWeight: 900,
+            transition: 'color 0.2s',
+          }}>&times;</button>
+          <div style={{
+            position: 'absolute',
+            left: -40,
+            top: -40,
+            width: 120,
+            height: 120,
+            background: 'radial-gradient(circle at 60% 40%, #6366f1 0%, transparent 80%)',
+            zIndex: 0,
+            opacity: 0.18,
+            pointerEvents: 'none',
+          }} />
+          <div style={{
+            position: 'absolute',
+            right: -40,
+            bottom: -40,
+            width: 120,
+            height: 120,
+            background: 'radial-gradient(circle at 40% 60%, #a5b4fc 0%, transparent 80%)',
+            zIndex: 0,
+            opacity: 0.14,
+            pointerEvents: 'none',
+          }} />
+          {loading ? (
+            <div style={{margin: '40px 0'}}>
+              <div className="spinner" style={{margin: '0 auto 16px', width: 48, height: 48, border: '5px solid #e0e7ef', borderTop: '5px solid #6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
+              <h2 style={{ fontSize: 24, fontWeight: 800, color: '#6366f1', marginBottom: 10 }}>Fetching result...</h2>
+            </div>
+          ) : !showResult ? (
+            <>
+              {seconds === 0 ? (
+                <>
+                  <h2 style={{ fontSize: 30, fontWeight: 900, color: '#6366f1', marginBottom: 20, letterSpacing: 1 }}>Waiting for result...</h2>
+                  <span style={{color:'#666',fontSize:'1.2em',opacity:0.7}}>Please wait</span>
+                </>
+              ) : (
+                <>
+                  <h2 style={{ fontSize: 30, fontWeight: 900, color: '#6366f1', marginBottom: 20, letterSpacing: 1 }}>Round Starts In</h2>
+                  <div style={{
+                    color: '#fff',
+                    fontSize: 74,
+                    fontWeight: 900,
+                    letterSpacing: '0.1em',
+                    textShadow: '0 2px 24px #6366f1cc, 0 2px 16px #fff8',
+                    marginBottom: 14,
+                    fontFamily: 'Inter, Segoe UI, Arial, sans-serif',
+                    background: 'linear-gradient(90deg,#6366f1,#a5b4fc 70%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}>{seconds}</div>
+                  <span style={{color:'#6366f1',fontSize:'1.2em',opacity:0.8}}>Get Ready!</span>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 style={{ fontSize: 38, fontWeight: 900, color: '#6366f1', marginBottom: 18, letterSpacing: 1.2, textShadow: '0 2px 12px #a5b4fc99' }}>Round Result</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#374151', letterSpacing: 0.7 }}>
+                  <span style={{color:'#6366f1'}}>Period:</span> <span style={{color:'#222'}}>{showPeriod}</span>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#374151', letterSpacing: 0.7 }}>
+                  <span style={{color:'#6366f1'}}>Number:</span> <span style={{color:'#222'}}>{typeof showNumber !== 'undefined' ? showNumber : '-'}</span>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#374151', letterSpacing: 0.7 }}>
+                  <span style={{color:'#6366f1'}}>Big/Small:</span> <span style={{color: showBigSmall === 'Big' ? '#f59e42' : showBigSmall === 'Small' ? '#3b82f6' : '#222'}}>{showBigSmall || '-'}</span>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#374151', letterSpacing: 0.7 }}>
+                  <span style={{color:'#6366f1'}}>Color:</span> <span style={{...colorStyle, fontWeight: 900, fontSize: 24}}>{showColors ? showColors : '-'}</span>
+                </div>
+              </div>
+            </>
+          )}
+          <style>{`
+            @keyframes spin { 100% { transform: rotate(360deg); } }
+          `}</style>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="wallet-recharge-container w-full max-w-lg mx-auto px-2 sm:px-4 py-4 sm:py-6 bg-gradient-to-br from-blue-600 via-blue-400 to-cyan-300 rounded-2xl shadow-xl border-2 border-blue-200 animate-fade-in">
-      {showCountdownOverlay && overlaySeconds <= 5 && overlaySeconds > 0 && (
-        <CountdownOverlay seconds={overlaySeconds} />
+      {showCountdownPopup && (
+        <CountdownResultPopup 
+          seconds={popupCountdownSeconds}
+          showResult={popupShowResult}
+          result={popupResultCountdown}
+          open={showCountdownPopup}
+          onClose={() => setShowCountdownPopup(false)}
+          loading={popupLoading}
+        />
+      )}
+      {showResultPopup && (
+        <ResultPopup 
+          result={popupResult} 
+          open={showResultPopup} 
+          onClose={() => setShowResultPopup(false)}
+        />
       )}
       <div className="w-full rounded-2xl">
         {/* Header: Logo + Game Name */}

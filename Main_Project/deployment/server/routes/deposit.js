@@ -32,12 +32,14 @@ router.get('/payment-options', auth, async (req, res) => {
     const upiOptions = upiMethods.map(method => ({
       name: method.name,
       upiId: method.identifier,
+      imageUrl: method.imageUrl || '',
       svgCode: method.svgCode || ''
     }));
     
     const cryptoOptions = cryptoMethods.map(method => ({
       currency: method.currency,
       address: method.identifier,
+      imageUrl: method.imageUrl || '',
       conversionRate: method.conversionRate,
       svgCode: method.svgCode || ''
     }));

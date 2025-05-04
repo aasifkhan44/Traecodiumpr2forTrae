@@ -308,36 +308,28 @@ class WingoRoundManager {
   }
 
   async processBets(round) {
-    const bets = await WingoBet.find({ roundId: round._id, status: 'pending' });
+    let bets = await WingoBet.find({ roundId: round._id, status: 'pending' });
 
+    // First pass: process all pending bets normally
     for (const bet of bets) {
       await this.updatePotentialWin(round._id, bet);
-
       let won = false;
       if (bet.betType === 'color') {
         won = bet.betValue === round.result.color;
-        if (won) {
-          bet.winAmount = bet.amount * 2;
-        }
+        if (won) bet.winAmount = bet.amount * 2;
       } else { // number
         won = parseInt(bet.betValue) === round.result.number;
-        if (won) {
-          bet.winAmount = bet.amount * 10;
-        }
+        if (won) bet.winAmount = bet.amount * 10;
       }
-
       bet.status = won ? 'won' : 'lost';
       await bet.save();
-
-      // Payout to user if won
+      // Payout if won
       if (won && bet.winAmount > 0) {
         const user = await User.findById(bet.userId);
         if (user) {
           const balanceBefore = user.balance;
           user.balance += bet.winAmount;
           await user.save();
-
-          // Log transaction
           await Transaction.create({
             user: user._id,
             amount: bet.winAmount,
@@ -348,8 +340,6 @@ class WingoRoundManager {
             balanceAfter: user.balance,
             description: `Wingo bet win payout for round ${round.roundNumber}`
           });
-
-          // Send balance update to user via WebSocket after payout
           if (WingoWebSocketServer && typeof WingoWebSocketServer.getInstance === 'function') {
             const wsServer = WingoWebSocketServer.getInstance();
             if (wsServer && typeof wsServer.sendUserBalanceUpdate === 'function') {
@@ -360,9 +350,62 @@ class WingoRoundManager {
       }
     }
 
+    // Retry logic: ensure no bet is left pending
+    let retryCount = 0;
+    let pendingBets = await WingoBet.find({ roundId: round._id, status: 'pending' });
+    while (pendingBets.length > 0 && retryCount < 3) {
+      for (const bet of pendingBets) {
+        let won = false;
+        if (bet.betType === 'color') {
+          won = bet.betValue === round.result.color;
+          if (won) bet.winAmount = bet.amount * 2;
+        } else { // number
+          won = parseInt(bet.betValue) === round.result.number;
+          if (won) bet.winAmount = bet.amount * 10;
+        }
+        bet.status = won ? 'won' : 'lost';
+        await bet.save();
+        // Payout if won and not already paid (optional: check transaction log if needed)
+        if (won && bet.winAmount > 0) {
+          const user = await User.findById(bet.userId);
+          if (user) {
+            const balanceBefore = user.balance;
+            user.balance += bet.winAmount;
+            await user.save();
+            await Transaction.create({
+              user: user._id,
+              amount: bet.winAmount,
+              type: 'credit',
+              reference: `WingoBet:${bet._id}`,
+              status: 'completed',
+              balanceBefore,
+              balanceAfter: user.balance,
+              description: `Wingo bet win payout for round ${round.roundNumber}`
+            });
+            if (WingoWebSocketServer && typeof WingoWebSocketServer.getInstance === 'function') {
+              const wsServer = WingoWebSocketServer.getInstance();
+              if (wsServer && typeof wsServer.sendUserBalanceUpdate === 'function') {
+                wsServer.sendUserBalanceUpdate(user._id, user.balance);
+              }
+            }
+          }
+        }
+      }
+      retryCount++;
+      pendingBets = await WingoBet.find({ roundId: round._id, status: 'pending' });
+    }
+    // After retries, force any remaining pending bets to lost
+    if (pendingBets.length > 0) {
+      for (const bet of pendingBets) {
+        bet.status = 'lost';
+        bet.winAmount = 0;
+        await bet.save();
+      }
+      console.warn(`[Wingo] Forced ${pendingBets.length} bets to 'lost' after retries for round ${round.roundNumber}`);
+    }
+
     round.status = 'completed';
     await round.save();
-    
     // Clean up potential win data for this round
     await this.cleanupPotentialWinData(round._id);
   }

@@ -82,20 +82,22 @@ class NummaRoundManager {
   async createNextRound(duration) {
     try {
       const Model = this.models[duration];
-      
+      // --- Fix: Prevent multiple active rounds ---
+      const now = new Date();
+      const existingActive = await Model.findOne({ status: 'active', endTime: { $gt: now } });
+      if (existingActive) {
+        console.log(`[Numma] Skipping round creation for duration ${duration}, active round exists: ${existingActive.roundNumber}`);
+        return existingActive;
+      }
       // Find the latest round for this duration
       const latestRound = await Model.findOne().sort({ roundNumber: -1 });
-      
       // Generate new round number
       const nextRoundNumber = latestRound 
         ? this.generateNextRoundNumber(latestRound.roundNumber)
         : this.generateInitialRoundNumber(duration);
-      
       // Calculate start and end times
-      const now = new Date();
       const startTime = now;
       const endTime = new Date(now.getTime() + duration * 60 * 1000);
-      
       // Create new round
       const newRound = new Model({
         roundNumber: nextRoundNumber,
@@ -104,23 +106,18 @@ class NummaRoundManager {
         endTime,
         status: 'active'
       });
-      
       await newRound.save();
       console.log(`Created new ${duration}-minute round: ${nextRoundNumber}`);
-      
       // Complete previous round if exists
       if (latestRound && latestRound.status === 'active') {
         await this.completeRound(latestRound._id, duration);
       }
-      
       // Schedule round completion
       setTimeout(() => this.completeRound(newRound._id, duration), duration * 60 * 1000);
-      
       // Broadcast new round to clients
       if (global.nummaWebSocketServer) {
         global.nummaWebSocketServer.broadcastActiveRounds();
       }
-      
       return newRound;
     } catch (error) {
       console.error(`Error creating next ${duration}-minute round:`, error);

@@ -148,21 +148,39 @@ class NummaRoundManager {
         const outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
         let forcedNumber = null;
         if (outcomeDoc) {
-          // Find the number with the lowest total bets (most profitable for admin)
-          let minTotal = Infinity;
-          let minNumbers = [];
+          // Calculate total liability for each number (number, color, bigsmall)
+          let minLiability = Infinity;
+          let bestNumbers = [];
           for (let i = 0; i < 10; i++) {
-            const key = `number:${i}`;
-            const total = outcomeDoc.outcomeTotals.get(key) || 0;
-            if (total < minTotal) {
-              minTotal = total;
-              minNumbers = [i];
-            } else if (total === minTotal) {
-              minNumbers.push(i);
+            // Number liability
+            const numberKey = `number:${i}`;
+            const numberTotal = outcomeDoc.outcomeTotals.get(numberKey) || 0;
+            const numberLiability = numberTotal * this.getNummaMultiplier('number', i);
+
+            // Color liability
+            const color = round.getColorFromNumber(i);
+            const colorKey = `color:${color}`;
+            const colorTotal = outcomeDoc.outcomeTotals.get(colorKey) || 0;
+            const colorLiability = colorTotal * this.getNummaMultiplier('color', color);
+
+            // BigSmall liability
+            const bigSmall = round.getBigSmallFromNumber(i);
+            const bigSmallKey = `bigsmall:${bigSmall}`;
+            const bigSmallTotal = outcomeDoc.outcomeTotals.get(bigSmallKey) || 0;
+            const bigSmallLiability = bigSmallTotal * this.getNummaMultiplier('bigsmall', bigSmall);
+
+            // Total liability for this number
+            const totalLiability = numberLiability + colorLiability + bigSmallLiability;
+
+            if (totalLiability < minLiability) {
+              minLiability = totalLiability;
+              bestNumbers = [i];
+            } else if (totalLiability === minLiability) {
+              bestNumbers.push(i);
             }
           }
-          // If multiple numbers have the same min total, pick randomly
-          forcedNumber = minNumbers[Math.floor(Math.random() * minNumbers.length)];
+          // Pick randomly among bestNumbers if tie
+          forcedNumber = bestNumbers[Math.floor(Math.random() * bestNumbers.length)];
           round.setResultFromNumber(forcedNumber);
         } else {
           // Fallback: random result
@@ -184,10 +202,14 @@ class NummaRoundManager {
       }
 
       // Clean up NummaBetOutcome after result is generated
-      const outcomeDoc = await NummaBetOutcome.findOne({ roundId, duration });
-      if (outcomeDoc) {
-        await NummaBetOutcome.deleteOne({ _id: outcomeDoc._id });
-        console.log(`[DEBUG] Deleted NummaBetOutcome for roundId=${roundId}, duration=${duration}`);
+      // Keep only the last 10 rounds for this duration
+      const allOutcomes = await NummaBetOutcome.find({ duration }).sort({ createdAt: -1 });
+      if (allOutcomes.length > 10) {
+        const toDelete = allOutcomes.slice(10);
+        for (const doc of toDelete) {
+          await NummaBetOutcome.deleteOne({ _id: doc._id });
+          console.log(`[DEBUG] Deleted old NummaBetOutcome for roundId=${doc.roundId}, duration=${duration}`);
+        }
       }
       
       // Clean up pending admin result after use
@@ -267,6 +289,17 @@ class NummaRoundManager {
       // Update round with total payout
       round.totalPayout = totalPayout;
       await round.save();
+
+      // Fallback: Force any remaining pending bets to 'lost'
+      const pendingBets = await NummaBet.find({ roundId: round._id, status: 'pending' });
+      if (pendingBets.length > 0) {
+        for (const bet of pendingBets) {
+          bet.status = 'lost';
+          bet.winAmount = 0;
+          await bet.save();
+        }
+        console.warn(`[Numma] Forced ${pendingBets.length} bets to 'lost' after result processing for round ${round.roundNumber}`);
+      }
     } catch (error) {
       console.error(`Error processing bets for round ${round.roundNumber}:`, error);
     }
@@ -419,6 +452,38 @@ class NummaRoundManager {
       
       if (timeUntilEnd < 10000) { // 10 seconds buffer
         throw new Error('Betting period has ended for this round');
+      }
+      
+      // Restrict: Prevent user from betting on all numbers, all colors, or both big/small in the same round
+      // 1. Prevent multiple bets on same betType per round
+      const existingSameTypeBet = await NummaBet.findOne({ userId, roundId, betType });
+      if (existingSameTypeBet) {
+        throw new Error('You have already placed a bet of this type for this round.');
+      }
+
+      // 2. Prevent both big and small in same round
+      if (betType.toLowerCase() === 'bigsmall') {
+        const opposite = betValue === 'Big' ? 'Small' : 'Big';
+        const oppositeBet = await NummaBet.findOne({ userId, roundId, betType: 'bigsmall', betValue: opposite });
+        if (oppositeBet) {
+          throw new Error('You cannot bet on both Big and Small in the same round.');
+        }
+      }
+
+      // 3. Prevent all colors in same round
+      if (betType.toLowerCase() === 'color') {
+        const colorBets = await NummaBet.find({ userId, roundId, betType: 'color' });
+        if (colorBets.length >= 2) {
+          throw new Error('You cannot bet on more than two colors in the same round.');
+        }
+      }
+
+      // 4. Prevent all numbers in same round
+      if (betType.toLowerCase() === 'number') {
+        const numberBets = await NummaBet.find({ userId, roundId, betType: 'number' });
+        if (numberBets.length >= 9) {
+          throw new Error('You cannot bet on all or nearly all numbers in the same round.');
+        }
       }
       
       // Calculate service fee (2%)

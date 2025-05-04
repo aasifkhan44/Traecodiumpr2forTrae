@@ -35,6 +35,10 @@ const NummaCore = () => {
   const [historyRounds, setHistoryRounds] = useState([]);
   const [waitingForNextRound, setWaitingForNextRound] = useState(false);
 
+  // --- For precise, server-synced countdown ---
+  const [serverTimeAtSync, setServerTimeAtSync] = useState(null);
+  const [clientTimeAtSync, setClientTimeAtSync] = useState(null);
+
   const formattedTime = useMemo(() => {
     const minutes = Math.floor(timer / 60);
     const seconds = timer % 60;
@@ -94,21 +98,20 @@ const NummaCore = () => {
       if (success && response) {
         const rounds = response.data.rounds || response.data.data || [];
         const serverTime = response.data.serverTime ? new Date(response.data.serverTime).getTime() : null;
-        let filteredRounds = rounds.filter(round => round.duration === selectedDuration);
+        let filteredRounds = rounds.filter(round => round.duration === selectedDuration && round.status === 'active');
         if (filteredRounds.length === 0 && rounds.length > 0) {
-          filteredRounds = [rounds[0]];
+          filteredRounds = rounds.filter(round => round.status === 'active');
         }
         setRounds(filteredRounds);
-        const active = filteredRounds.find(round => round.status === 'active') || filteredRounds[0];
+        const active = filteredRounds[0] || null;
         if (active) {
           setActiveRound(active);
-          const start = new Date(active.startTime).getTime();
-          const end = new Date(active.endTime).getTime();
-          let now = serverTime || (active.serverTime ? new Date(active.serverTime).getTime() : Date.now());
-          let timer = Math.max(0, Math.floor((end - now) / 1000));
-          let roundJustStarted = Math.abs(now - start) < 2000;
-          if (roundJustStarted) timer = Math.floor((end - start) / 1000);
-          setTimer(timer);
+          if (serverTime) {
+            setServerTimeAtSync(serverTime);
+            setClientTimeAtSync(Date.now());
+          }
+        } else {
+          setActiveRound(null);
         }
         setCompletedRounds(filteredRounds.filter(round => round.status === 'completed'));
       } else {
@@ -219,6 +222,27 @@ const NummaCore = () => {
     ws.onclose = () => {};
   }, [user, selectedDuration, userBets]);
 
+  const handleWebSocketRoundUpdate = useCallback((data) => {
+    let roundsArr = Array.isArray(data.rounds)
+      ? data.rounds
+      : Object.values(data.rounds);
+    let filteredRounds = roundsArr.filter(round => round.duration === selectedDuration && round.status === 'active');
+    if (filteredRounds.length === 0 && roundsArr.length > 0) {
+      filteredRounds = roundsArr.filter(round => round.status === 'active');
+    }
+    setRounds(filteredRounds);
+    const active = filteredRounds[0] || null;
+    if (active) {
+      setActiveRound(active);
+      if (data.serverTime) {
+        setServerTimeAtSync(new Date(data.serverTime).getTime());
+        setClientTimeAtSync(Date.now());
+      }
+    } else {
+      setActiveRound(null);
+    }
+  }, [selectedDuration]);
+
   useEffect(() => {
     fetchActiveRound();
     connectWebSocket();
@@ -226,81 +250,6 @@ const NummaCore = () => {
       if (wsRef.current) wsRef.current.close();
     };
   }, [user, selectedDuration, fetchActiveRound, connectWebSocket]);
-
-  // --- Timer logic for live countdown and auto-fetch next round (MIRROR Wingo) ---
-  const timerRef = useRef(null);
-  const driftRef = useRef(0);
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    const round = activeRound;
-    if (!round || !round.endTime) {
-      setTimer(null);
-      return;
-    }
-    // Sync with server time if provided
-    let serverTime = null;
-    if (round.serverTime) {
-      serverTime = new Date(round.serverTime).getTime();
-      driftRef.current = serverTime - Date.now(); // Positive: server ahead, Negative: client ahead
-    } else {
-      driftRef.current = 0;
-    }
-    const calcRemaining = () => {
-      const now = Date.now() + driftRef.current;
-      const end = new Date(round.endTime).getTime();
-      return Math.max(0, Math.floor((end - now) / 1000));
-    };
-    setTimer(calcRemaining());
-    setWaitingForNextRound(false);
-    timerRef.current = setInterval(() => {
-      const remaining = calcRemaining();
-      setTimer(remaining);
-      if (remaining === 0) {
-        // Block betting and clear round/timer before fetching new round
-        setActiveRound(null);
-        setTimer(null);
-        setWaitingForNextRound(true);
-        setTimeout(() => {
-          fetchActiveRound();
-        }, 200);
-      }
-    }, 1000);
-    return () => clearInterval(timerRef.current);
-  }, [activeRound, selectedDuration]);
-
-  // --- Patch WebSocket round update logic for precise timer sync ---
-  const handleWebSocketRoundUpdate = useCallback((data) => {
-    let roundsArr = Array.isArray(data.rounds)
-      ? data.rounds
-      : Object.values(data.rounds);
-    let filteredRounds = roundsArr.filter(round => round.duration === selectedDuration);
-    if (filteredRounds.length === 0 && roundsArr.length > 0) {
-      filteredRounds = [roundsArr[0]];
-    }
-    setRounds(filteredRounds);
-    const active = filteredRounds.find(round => round.status === 'active') || filteredRounds[0];
-    if (active) {
-      setActiveRound(active);
-      // Use serverTime if provided for precise sync
-      const now = (data.serverTime ? new Date(data.serverTime).getTime() : (active.serverTime ? new Date(active.serverTime).getTime() : Date.now()));
-      const start = new Date(active.startTime).getTime();
-      const end = new Date(active.endTime).getTime();
-      let timer = Math.max(0, Math.floor((end - now) / 1000));
-      // If round just started (within 2s), show full duration
-      let roundJustStarted = Math.abs(now - start) < 2000;
-      if (roundJustStarted) timer = Math.floor((end - start) / 1000);
-      setTimer(timer);
-      setWaitingForNextRound(false);
-    }
-    const completed = filteredRounds.filter(round => round.status === 'completed');
-    if (completed.length > 0) {
-      setCompletedRounds(prev => {
-        const existingIds = new Set(prev.map(r => r._id));
-        const newRounds = completed.filter(r => !existingIds.has(r._id));
-        return [...newRounds, ...prev];
-      });
-    }
-  }, [selectedDuration]);
 
   useEffect(() => {
     if (waitingForNextRound && timer > 0) {
@@ -327,6 +276,46 @@ const NummaCore = () => {
     if (activeTab === 'chart') fetchHistoryRounds();
   }, [selectedDuration, activeTab]);
 
+  // --- Live polling fallback to ensure round info is always live ---
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchActiveRound();
+    }, 5000); // Poll every 5 seconds
+    return () => clearInterval(intervalId);
+  }, [selectedDuration, fetchActiveRound]);
+
+  // --- Timer effect: handle upcoming and active rounds, with debug logging and fallback ---
+  useEffect(() => {
+    // Remove or minimize debug logs to prevent browser hang
+    // console.log('Timer effect:', { activeRound, serverTimeAtSync, clientTimeAtSync });
+    if (!activeRound) return;
+    const _serverTimeAtSync = serverTimeAtSync || Date.now();
+    const _clientTimeAtSync = clientTimeAtSync || Date.now();
+    const updateTimer = () => {
+      const now = Date.now();
+      const elapsed = now - _clientTimeAtSync;
+      const estimatedServerNow = _serverTimeAtSync + elapsed;
+      const start = new Date(activeRound.startTime).getTime();
+      const end = new Date(activeRound.endTime).getTime();
+      // Remove excessive logs to avoid browser performance issues
+      // console.log('activeRound times:', activeRound.startTime, activeRound.endTime, 'start:', start, 'end:', end, 'estimatedServerNow:', estimatedServerNow);
+      if (isNaN(start) || isNaN(end)) {
+        setTimer(0);
+        return;
+      }
+      if (estimatedServerNow < start) {
+        setTimer(Math.max(0, Math.floor((start - estimatedServerNow) / 1000)));
+      } else if (estimatedServerNow < end) {
+        setTimer(Math.max(0, Math.floor((end - estimatedServerNow) / 1000)));
+      } else {
+        setTimer(0);
+      }
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [activeRound, serverTimeAtSync, clientTimeAtSync]);
+
   // --- Remainder of component unchanged ---
   const fetchWalletBalance = useCallback(async () => {
     if (!user) return;
@@ -344,6 +333,20 @@ const NummaCore = () => {
       setWalletLoading(false);
     }
   }, [user]);
+
+  if (import.meta.env.PROD) {
+    // eslint-disable-next-line no-console
+    console.log = () => {};
+    // Optionally disable other console methods
+    // eslint-disable-next-line no-console
+    console.debug = () => {};
+    // eslint-disable-next-line no-console
+    console.info = () => {};
+    // eslint-disable-next-line no-console
+    console.warn = () => {};
+    // eslint-disable-next-line no-console
+    console.error = () => {};
+  }
 
   return {
     user,

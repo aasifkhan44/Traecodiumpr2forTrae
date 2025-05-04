@@ -49,38 +49,14 @@ const AdminLayout = ({ onLogout }) => {
               {siteSettings.siteName || 'Admin Panel'}
             </span>
           </div>
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
-            {adminNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/60
-                  ${isActive ? 'bg-primary text-white shadow-md' : 'text-gray-700 dark:text-gray-100 hover:bg-primary/10 hover:text-primary'}`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </div>
-          {/* Mobile Hamburger */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile Hamburger (always visible) */}
+          <div className="flex items-center">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="text-2xl text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/60 rounded"
               aria-label="Open menu"
             >
               <FaBars />
-            </button>
-          </div>
-          {/* Logout Button */}
-          <div className="hidden md:flex items-center ml-4">
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white font-semibold text-sm shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
-            >
-              Logout
             </button>
           </div>
         </div>

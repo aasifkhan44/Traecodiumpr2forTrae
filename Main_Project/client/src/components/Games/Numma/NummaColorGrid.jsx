@@ -18,8 +18,8 @@ export const NummaColorSelection = ({
 }) => {
   const colorOptions = [
     { label: 'Red', value: 'Red', className: 'bg-red-500' },
-    { label: 'Green', value: 'Green', className: 'bg-green-500' },
-    { label: 'Violet', value: 'Violet', className: 'bg-purple-500' }
+    { label: 'Violet', value: 'Violet', className: 'bg-purple-500' },
+    { label: 'Green', value: 'Green', className: 'bg-green-500' }
   ];
 
   return (
